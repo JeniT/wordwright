@@ -45,7 +45,7 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
   crosses paragraphs or is outside 5 to 150 words, an aim of fewer than 3 words, and a title for a draft under about 300
   words, before spending anything. Critique and Rephrase share one throttle of 30 requests per 10 minutes per person (abuse, not a quota). Short wording (a title, or up to 25 words) gets 5 to 10 options, longer gets 3 to 5, and the
   AI is told to make them differ in approach. Every number is in one place, `packages/core/src/rephrase.ts`. The prompt is
-  `prompts/options.md`. The round limit in a window is the critique-looks setting (Your AI page). Only the draft, wording,
+  `prompts/options.md`. The round limit in a window is the critique limit setting (Your AI page). Only the draft, wording,
   aim and publication description are sent: never notes, threads or comments.
   **The Rephrase window** (#162): in the draft editor, select words inside one paragraph and press **Rephrase**. A dialog
   shows the wording (editable), asks "What should it do?" (the Aim), and **Generate options** (saving the draft first, since

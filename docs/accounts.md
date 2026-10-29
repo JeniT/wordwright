@@ -108,9 +108,9 @@ Read this when you change sign-in, registration, passwords, publications and the
   AI's critique points are the same kind of comment (`byAi`). `GET …/comments` is independent review: the editor gets
   every comment, resolved ones included, each with its author; everyone else gets only their own open ones
   (`visibleComments` in `services/comments.ts` is the one place that decides, and the critique route likewise tells
-  non-editors nothing, not even how many looks are used). Only the editor resolves (`PUT …/comments/:id`,
+  non-editors nothing, not even how many critiques are used). Only the editor resolves (`PUT …/comments/:id`,
   `{resolved}`): the comment is hidden, never deleted, and the editor can show it again. A comment carries words about
-  the writing and no replacement text, has no cap, does not count against the critique looks, and is never sent to the AI.
+  the writing and no replacement text, has no cap, does not count against the critique limit, and is never sent to the AI.
   A commenter's name stays after they leave the publication, and after they delete their account if they chose to keep it.
 - **Handles and publication ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they

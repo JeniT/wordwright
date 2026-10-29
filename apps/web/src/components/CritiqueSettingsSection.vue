@@ -42,7 +42,7 @@ const save = useMutation({
     </p>
     <p class="mb-3 text-sm text-ink-soft">
       A critique is your AI’s review of a draft, as comments for you to weigh. A draft gets only a
-      few, because each round can take it further from your voice.
+      few, because each critique can take it further from your voice.
     </p>
     <form @submit.prevent="save.mutate()">
       <div class="mb-4">

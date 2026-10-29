@@ -66,7 +66,7 @@ defineProps<{ publicationId: string }>()
       :to="{ name: 'publication-settings-description', params: { publicationId } }"
       label="Describe this publication"
     >
-      Your AI uses the description to suggest ideas, research and critique that fit this
+      Your AI uses the description to tune ideas, research, rephrasing and critique to this
       publication.
     </NextStep>
 

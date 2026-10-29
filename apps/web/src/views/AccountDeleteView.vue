@@ -57,9 +57,9 @@ const deleteAccount = useMutation({
         >.
       </p>
       <form v-else @submit.prevent="confirmingDelete = true">
-        <fieldset class="mb-4">
+        <fieldset class="mb-4" aria-describedby="keep-name-hint">
           <legend class="mb-1 text-sm font-medium">Your name on what you wrote</legend>
-          <p class="mb-2 text-sm text-ink-soft">
+          <p id="keep-name-hint" class="mb-2 text-sm text-ink-soft">
             Your notes and comments stay in publications that continue. “A former member” is what
             other members of a publication see in place of your name.
           </p>

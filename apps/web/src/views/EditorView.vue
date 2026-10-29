@@ -454,7 +454,7 @@ onBeforeUnmount(() => {
 })
 
 // ---- comments: the editor sees everyone's (the AI's critique included) and the others only their own; the server
-// decides which. The latest critique's summary and the looks used are the editor's alone.
+// decides which. The latest critique's summary and the critiques used are the editor's alone.
 const lastCritique = useDraftCritique(
   () => props.publicationId,
   () => props.id,

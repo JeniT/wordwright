@@ -235,7 +235,7 @@ describe('critique rounds per draft', () => {
     const calls = ctx.llmCalls.length
     const res = await ask()
     expect(res.status).toBe(409)
-    expect((await res.json()).error).toMatch(/3 looks.*publish.*account settings/)
+    expect((await res.json()).error).toMatch(/3 critiques.*publish.*account settings/)
     expect(ctx.llmCalls).toHaveLength(calls)
   })
 

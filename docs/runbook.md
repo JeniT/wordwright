@@ -216,25 +216,25 @@ that has not been tried: losing the server.
 Every limit is in `apps/api/src/app.ts`, kept in the api's memory (one api container, so one set of counts; a restart
 resets them). "Per person" is per signed-in account; "per address" is per network address, from Caddy.
 
-| What                                       | Limit                                              | Why                                                                       |
-| ------------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------------- |
-| Sign-ups, whole site                       | 30 an hour (`SIGNUPS_PER_HOUR`)                    | Each sends an email and adds an account. The alpha also needs approval.   |
-| Sign-ups per address                       | 5 an hour                                          | One person making many.                                                   |
-| Sign-in / password reset                   | 10 per 15 minutes per account; 30 / 10 per address | Password guessing.                                                        |
-| Confirmation emails                        | 3 an hour per account                              | Email to one inbox.                                                       |
-| Publication invitations                    | 20 a day per person; 5 a day to any one address    | Each emails a stranger from our domain.                                   |
-| Review invitations                         | 5 a day to any one address                         | As above.                                                                 |
-| Handover offers                            | 20 a day per person                                | As above.                                                                 |
-| Admin decisions                            | 120 an hour per admin                              | Each emails the person.                                                   |
-| Brainstorm messages                        | 30 per 10 minutes per person                       | The writer's money and our time.                                          |
-| Critique and Rephrase, together            | 30 per 10 minutes per person                       | As above; not a quota on writing (the looks limit is that, for critique). |
-| Research searches                          | 10 an hour per person                              | A bigger bill, and the server fetches several sites.                      |
-| Saving an AI key / listing models          | 10 per 15 minutes / 30 a minute per person         | Each calls the provider; not a key-checking oracle.                       |
-| Link lookups (titles of pages)             | 30 a minute per person                             | Each contacts someone else's website.                                     |
-| New sources (feeds) / fetching their posts | 30 / 120 an hour per person                        | As above.                                                                 |
-| Exports                                    | 5 an hour per person                               | Real work for the server.                                                 |
-| Changing username                          | 5 a day per person                                 | Usernames appear in links.                                                |
-| Request size                               | 2 MB (a picture 1 MB) in the api; 8 MB at Caddy    | Memory.                                                                   |
+| What                                       | Limit                                              | Why                                                                          |
+| ------------------------------------------ | -------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Sign-ups, whole site                       | 30 an hour (`SIGNUPS_PER_HOUR`)                    | Each sends an email and adds an account. The alpha also needs approval.      |
+| Sign-ups per address                       | 5 an hour                                          | One person making many.                                                      |
+| Sign-in / password reset                   | 10 per 15 minutes per account; 30 / 10 per address | Password guessing.                                                           |
+| Confirmation emails                        | 3 an hour per account                              | Email to one inbox.                                                          |
+| Publication invitations                    | 20 a day per person; 5 a day to any one address    | Each emails a stranger from our domain.                                      |
+| Review invitations                         | 5 a day to any one address                         | As above.                                                                    |
+| Handover offers                            | 20 a day per person                                | As above.                                                                    |
+| Admin decisions                            | 120 an hour per admin                              | Each emails the person.                                                      |
+| Brainstorm messages                        | 30 per 10 minutes per person                       | The writer's money and our time.                                             |
+| Critique and Rephrase, together            | 30 per 10 minutes per person                       | As above; not a quota on writing (the critique limit is that, for critique). |
+| Research searches                          | 10 an hour per person                              | A bigger bill, and the server fetches several sites.                         |
+| Saving an AI key / listing models          | 10 per 15 minutes / 30 a minute per person         | Each calls the provider; not a key-checking oracle.                          |
+| Link lookups (titles of pages)             | 30 a minute per person                             | Each contacts someone else's website.                                        |
+| New sources (feeds) / fetching their posts | 30 / 120 an hour per person                        | As above.                                                                    |
+| Exports                                    | 5 an hour per person                               | Real work for the server.                                                    |
+| Changing username                          | 5 a day per person                                 | Usernames appear in links.                                                   |
+| Request size                               | 2 MB (a picture 1 MB) in the api; 8 MB at Caddy    | Memory.                                                                      |
 
 A refused request gets a 429 and a sentence saying to wait. Signs of abuse to look for in the weekly look: many
 `429`s from one path, or a burst of sign-ups waiting for approval from addresses you do not know (decline them).

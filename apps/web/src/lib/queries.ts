@@ -197,7 +197,7 @@ export interface QueryStatus {
   refetch: () => unknown
 }
 
-/** The latest critique's summary and how many looks are used: the draft editor's alone (others get nothing). */
+/** The latest critique's summary and how many critiques are used: the draft editor's alone (others get nothing). */
 export function useDraftCritique(
   publicationId: Get<string>,
   draftId: Get<string>,

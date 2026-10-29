@@ -28,16 +28,16 @@ hitting publish, not session length, message count or return visits. So:
 - **Critique is rationed.** An LLM critic will _always_ find something to tweak, and each round of tweaking pushes the
   text further from the writer's voice and further from done. So:
   - Each draft gets a **small, fixed number of critique rounds** (default 3, which the owner chose; each writer can change it from 1 to 5 in their account settings).
-    When they are used up the button says so, plainly and kindly: you have had your looks; the next step is to
-    publish. The count is per draft, shown before the button is pressed ("2 of 3 looks used"), and is not reset by
-    trivial edits. What counts as a new draft (and whether a heavy rewrite earns more looks) is a decision, not a
+    When they are used up the button says so, plainly and kindly: you have used your critiques; the next step is to
+    publish. The count is per draft, shown before the button is pressed ("2 of 3 critiques used"), and is not reset by
+    trivial edits. What counts as a new draft (and whether a heavy rewrite earns more critiques) is a decision, not a
     default: see #103.
   - A critique **ranks and stops**: the few things that matter most, and an explicit statement when nothing
     important remains ("this is ready; what is left is taste"). It must never pad to look thorough.
   - The same applies to anything else that can be re-run indefinitely, with one deliberate exception. **Rephrase**
     (options for a passage or title, principle 4) has no quota per draft: the owner judged a number arbitrary. Its
     friction is that another round needs a _changed aim_ (the writer says what they want differently), plus a limit on
-    rounds in one window (the same setting as critique looks). That limit is a UI limit, not a guarantee: closing and
+    rounds in one window (the same setting as the critique limit). That limit is a UI limit, not a guarantee: closing and
     reopening starts again, as adding a new draft gets round the critique limit. See [Rephrase](adr/rephrase/rephrase-options-for-a-passage-or-title.md).
 - **Rate limits for cost are not a substitute.** The existing throttles protect money and servers; the caps above
   protect the writer.
