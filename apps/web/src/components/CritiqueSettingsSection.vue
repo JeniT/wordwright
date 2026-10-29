@@ -40,6 +40,10 @@ const save = useMutation({
     <p v-if="settings.isError.value" role="alert" class="mb-3 text-danger">
       {{ errorMessage(settings.error.value) }}
     </p>
+    <p class="mb-3 text-sm text-ink-soft">
+      A critique is your AI’s review of a draft, as comments for you to weigh. A draft gets only a
+      few, because each round can take it further from your voice.
+    </p>
     <form @submit.prevent="save.mutate()">
       <div class="mb-4">
         <label for="critique-rounds" class="mb-1 block text-sm font-medium"

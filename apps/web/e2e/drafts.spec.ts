@@ -298,8 +298,8 @@ test('register, write, save and request a critique', async ({ page }) => {
   await side2.getByRole('switch', { name: 'Resolved: comment 1' }).uncheck()
   await expect(side2.getByRole('button', { name: 'Text changed: comment 1' })).toBeVisible()
 
-  // Looks are rationed: one used so far of the three suggested, and the writer can lower the limit.
-  await expect(page.getByText('1 of 3 looks used')).toBeVisible()
+  // Critiques are rationed: one used so far of the three suggested, and the writer can lower the limit.
+  await expect(page.getByText('1 of 3 critiques used')).toBeVisible()
   await page.goto('/account/ai')
   await page.getByLabel('Critiques per draft').selectOption('1')
   await page
@@ -315,7 +315,7 @@ test('register, write, save and request a critique', async ({ page }) => {
     .getByRole('complementary')
     .getByRole('tab', { name: /^Comments/ })
     .click()
-  await expect(page.getByText(/You have had your 1 look at this draft/)).toBeVisible({
+  await expect(page.getByText(/You have used your 1 critique of this draft/)).toBeVisible({
     timeout: 20_000,
   })
   await expect(page.getByRole('button', { name: 'Critique', exact: true })).toBeDisabled()

@@ -515,6 +515,9 @@ describe('a publication’s landing page: the top, and the menu', () => {
     fakeHome()
     await renderAt('/p/ada-substack')
     const nudge = await screen.findByRole('navigation', { name: 'Next step' })
+    expect(nudge).toHaveTextContent(
+      'Your AI uses the description to suggest ideas, research and critique that fit this publication.',
+    )
     expect(within(nudge).getByRole('link', { name: /Describe this publication/ })).toHaveAttribute(
       'href',
       '/p/ada-substack/settings/description',
@@ -696,7 +699,7 @@ describe('a publication’s landing page: tutorial mode (#229)', () => {
     ).toBeVisible()
     for (const text of [
       /First look for recent articles or news stories for inspiration/,
-      /Second, read the articles or news stories in this idea’s articles/,
+      /Second, read articles or news stories for an idea/,
       /Third, review, tag and arrange your notes/,
     ])
       expect(screen.getByText(text)).toBeVisible()
@@ -711,7 +714,7 @@ describe('a publication’s landing page: tutorial mode (#229)', () => {
       /Your AI reads this/,
       /An idea is something/,
       /First look for recent articles/,
-      /Second, read the articles/,
+      /Second, read articles/,
       /Third, review, tag and arrange/,
     ])
       expect(screen.queryByText(text)).toBeNull()

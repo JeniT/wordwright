@@ -435,25 +435,25 @@ describe('EditorView critique', () => {
     }
   })
 
-  it('says how many looks are used before the button is pressed, and updates it afterwards', async () => {
+  it('says how many critiques are used before the button is pressed, and updates it afterwards', async () => {
     mockEditor(() => HttpResponse.json(state(round([pointOn('p1')]), 1, 3)), null, {
       used: 0,
       allowed: 3,
     })
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByText('0 of 3 looks used')
+    await screen.findByText('0 of 3 critiques used')
     expect(await findCritique()).toBeEnabled()
     await fireEvent.click(await findCritique())
-    await screen.findByText('1 of 3 looks used')
+    await screen.findByText('1 of 3 critiques used')
   })
 
-  it('stops, kindly, when the looks are used up, and says what to do next', async () => {
+  it('stops, kindly, when the critiques are used up, and says what to do next', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]), {
       used: 3,
       allowed: 3,
     })
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByText(/You have had your 3 looks at this draft/)
+    await screen.findByText(/You have used your 3 critiques of this draft/)
     expect(await findCritique()).toBeDisabled()
     expect(screen.getByRole('link', { name: 'publish it' })).toHaveAttribute(
       'href',
@@ -467,13 +467,13 @@ describe('EditorView critique', () => {
     expect(await screen.findByText('A decent start.')).toBeTruthy()
   })
 
-  it('says "look" when the limit is one', async () => {
+  it('says "critique" when the limit is one', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]), {
       used: 1,
       allowed: 1,
     })
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByText(/You have had your 1 look at this draft/)
+    await screen.findByText(/You have used your 1 critique of this draft/)
   })
 
   it('says so when a draft is ready, rather than finding something', async () => {

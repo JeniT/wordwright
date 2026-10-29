@@ -65,10 +65,10 @@ const actions = useHandoverActions(
             type="button"
             class="btn btn-primary btn-sm"
             :disabled="actions.busy.value"
-            :aria-label="`Handover draft to ${a.byName}`"
+            :aria-label="`Hand over editing to ${a.byName}`"
             @click="actions.offer.mutate(a.byId)"
           >
-            Handover draft
+            Hand over editing
           </button>
           <button
             type="button"

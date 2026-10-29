@@ -58,7 +58,11 @@ const deleteAccount = useMutation({
       </p>
       <form v-else @submit.prevent="confirmingDelete = true">
         <fieldset class="mb-4">
-          <legend class="mb-1 text-sm font-medium">After you leave</legend>
+          <legend class="mb-1 text-sm font-medium">Your name on what you wrote</legend>
+          <p class="mb-2 text-sm text-ink-soft">
+            Your notes and comments stay in publications that continue. “A former member” is what
+            other members of a publication see in place of your name.
+          </p>
           <label class="mb-2 flex items-start gap-2 text-sm">
             <input v-model="keepName" type="radio" name="keep-name" :value="true" />
             <span>Keep my display name on my notes and comments in publications that continue</span>

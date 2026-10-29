@@ -897,15 +897,17 @@ async function requestCritique() {
                   </p>
                   <p v-if="looks" id="critique-looks" class="mt-2 text-sm text-ink-soft">
                     <template v-if="outOfLooks">
-                      You have had your {{ looks.allowed }}
-                      {{ looks.allowed === 1 ? 'look' : 'looks' }} at this draft. The next step is
-                      to
+                      You have used your {{ looks.allowed }}
+                      {{ looks.allowed === 1 ? 'critique' : 'critiques' }} of this draft. The next
+                      step is to
                       <RouterLink :to="{ hash: '#publish' }" class="underline" @click="closeNotes"
                         >publish it</RouterLink
-                      >. Change how many looks a draft gets in your
+                      >. Change how many critiques a draft gets in your
                       <RouterLink to="/account/ai" class="underline">account settings</RouterLink>.
                     </template>
-                    <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
+                    <template v-else
+                      >{{ looks.used }} of {{ looks.allowed }} critiques used</template
+                    >
                   </p>
                 </div>
               </template>
