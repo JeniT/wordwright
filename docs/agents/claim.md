@@ -18,7 +18,7 @@ session pushes it by accident. So claims, docs and code all go through a worktre
 CI takes minutes, and waiting for it holds up the next piece of work. After landing, move on; the next start
 (or the next landing) is where CI is checked. Run `gh run list --branch main --workflow CI --limit 5` (`--workflow CI` leaves out Dependabot's runs) before you claim anything.
 
-- **The latest finished run is red:** fixing it comes first. Read why with `gh run view <run id> --log-failed`.
+- **The latest finished run is red:** fixing it comes first. Read why with `gh run view <run id> --log-failed | grep -E "FAIL|×"` (the raw log is mostly DOM dump).
   If your own earlier push broke it, fix it now. If it is someone else's, tell the owner, and file the fix as an
   issue and claim it straight away so two agents don't fix the same thing.
 - **Runs are still in progress:** start anyway, and look again at landing step 3 ([landing.md](landing.md)),

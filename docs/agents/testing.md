@@ -34,6 +34,11 @@ or drop the `export` if the file still uses it. To keep something on purpose (a 
 `savesAnswered`), add it under `ignoreIssues` in `knip.json`. Files loaded by a computed `import()` path are listed
 as `entry` patterns there too.
 
+## Stopping a server you started
+
+Other sessions run servers on this machine too. Stop yours by its port: `kill $(lsof -nP -iTCP:<port> -sTCP:LISTEN -t)`.
+A name pattern (`pkill -f tsx`) also matches their servers.
+
 ## e2e in several worktrees at once
 
 This is fine. Each worktree gets its own web and API ports (hashed from its path; CI uses fixed ones) and its own

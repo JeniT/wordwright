@@ -60,6 +60,8 @@ Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue li
 
 - Work in a worktree (`.worktrees/issue-N`); local `main` is shared by every session and receives only a fast-forward
   from `origin/main`.
+- In a worktree, bring in the base branch with `git fetch origin` then `git merge origin/main`; the app's
+  `sync_with_base_branch` refuses `.worktrees/`.
 - Edit with the Edit tool, or `perl -pi -e` across files: this is macOS and BSD `sed -i` fails.
 - Keys go into the app's own field. A key typed into a chat with an agent is leaked.
 - Prompts live in `prompts/` as Markdown; a change there changes the product's behaviour, so say so in the commit

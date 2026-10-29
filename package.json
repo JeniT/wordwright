@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "pnpm --parallel --filter @wordwright/api --filter @wordwright/web dev",
+    "dev:private": "node scripts/dev-private.mjs",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . --max-warnings 0",
