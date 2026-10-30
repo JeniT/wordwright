@@ -42,6 +42,9 @@ describe('what Wordwright is', () => {
       'href',
       '/help/terms#t-alpha',
     )
+    expect(
+      screen.getByText(/If you have any questions or comments please email/),
+    ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'hello@wordwright.io' })).toHaveAttribute(
       'href',
       'mailto:hello@wordwright.io',

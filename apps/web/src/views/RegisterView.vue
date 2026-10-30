@@ -53,7 +53,8 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
       Wordwright is in
       <RouterLink :to="{ name: 'help-terms', hash: '#t-alpha' }" class="link"
         >private alpha</RouterLink
-      >. We approve accounts by hand and email you when yours is ready. Questions?
+      >. We approve accounts by hand and email you when yours is ready. If you have any questions or
+      comments please email
       <a href="mailto:hello@wordwright.io" class="link">hello@wordwright.io</a>
     </p>
     <form @submit.prevent="register.mutate()">
