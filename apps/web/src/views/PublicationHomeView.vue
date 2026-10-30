@@ -56,8 +56,8 @@ defineProps<{ publicationId: string }>()
     </p>
 
     <Explain tutorial-only class="mb-6">
-      This is your publication’s home. Start with your ideas, or if you are stuck, see the latest
-      from your feeds, then your reading and notes.
+      This is your publication’s home. Start with your ideas or, if you are stuck, find an article
+      in your feeds to inspire you.
     </Explain>
 
     <NextStep
@@ -66,8 +66,8 @@ defineProps<{ publicationId: string }>()
       :to="{ name: 'publication-settings-description', params: { publicationId } }"
       label="Describe this publication"
     >
-      Your AI uses the description to tune ideas, research, rephrasing and critique to this
-      publication.
+      Add a description that your AI can use to tune its critique, conversation, research, and
+      suggestions to this publication and its audience.
     </NextStep>
 
     <PublicationAttention :publication-id="publicationId" />

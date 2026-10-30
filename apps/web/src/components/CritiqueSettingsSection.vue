@@ -33,16 +33,16 @@ const save = useMutation({
         Critique limit
       </h2>
       <InfoTip label="Why critiques are limited"
-        >An AI editor can always find more to change, and each round can take a draft further from
-        your voice. When a draft's critiques are used up, the next step is to publish.</InfoTip
+        >Your AI will always find more to change and each critique can take a draft further from
+        your voice. You can always get other people to review your drafts as well.</InfoTip
       >
     </div>
     <p v-if="settings.isError.value" role="alert" class="mb-3 text-danger">
       {{ errorMessage(settings.error.value) }}
     </p>
     <p class="mb-3 text-sm text-ink-soft">
-      A critique is your AI’s review of a draft, as comments for you to weigh. A draft gets only a
-      few, because each critique can take it further from your voice.
+      Your AI can critique your draft and give you comments on it. This is how many times you can
+      ask your AI for a critique.
     </p>
     <form @submit.prevent="save.mutate()">
       <div class="mb-4">
@@ -61,7 +61,7 @@ const save = useMutation({
           </option>
         </select>
         <p id="critique-rounds-hint" class="mt-1 text-sm text-ink-soft">
-          Also limits how many times you can ask for options for ways to rephrase parts of your
+          This also limits how many times you can ask for options for ways to rephrase parts of your
           drafts.
         </p>
       </div>

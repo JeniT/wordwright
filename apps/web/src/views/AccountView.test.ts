@@ -472,9 +472,9 @@ describe('AccountView: critiques of a draft', () => {
         .getAllByRole('option')
         .map((o) => o.textContent?.trim()),
     ).toEqual(['1', '2', '3 (suggested)', '4', '5'])
-    // It says what a critique is and why a draft gets only a few, before asking for a number.
+    // It says what a critique is, before asking for a number.
     expect(screen.getByRole('region', { name: 'Critique limit' })).toHaveTextContent(
-      /A critique is your AI.s review of a draft.*only a few/,
+      /Your AI can critique your draft and give you comments on it/,
     )
     // The same setting limits the rounds in a Rephrase window (#161), and the page says so.
     expect(screen.getByRole('region', { name: 'Critique limit' })).toHaveTextContent(

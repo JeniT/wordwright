@@ -516,7 +516,7 @@ describe('a publication’s landing page: the top, and the menu', () => {
     await renderAt('/p/ada-substack')
     const nudge = await screen.findByRole('navigation', { name: 'Next step' })
     expect(nudge).toHaveTextContent(
-      'Your AI uses the description to tune ideas, research, rephrasing and critique to this publication.',
+      'Add a description that your AI can use to tune its critique, conversation, research, and suggestions to this publication and its audience.',
     )
     expect(within(nudge).getByRole('link', { name: /Describe this publication/ })).toHaveAttribute(
       'href',
