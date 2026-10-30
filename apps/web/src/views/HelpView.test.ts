@@ -181,6 +181,30 @@ describe('Help', () => {
     expect(main).not.toHaveTextContent(/\blooks?\b|!/i)
   })
 
+  it('explains the account pages, downloading and deleting, and lists it', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help')
+    const list = await screen.findByRole('list', { name: 'Help pages' })
+    await fireEvent.click(within(list).getByRole('link', { name: 'Account settings' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Account settings' })).toBeVisible()
+    const main = screen.getByRole('main')
+    expect(within(main).getByRole('heading', { name: 'Downloading your writing' })).toBeVisible()
+    expect(within(main).getByRole('heading', { name: 'Deleting your account' })).toBeVisible()
+    expect(within(main).getByRole('link', { name: 'privacy notice' })).toHaveAttribute(
+      'href',
+      '/help/privacy-notice',
+    )
+    expect(within(main).getByRole('link', { name: 'terms of use' })).toHaveAttribute(
+      'href',
+      '/help/terms',
+    )
+    // The names on the page are the ones on the account pages.
+    expect(main).toHaveTextContent('Download your writing')
+    expect(main).toHaveTextContent('Sign-in and security')
+    expect(main).toHaveTextContent('“a former member”')
+    expect(main).not.toHaveTextContent(/\blooks?\b|!/i)
+  })
+
   it('publishes the privacy notice, terms and cookie statement, listed in Help and linked from the footer', async () => {
     server.use(signedInAs(null))
     await renderAt('/help')

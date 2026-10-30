@@ -41,6 +41,11 @@ const pages = [
     about: 'Critique, handing over editing, sending for review, and the panel beside your draft.',
   },
   {
+    name: 'help-account',
+    title: 'Account settings',
+    about: 'Your details, signing in, downloading your writing, and deleting your account.',
+  },
+  {
     name: 'help-waiting',
     title: 'Waiting for approval',
     about: 'Why a new account waits, and what happens when it is approved.',

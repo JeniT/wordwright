@@ -59,6 +59,7 @@ const SIGNED_OUT = [
   '/help/feeds',
   '/help/formatting',
   '/help/drafting',
+  '/help/account',
   '/help/privacy-notice',
   '/help/terms',
   '/help/cookies',

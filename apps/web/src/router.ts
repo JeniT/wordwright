@@ -409,6 +409,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { open: true },
   },
   {
+    path: '/help/account',
+    name: 'help-account',
+    component: () => import('./views/HelpAccountView.vue'),
+    meta: { open: true },
+  },
+  {
     path: '/help/accessibility',
     name: 'help-accessibility',
     component: () => import('./views/HelpAccessibilityView.vue'),
