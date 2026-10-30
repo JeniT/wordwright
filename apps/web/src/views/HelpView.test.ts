@@ -157,6 +157,30 @@ describe('Help', () => {
     expect(within(main).getByText(/The Comment and Rephrase buttons wait/)).toBeInTheDocument()
   })
 
+  it('explains drafting on its own page, and lists it', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help')
+    const list = await screen.findByRole('list', { name: 'Help pages' })
+    await fireEvent.click(within(list).getByRole('link', { name: 'Drafting' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Drafting' })).toBeVisible()
+    const main = screen.getByRole('main')
+    expect(within(main).getByRole('heading', { name: 'The side panel' })).toBeVisible()
+    expect(within(main).getByRole('heading', { name: 'Critique' })).toBeVisible()
+    expect(within(main).getByRole('link', { name: 'AI settings page' })).toHaveAttribute(
+      'href',
+      '/help/ai-settings',
+    )
+    expect(within(main).getByRole('link', { name: 'formatting page' })).toHaveAttribute(
+      'href',
+      '/help/formatting',
+    )
+    // The names on the page are the ones on the buttons.
+    expect(main).toHaveTextContent('Hand over editing')
+    expect(main).toHaveTextContent('Send for review')
+    expect(main).toHaveTextContent('Draft panel')
+    expect(main).not.toHaveTextContent(/\blooks?\b|!/i)
+  })
+
   it('publishes the privacy notice, terms and cookie statement, listed in Help and linked from the footer', async () => {
     server.use(signedInAs(null))
     await renderAt('/help')

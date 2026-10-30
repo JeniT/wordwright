@@ -36,6 +36,11 @@ const pages = [
     about: 'The formatting buttons, their shortcuts, and editing the Markdown itself.',
   },
   {
+    name: 'help-drafting',
+    title: 'Drafting',
+    about: 'Critique, handing over editing, sending for review, and the panel beside your draft.',
+  },
+  {
     name: 'help-waiting',
     title: 'Waiting for approval',
     about: 'Why a new account waits, and what happens when it is approved.',
