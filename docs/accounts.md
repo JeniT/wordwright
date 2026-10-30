@@ -51,7 +51,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   **Dragging notes and articles into a draft:** the drafting side bar's notes and articles can be dragged by their rail onto the draft, landing where
   they are dropped (the _Add to draft_ button does the same at the cursor). An article goes in as a link with its authors (“Title by A and B”).
   **The publication's own articles and notes** have their own places: the list of articles is the publication's
-  **Read** step (`/p/<id>/read`; the old `/p/<id>/inspiration` and `/p/<id>/inspiration#reading-list` lead there; each article opens its own page at
+  **Read** step (`/p/<id>/read`; each article opens its own page at
   `/p/<id>/articles/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea’s list of articles is separate from the publication's. They are the idea's screens with a different owner (articles, article page, notes with
   reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
   drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
@@ -138,7 +138,7 @@ Read this when you change sign-in, registration, passwords, publications and the
 - **Feeds**: each publication keeps a list of RSS/Atom feeds (up to 50), managed on the **Feeds** page of the publication's
   settings (`/p/<id>/settings/feeds`) by any member: paste a feed link, or the address of a site that has one, and the server reads
   it to show the feed's title, description and picture (the site's icon, else the feed's own logo, which is often too wide to read at icon size). They are listed alphabetically
-  (there is no order to keep); remove one. **Scan** (`/p/<id>/scan`; the old `/p/<id>/search` and `/p/<id>/inspiration` lead there) shows their
+  (there is no order to keep); remove one. **Scan** (`/p/<id>/scan`) shows their
   posts, and offers "Set up feeds →" while there are none and "Manage feeds" after. Addresses are tidied (https assumed,
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).

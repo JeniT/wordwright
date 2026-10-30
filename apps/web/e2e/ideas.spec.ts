@@ -377,7 +377,7 @@ test('moves an idea with its draft to another publication, and opens it there', 
   const first = idOf()
 
   // Someone with one publication is not offered a move.
-  await page.goto(`/p/${first}/ideas`)
+  await page.goto(`/p/${first}`)
   await expect(page.getByRole('button', { name: 'Move Why rivers meander' })).toHaveCount(0)
 
   // A second publication to move to.
@@ -388,7 +388,7 @@ test('moves an idea with its draft to another publication, and opens it there', 
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
   const second = idOf()
 
-  await page.goto(`/p/${first}/ideas`)
+  await page.goto(`/p/${first}`)
   await page.getByRole('button', { name: 'Move Why rivers meander' }).click()
   await page.getByLabel('Move to').selectOption({ label: 'Elsewhere' })
   await expect(
@@ -404,6 +404,6 @@ test('moves an idea with its draft to another publication, and opens it there', 
   await expect(page.getByRole('main').getByRole('list').getByRole('listitem')).toHaveCount(1)
 
   // And the first publication has no ideas left.
-  await page.goto(`/p/${first}/ideas`)
+  await page.goto(`/p/${first}`)
   await expect(page.getByText('No ideas yet')).toBeVisible()
 })

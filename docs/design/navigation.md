@@ -115,5 +115,4 @@ fetches it). Once there is a link the form folds away: the chip is followed by "
 takes it out of Keep writing, whatever else is true of it. On the idea's **Draft** page (`IdeaDraftsView`, rows are `DraftRow`s) a
 published draft **keeps its place**, since the order is the reading order for a linked set. Its row is washed `ok-wash`, with the
 same chip, and "View post" is its own link beside the row link (a link can't be inside one). There is no animation: the achievement
-is the colour, and the row staying as a record. The text-on-wash pairs are in `palette.test.ts`. The old
-`/ideas/:id/publish` address redirects to the idea's drafts, and the drafts list is the last step, with only Previous.
+is the colour, and the row staying as a record. The text-on-wash pairs are in `palette.test.ts`. The drafts list is the last step, with only Previous.

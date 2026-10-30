@@ -628,10 +628,10 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   await noViolations(help)
   await help.close()
 
-  // The Description page on a phone, in dark mode, and the old address leading to it.
+  // The Description page on a phone, in dark mode.
   await page.setViewportSize({ width: 390, height: 800 })
   await page.emulateMedia({ colorScheme: 'dark' })
-  await page.goto(describeUrl.replace('/settings/description', '/describe'))
+  await page.goto(describeUrl)
   await expect(page).toHaveURL(describeUrl)
   await expect(page.getByRole('heading', { level: 1, name: 'Description' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(

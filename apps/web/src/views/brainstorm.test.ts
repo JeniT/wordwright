@@ -40,7 +40,7 @@ const summary = (
   title,
   titleByAi,
 })
-const page = '/p/ada-substack/ideas/i1/brainstorm'
+const page = '/p/ada-substack/ideas/i1/refine'
 
 let counter = 0
 const userMessage = (

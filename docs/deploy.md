@@ -2,7 +2,7 @@
 
 Read this when you deploy, back up, restore or roll back the server, or set up its email, firewall or Google sign-in. When something is wrong, or for monitoring, secrets and limits, see [runbook.md](runbook.md).
 
-**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [Rolling back](#rolling-back) · [Repeating deletions after a restore](#after-a-rollback-or-restore-repeat-the-deletions) · [Removing a kept name](#removing-a-kept-display-name-on-request) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Logs](#logs) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
+**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [The one-time wipe](#the-one-time-wipe-before-the-first-invitations) · [Rolling back](#rolling-back) · [Repeating deletions after a restore](#after-a-rollback-or-restore-repeat-the-deletions) · [Removing a kept name](#removing-a-kept-display-name-on-request) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Logs](#logs) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
 
 Production is **one machine** (an UpCloud VM in London; see [the decision](adr/go-live-and-operations/production-runs-as-two-containers-on-one-machine.md)) running two
 containers with Docker Compose:
@@ -179,6 +179,33 @@ If the server is gone, in this order, before anyone uses the new one:
    ([below](#after-a-rollback-or-restore-repeat-the-deletions)).
 
 [The restore rehearsal](runbook.md#the-restore-rehearsal) practises this.
+
+## The one-time wipe before the first invitations
+
+Migrations were collapsed into one schema (#308, [the decision](adr/go-live-and-operations/migrations-collapsed-into-one-schema-before-launch.md)),
+so the existing production database, which is at an older version, is refused by the new build. It holds only the
+owner's own data, so it is wiped and recreated. This is done once, by you, as the last step before the landing page
+and the first invitations. In `~/wordwright` on the server:
+
+1. **Back up first**, and confirm the off-site copy: `./backup.sh`, then `./offsite.sh verify`. Keep that backup; it is
+   the way back if anything below goes wrong.
+2. **Stop the app and set the old database aside** (nothing is deleted; delete `/data/replaced-*` later, once you are
+   sure):
+   ```bash
+   docker compose stop api
+   docker compose run --rm --no-deps -T api sh -c 'mkdir -p /data/replaced-before-collapse && mv /data/*.sqlite* /data/replaced-before-collapse/'
+   ```
+   The database is `/data/wordwright.sqlite` unless `DATABASE_PATH` in `.env` says otherwise; the `mv` must move that file and its `-wal` and
+   `-shm` files. Leave `deletions.jsonl` and the backups where they are.
+3. **Deploy the build with the collapsed schema**: set `WORDWRIGHT_TAG` in `.env` to its commit hash and run
+   `./deploy.sh`. The api starts on an empty database and creates the schema.
+4. **Check**: `curl -s https://<your address>/ready` answers; the Admin account is created again on start (`ADMIN_EMAILS`), so ask for a password link as in
+   [Letting people in](#letting-people-in-the-private-alpha); sign in, add an AI key, create a publication and an idea;
+   run `./backup.sh`.
+5. Once you are happy, remove the old files: `docker compose run --rm --no-deps -T api rm -r /data/replaced-before-collapse`.
+
+Do not do this again: after the first invitations, the database holds other people's writing and changes are appended
+migrations. A rollback to a build from before the collapse needs the database from before it too (the backup in step 1).
 
 ## Rolling back
 
