@@ -95,12 +95,13 @@ const deleteAccount = useMutation({
       >
         <p class="mb-2">This can't be undone. Deleting your account removes:</p>
         <ul class="mb-2 list-disc pl-5">
-          <li>every publication only you belong to, with its ideas, notes and drafts</li>
-          <li>your own ideas, notes and drafts</li>
-          <li>your saved AI key</li>
+          <li>every publication only you belong to</li>
+          <li>the ideas, notes and drafts in that publication</li>
+          <li>your account details, including the saved AI key</li>
         </ul>
         <p>
-          You're removed from shared publications.
+          You're removed from shared publications. If you are a member of a shared publication, what
+          you wrote there stays.
           {{
             keepName
               ? 'Your name stays on your notes and comments there.'

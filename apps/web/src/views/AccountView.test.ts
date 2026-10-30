@@ -113,8 +113,16 @@ describe('AccountView', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
     let dialog = await screen.findByRole('dialog', { name: 'Delete your account?' })
     expect(within(dialog).getByText(/every publication only you belong to/)).toBeTruthy()
-    expect(within(dialog).getByText(/your own ideas, notes and drafts/)).toBeTruthy()
-    expect(within(dialog).getByText(/your saved AI key/)).toBeTruthy()
+    expect(within(dialog).getByText(/the ideas, notes and drafts in that publication/)).toBeTruthy()
+    expect(within(dialog).queryByText(/your own ideas, notes and drafts/)).toBeNull()
+    expect(
+      within(dialog).getByText(/your account details, including the saved AI key/),
+    ).toBeTruthy()
+    expect(
+      within(dialog).getByText(
+        /If you are a member of a shared publication, what you wrote there stays/,
+      ),
+    ).toBeTruthy()
     expect(
       within(dialog).getByText(/Your name stays on your notes and comments there/),
     ).toBeTruthy()
