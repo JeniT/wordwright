@@ -120,7 +120,7 @@ describe('AccountView', () => {
     ).toBeTruthy()
     expect(
       within(dialog).getByText(
-        /If you are a member of a shared publication, what you wrote there stays/,
+        /You’re removed from shared publications but what you wrote there stays/,
       ),
     ).toBeTruthy()
     expect(

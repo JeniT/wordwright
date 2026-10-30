@@ -42,7 +42,7 @@ last and alone, so nobody meets it by scrolling past something else.
   already sent keep the old one" (Name); the AI-mark paragraph and the long privacy block (Your AI, which links to the help page
   instead); the explanation of why the critique limit exists moved behind an info icon.
 - **Delete account:** "This can't be undone. Download your writing first." The confirmation dialog lists what goes
-  (publications only you belong to, the ideas, notes and drafts in them, your account details including the saved AI key), says that what you wrote in shared publications stays, and repeats the name choice. After
+  (publications only you belong to, the ideas, notes and drafts in them, your account details including the saved AI key), says you are removed from shared publications but what you wrote there stays, and repeats the name choice. After
   deleting, the person lands on Create account with "Your old account has been deleted." (`/register?deleted=1`, a flag with no personal
   data, dropped from the Sign in link; #430). The form asks for the password (no "confirm your
   email" field; see [Account deletion semantics](adr/accounts-and-security/account-deletion-semantics.md)); someone with no

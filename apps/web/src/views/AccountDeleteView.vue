@@ -100,8 +100,7 @@ const deleteAccount = useMutation({
           <li>your account details, including the saved AI key</li>
         </ul>
         <p>
-          You're removed from shared publications. If you are a member of a shared publication, what
-          you wrote there stays.
+          You’re removed from shared publications but what you wrote there stays.
           {{
             keepName
               ? 'Your name stays on your notes and comments there.'
