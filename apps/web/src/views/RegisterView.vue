@@ -44,6 +44,18 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
 <template>
   <AuthCard title="Create your account">
     <p v-if="accountDeleted" role="status" class="mb-4">Your old account has been deleted.</p>
+    <p class="mb-3">
+      Wordwright helps people who love writing to do more of it. It helps spark ideas, research
+      different perspectives, work out what to say, and improve your drafts, but it never writes
+      your words for you.
+    </p>
+    <p class="mb-4 text-sm text-ink-soft">
+      Wordwright is in
+      <RouterLink :to="{ name: 'help-terms', hash: '#t-alpha' }" class="link"
+        >private alpha</RouterLink
+      >. We approve accounts by hand and email you when yours is ready. Questions?
+      <a href="mailto:hello@wordwright.io" class="link">hello@wordwright.io</a>
+    </p>
     <form @submit.prevent="register.mutate()">
       <!-- "given-name" asks browsers to autofill just their first name, which is what we use. -->
       <TextField

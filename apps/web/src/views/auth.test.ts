@@ -23,6 +23,32 @@ describe('route guards', () => {
   })
 })
 
+describe('what Wordwright is', () => {
+  it('says so on the sign-in page', async () => {
+    server.use(signedInAs(null), noProviders)
+    await renderAt('/login')
+    await screen.findByText('Wordwright helps people who love writing to do more of it.')
+  })
+
+  it('says so on the create-account page, with the alpha caveat and who to ask', async () => {
+    server.use(signedInAs(null), noProviders)
+    await renderAt('/register')
+    await screen.findByText(/Wordwright helps people who love writing to do more of it\./)
+    expect(screen.getByText(/it never writes\s+your words for you/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/We approve accounts by hand and email you when yours is ready/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'private alpha' })).toHaveAttribute(
+      'href',
+      '/help/terms#t-alpha',
+    )
+    expect(screen.getByRole('link', { name: 'hello@wordwright.io' })).toHaveAttribute(
+      'href',
+      'mailto:hello@wordwright.io',
+    )
+  })
+})
+
 describe('sign in', () => {
   it('shows server errors', async () => {
     server.use(

@@ -212,6 +212,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   person is approval:** a reviewer made by following a review link starts `approved` if the inviter is, and a `waiting`
   account that accepts a publication or review invitation from an approved person becomes `approved` (a `declined` one
   stays declined: the owner has decided). Existing accounts were made `approved` by the migration.
+  **What the sign-in pages say (#434):** the sign-in page opens with the short description of Wordwright; the create-account page opens with the short and longer descriptions (`CONTEXT.md`, "Describing Wordwright"), then says it is a private alpha (linking to `/help/terms#t-alpha`), that accounts are approved by hand, and gives `hello@wordwright.io`.
   **Seeded Admin (#367):** at server start, if `ADMIN_EMAILS` is set and no account has its _first_ address, the server
   creates **Admin** (username `admin`, confirmed email, approved, admin, **no password**; `seedAdminAccount` in
   `services/admin.ts`). It bypasses the reserved-name block, which sign-up still enforces. The owner sets a password

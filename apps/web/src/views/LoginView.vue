@@ -38,6 +38,7 @@ const oauthError =
 
 <template>
   <AuthCard title="Sign in">
+    <p class="mb-4 text-ink-soft">Wordwright helps people who love writing to do more of it.</p>
     <p v-if="oauthError" role="alert" class="mb-4 text-danger">{{ oauthError }}</p>
 
     <div v-if="config.data.value?.providers.length" class="mb-4 space-y-2">
