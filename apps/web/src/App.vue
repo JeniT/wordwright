@@ -26,6 +26,14 @@ const queryClient = useQueryClient()
 usePublications() // loaded once for everything that needs the list (the menu, the home page)
 usePublicationAddressRedirect()
 
+// Opening a page by its address: until the first navigation ends (who is signed in, then the page's code) there is
+// nothing to draw, so say so rather than show only the footer. Later navigations keep the old page up and don't flash.
+const started = ref(false)
+router.isReady().then(
+  () => (started.value = true),
+  () => (started.value = true),
+)
+
 const nav = useNav()
 const signOut = useMutation({
   mutationFn: () => api.logout(),
@@ -257,6 +265,7 @@ useModal({
         </div>
         <template v-else>
           <NoticeBar v-if="session.user && session.approved" />
+          <p v-if="!started" role="status" class="text-ink-soft">Loading…</p>
           <RouterView />
         </template>
       </main>

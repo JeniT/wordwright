@@ -668,3 +668,26 @@ test('the Critique tip fits inside the side panel, and its tutorial text goes un
   expect(box.x).toBeGreaterThanOrEqual(inside.x)
   expect(box.x + box.width).toBeLessThanOrEqual(inside.x + inside.width)
 })
+
+test('a draft opened by its address says it is loading, then shows the draft (#433)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 800 })
+  await registerUser(page)
+  await openFirstPublication(page)
+  await createIdea(page, 'Why rivers meander')
+  await goTo(page, 'Draft')
+  await page.getByRole('button', { name: 'New draft' }).click()
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Why rivers meander')
+  const address = page.url()
+
+  // Slow the sign-in check, which the first page waits for, so the gap is long enough to see.
+  await page.route('**/api/auth/me', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await route.continue()
+  })
+  await page.goto(address)
+  await expect(page.getByRole('main').getByRole('status')).toHaveText('Loading…')
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Why rivers meander')
+  await expect(page.getByText('Loading…')).toHaveCount(0)
+})
