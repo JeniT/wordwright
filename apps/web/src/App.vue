@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RouterLink, RouterView, START_LOCATION, useRoute, useRouter } from 'vue-router'
 import BrandMark from './components/BrandMark.vue'
 import Breadcrumb from './components/Breadcrumb.vue'
 import LegalLinks from './components/LegalLinks.vue'
@@ -28,10 +28,19 @@ usePublicationAddressRedirect()
 
 // Opening a page by its address: until the first navigation ends (who is signed in, then the page's code) there is
 // nothing to draw, so say so rather than show only the footer. Later navigations keep the old page up and don't flash.
-const started = ref(false)
+const firstNavigationDone = ref(router.currentRoute.value !== START_LOCATION)
 router.isReady().then(
-  () => (started.value = true),
-  () => (started.value = true),
+  () => (firstNavigationDone.value = true),
+  () => (firstNavigationDone.value = true),
+)
+// The status container is on the page empty and the words arrive after, so screen readers announce them; it goes
+// when the page arrives.
+const loadingShown = ref(false)
+onMounted(() => (loadingShown.value = true))
+// The route is not known yet, so the width comes from the address, and the page doesn't jump wider when it arrives.
+const widePage = computed(
+  () =>
+    (firstNavigationDone.value ? route : router.resolve(router.options.history.location)).meta.wide,
 )
 
 const nav = useNav()
@@ -254,7 +263,7 @@ useModal({
       <main
         id="main"
         class="mx-auto px-4 py-8 md:py-12"
-        :class="[route.meta.wide ? 'max-w-6xl' : 'max-w-3xl', session.user ? 'sm:px-8' : '']"
+        :class="[widePage ? 'max-w-6xl' : 'max-w-3xl', session.user ? 'sm:px-8' : '']"
       >
         <div v-if="session.error" role="alert" class="callout callout-danger">
           <p class="font-semibold text-danger">{{ session.error }}</p>
@@ -265,7 +274,9 @@ useModal({
         </div>
         <template v-else>
           <NoticeBar v-if="session.user && session.approved" />
-          <p v-if="!started" role="status" class="text-ink-soft">Loading…</p>
+          <p v-if="!firstNavigationDone" role="status" class="text-ink-soft">
+            <template v-if="loadingShown">Loading…</template>
+          </p>
           <RouterView />
         </template>
       </main>

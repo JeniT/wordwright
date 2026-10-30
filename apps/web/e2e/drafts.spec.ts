@@ -688,6 +688,7 @@ test('a draft opened by its address says it is loading, then shows the draft (#4
   })
   await page.goto(address)
   await expect(page.getByRole('main').getByRole('status')).toHaveText('Loading…')
+  await expect(page.getByRole('main'), 'as wide as the drafting page').toHaveClass(/max-w-6xl/)
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Why rivers meander')
   await expect(page.getByText('Loading…')).toHaveCount(0)
 })

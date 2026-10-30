@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { createMemoryHistory } from 'vue-router'
+import { createWebHistory } from 'vue-router'
 import { createAppRouter } from './router'
 import { server, signedInAs, testUser, useMockServer } from './test-utils'
 
@@ -15,7 +15,8 @@ useMockServer()
 async function openByAddress(path: string) {
   const pinia = createPinia()
   setActivePinia(pinia)
-  const router = createAppRouter(createMemoryHistory())
+  window.history.replaceState({}, '', path) // the address the browser was opened at
+  const router = createAppRouter(createWebHistory())
   const App = (await import('./App.vue')).default
   render(App, { global: { plugins: [pinia, VueQueryPlugin, router] } })
   const navigation = router.push(path) // not awaited: this is the page opening
@@ -34,14 +35,30 @@ describe('opening a page by its address', () => {
     )
     const { navigation } = await openByAddress('/account')
 
-    const loading = await screen.findByRole('status')
-    expect(loading).toHaveTextContent('Loading…')
-    expect(screen.getByRole('main')).toContainElement(loading)
+    const status = screen.getByRole('status') // there before its words, so screen readers announce them
+    expect(await screen.findByText('Loading…')).toBeInTheDocument()
+    expect(status).toHaveTextContent('Loading…')
+    expect(screen.getByRole('main')).toContainElement(status)
 
     signIn()
     await navigation
     expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument()
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+  })
+
+  it('is as wide as the page it is waiting for, so the page does not jump wider', async () => {
+    let signIn!: () => void
+    const waiting = new Promise<void>((resolve) => (signIn = resolve))
+    server.use(
+      http.get('*/api/auth/me', async () => {
+        await waiting
+        return HttpResponse.json(testUser)
+      }),
+    )
+    await openByAddress('/p/ada-substack/drafts/d1')
+    await screen.findByText('Loading…')
+    expect(screen.getByRole('main')).toHaveClass('max-w-6xl') // the drafting page is wide
+    signIn()
   })
 
   it('leaves the problem message alone when sign-in cannot be checked', async () => {
