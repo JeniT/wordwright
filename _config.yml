@@ -1,0 +1,24 @@
+title: Wordwright
+description: Wordwright helps people who love writing to do more of it.
+url: https://wordwright.io
+lang: en-GB
+markdown: kramdown
+permalink: /blog/:title/
+author:
+  name: Jeni Tennison
+plugins:
+  - jekyll-feed
+feed:
+  path: feed.xml
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+app_url: https://app.wordwright.io
+defaults:
+  - scope:
+      path: ''
+      type: posts
+    values:
+      layout: post

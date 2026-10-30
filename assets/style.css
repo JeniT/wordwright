@@ -1,0 +1,264 @@
+/* Ember palette, copied from apps/web/src/theme/palette-ember.css on main (light, then dark by system setting). */
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/ibm-plex-sans-latin-600-normal.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --paper: #f8f5f1;
+  --ink: #2a2420;
+  --ink-soft: #594f47;
+  --line: #e0d8ce;
+  --accent: #b0440c;
+  --accent-strong: #8a3207;
+  --on-accent: #ffffff;
+  --focus: #b0440c;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1a1512;
+    --ink: #f1e9e1;
+    --ink-soft: #b8aa9d;
+    --line: #382e27;
+    --accent: #f08a4b;
+    --accent-strong: #ffa56e;
+    --on-accent: #2a1204;
+    --focus: #ffa56e;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+a:hover {
+  color: var(--accent-strong);
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.skip {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--paper);
+  border: 1px solid var(--ink-soft);
+}
+.skip:focus {
+  top: 0.5rem;
+}
+
+.site-header,
+main,
+.site-footer {
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.brand:hover {
+  color: var(--ink);
+}
+.site-header nav {
+  display: flex;
+  gap: 1.25rem;
+}
+.site-header nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.site-header nav a[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+.mark {
+  color: var(--accent);
+  flex: none;
+}
+
+main {
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+}
+h1,
+h2 {
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+h1 {
+  margin: 0 0 1rem;
+  font-size: 2.25rem;
+  font-weight: 600;
+}
+h2 {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+section {
+  padding-top: 2rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--line);
+}
+section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+p,
+ul {
+  margin: 0 0 1rem;
+}
+
+.hero {
+  text-align: center;
+  padding-top: 1rem;
+}
+.hero .mark {
+  margin-bottom: 0.5rem;
+}
+.hero .lead {
+  font-size: 1.375rem;
+  line-height: 1.35;
+}
+.hero .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+.hero .note {
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.5rem;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.btn:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: var(--on-accent);
+}
+
+ul.plain {
+  list-style: none;
+  padding: 0;
+}
+ul.plain li {
+  margin-bottom: 0.75rem;
+}
+
+ul.posts {
+  list-style: none;
+  padding: 0;
+}
+ul.posts li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+ul.posts time,
+.byline {
+  color: var(--ink-soft);
+}
+
+.post h1 {
+  margin-bottom: 0.25rem;
+}
+.post .byline {
+  margin-bottom: 2rem;
+}
+.post ol,
+.post ul {
+  padding-left: 1.5rem;
+}
+.post li {
+  margin-bottom: 0.75rem;
+}
+.back {
+  margin-top: 2rem;
+}
+
+.site-footer {
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+@media (max-width: 30rem) {
+  h1 {
+    font-size: 1.875rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
