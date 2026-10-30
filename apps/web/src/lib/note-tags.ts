@@ -17,11 +17,6 @@ export function parseTags(text: string): string[] {
   return tags
 }
 
-export const tagsToText = (tags: readonly string[]) => tags.join(', ')
-
-export const sameTags = (a: readonly string[], b: readonly string[]) =>
-  a.length === b.length && a.every((t, i) => t.toLowerCase() === b[i]!.toLowerCase())
-
 /** Every tag used on these, once each (ignoring case, first spelling kept), in the order first met. */
 export function tagsUsedOn(items: readonly Tagged[]): string[] {
   const seen = new Map<string, string>()
@@ -31,11 +26,11 @@ export function tagsUsedOn(items: readonly Tagged[]): string[] {
 }
 
 /** Whether the item carries every one of these tags (ignoring case); no tags asked for means everything. */
-export const hasAllTags = (item: Tagged, tags: readonly string[]) =>
+const hasAllTags = (item: Tagged, tags: readonly string[]) =>
   tags.every((tag) => item.tags.some((t) => t.toLowerCase() === tag.toLowerCase()))
 
 /** The chosen tags that something still carries: a tag nothing has any more can't be what is shown. */
-export const stillUsed = (chosen: readonly string[], used: readonly string[]) =>
+const stillUsed = (chosen: readonly string[], used: readonly string[]) =>
   chosen.filter((c) => used.some((u) => u.toLowerCase() === c.toLowerCase()))
 
 /**

@@ -6,12 +6,12 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 // Files where two unrelated-looking changes still interact (shared schemas, wiring, migrations, dependencies).
+// A dependency change shows in the lockfile, so package.json counts only when both sides changed it.
 export const SHARED_SPOTS = [
   'packages/core/src/domain.ts',
   'apps/api/src/app.ts',
   'apps/api/src/server.ts',
   'apps/api/src/db/database.ts',
-  'package.json',
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
 ]

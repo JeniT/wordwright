@@ -270,7 +270,7 @@ function removeLink() {
             :id="`${barId}-more`"
             role="group"
             aria-label="More formatting"
-            class="panel absolute top-full right-0 z-20 mt-1 flex max-w-full flex-wrap gap-1 p-1"
+            class="panel absolute top-full right-0 z-20 mt-1 phone:top-auto phone:bottom-full phone:mt-0 phone:mb-1 flex max-w-full flex-wrap gap-1 p-1"
           >
             <ToolButton
               v-for="name in hidden"

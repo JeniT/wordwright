@@ -11,7 +11,7 @@ your own branch, never `main`. Run these as **separate commands**, reading each 
 2. Decide what to rerun, using the script's answer from step 1. CI on `main` is the final gate, so a clean rebase
    doesn't earn a full rerun:
    - The rebase said the branch was already up to date: nothing has changed since your last green run, so skip this.
-   - The script said `overlap` (it also counts changes to shared files such as `domain.ts`, `package.json` and the
+   - The script said `overlap` (it also counts changes to shared files such as `domain.ts` and the
      lockfile; the list is `SHARED_SPOTS` in the script), or the rebase conflicted: rerun `pnpm check`,
      `pnpm build` and `pnpm test:e2e` on the rebased branch.
    - Otherwise (`no overlap`, no conflicts): run `pnpm typecheck` and the tests of the packages you changed (as in
@@ -21,7 +21,7 @@ your own branch, never `main`. Run these as **separate commands**, reading each 
    _Check CI before you start_ in [claim.md](claim.md).
 
 3. `git log origin/main..HEAD` must list only your commits. If anything else is there, stop and sort it out.
-   Then check CI (`gh run list --branch main --limit 3`): the latest finished run must be green, unless your
+   Then check CI (`gh run list --branch main --workflow CI --limit 3`): the latest finished run must be green, unless your
    push is the fix.
 4. `git push origin HEAD:main`, with `Closes #7` in your last commit message so the issue closes. It is a plain
    fast-forward; if it is rejected, go back to step 1. Then `gh issue edit 7 --remove-label in-progress` and

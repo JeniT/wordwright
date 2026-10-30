@@ -200,7 +200,9 @@ finish() {
 # ──────────────────────────────────────────────────────────────────────────
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${ENV_FILE:-$DEPLOY_DIR/.env.server-setup}" # ignored by git (.env.*); answers that are not secret
+# Answers that are not secret, kept beside these scripts (ignored by git: .env.*). The library above has already
+# defaulted ENV_FILE to .env in whatever folder you ran this from, so that default is replaced here (#425).
+if [[ "$ENV_FILE" == ".env" ]]; then ENV_FILE="$DEPLOY_DIR/.env.server-setup"; fi
 APP_USER="wordwright"
 SITE="app.wordwright.io"
 REMOTE_DIR="wordwright" # under the app user's home
@@ -285,28 +287,37 @@ fi
 
 # ── 2 ─────────────────────────────────────────────────────────────────────
 stage "Base setup on the server"
-say "This copies deploy/server-setup.sh to the server and runs it as root. It adds an account '$APP_USER'"
-say "for the app, installs Docker, switches the firewall on (SSH, 80, 443) and turns on automatic security updates."
 note "You may be asked for your key's passphrase (once; the connection is kept open for a few minutes)."
-confirm "Run the base setup now?" || exit 1
-scp_app "$DEPLOY_DIR/server-setup.sh" "root@$SERVER_IP:/root/server-setup.sh"
-ssh_root_tty "APP_USER=$APP_USER bash /root/server-setup.sh base"
-say "Checking that you can log in as $APP_USER, and that Docker works for it:"
-ssh_app "docker --version && docker compose version"
-pause "All good? Press Enter."
+# On a re-run, stage 3 may already have switched root login off, so ask the app's account first (#422).
+if ssh_app "docker compose version" >/dev/null 2>&1; then
+  say "✓ already done on an earlier run: you can log in as $APP_USER, and Docker works for it."
+else
+  say "This copies deploy/server-setup.sh to the server and runs it as root. It adds an account '$APP_USER'"
+  say "for the app, installs Docker, switches the firewall on (SSH, 80, 443) and turns on automatic security updates."
+  confirm "Run the base setup now?" || exit 1
+  scp_app "$DEPLOY_DIR/server-setup.sh" "root@$SERVER_IP:/root/server-setup.sh"
+  ssh_root_tty "APP_USER=$APP_USER bash /root/server-setup.sh base"
+  say "Checking that you can log in as $APP_USER, and that Docker works for it:"
+  ssh_app "docker --version && docker compose version"
+  pause "All good? Press Enter."
+fi
 
 # ── 3 ─────────────────────────────────────────────────────────────────────
 stage "Lock SSH down: no root login, no passwords"
-say "Only key logins stay possible, and only as $APP_USER. You just proved that login works, so this is safe;"
-say "it can still be undone from UpCloud's web console if something goes wrong."
-confirm "Switch off root login and passwords?" || exit 1
-ssh_app "sudo APP_USER=$APP_USER bash -s harden" < "$DEPLOY_DIR/server-setup.sh"
-setting=$(ssh_app "sudo sshd -T | grep -E '^(permitrootlogin|passwordauthentication) '")
-say "$setting"
-ssh_app_fresh true || { warn "a fresh login as $APP_USER failed. Use UpCloud's web console to undo it: delete /etc/ssh/sshd_config.d/00-wordwright.conf, then 'systemctl reload ssh'."; exit 1; }
-say "✓ a fresh login still works as $APP_USER"
-note "Optional: UpCloud's own firewall (server → Firewall in the control panel) can also allow only 22, 80 and 443."
-pause "Press Enter."
+if ssh_app "sudo sshd -T | grep -qx 'permitrootlogin no'"; then
+  say "✓ already done on an earlier run: root cannot log in, and only key logins work."
+else
+  say "Only key logins stay possible, and only as $APP_USER. You just proved that login works, so this is safe;"
+  say "it can still be undone from UpCloud's web console if something goes wrong."
+  confirm "Switch off root login and passwords?" || exit 1
+  ssh_app "sudo APP_USER=$APP_USER bash -s harden" < "$DEPLOY_DIR/server-setup.sh"
+  setting=$(ssh_app "sudo sshd -T | grep -E '^(permitrootlogin|passwordauthentication) '")
+  say "$setting"
+  ssh_app_fresh true || { warn "a fresh login as $APP_USER failed. Use UpCloud's web console to undo it: delete /etc/ssh/sshd_config.d/00-wordwright.conf, then 'systemctl reload ssh'."; exit 1; }
+  say "✓ a fresh login still works as $APP_USER"
+  note "Optional: UpCloud's own firewall (server → Firewall in the control panel) can also allow only 22, 80 and 443."
+  pause "Press Enter."
+fi
 
 # ── 4 ─────────────────────────────────────────────────────────────────────
 stage "Put the deploy files on the server"
@@ -373,6 +384,8 @@ else
   SESSION_SECRET=$(openssl rand -base64 48 | tr -d '\n')
   KEY_ENCRYPTION_SECRET=$(openssl rand -base64 48 | tr -d '\n')
   printf '\n'
+  warn "Rebuilding a server to restore its backups? Do NOT save this over your old one: keep the old one, and after this"
+  warn "wizard put it on the server with deploy/restore-key-secret.sh (docs/deploy.md). Otherwise:"
   warn "Save this in your password manager now, named 'Wordwright KEY_ENCRYPTION_SECRET'."
   say "Without it, a restored backup holds AI keys nobody can read, and every writer must enter theirs again:"
   printf '\n    %s%s%s\n\n' "$BOLD" "$KEY_ENCRYPTION_SECRET" "$RESET"
@@ -411,7 +424,16 @@ write_env SCW_SMTP_HOST "$SCW_SMTP_HOST"
 write_env SCW_SMTP_PORT "$SCW_SMTP_PORT"
 write_env SCW_SMTP_USER "$SCW_SMTP_USER"
 note "The password is the SECRET key of an API key that has Transactional Email permissions in that same project."
-ask_secret SCW_SMTP_PASSWORD "SMTP password (the secret key; hidden; Enter to keep what the server has):"
+if remote_env_has SMTP_URL; then
+  ask_secret SCW_SMTP_PASSWORD "SMTP password (the secret key; hidden; Enter keeps what the server has):"
+else
+  ask_secret SCW_SMTP_PASSWORD "SMTP password (the secret key; hidden):"
+  # A new server has nothing to keep, and the app will not start without it (#422).
+  until [[ -n "$SCW_SMTP_PASSWORD" ]]; do
+    warn "The server has no SMTP settings yet, and the app will not start without them. Paste the secret key."
+    ask_secret SCW_SMTP_PASSWORD "SMTP password (the secret key; hidden):"
+  done
+fi
 if [[ -n "$SCW_SMTP_PASSWORD" ]]; then
   enc() { node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$1"; }
   scheme="smtps"; suffix=""
@@ -420,8 +442,7 @@ if [[ -n "$SCW_SMTP_PASSWORD" ]]; then
     "$scheme" "$(enc "$SCW_SMTP_USER")" "$(enc "$SCW_SMTP_PASSWORD")" "$SCW_SMTP_HOST" "$SCW_SMTP_PORT" "$suffix" | remote_env_set
   unset SCW_SMTP_PASSWORD
   say "✓ sent to the server"
-elif remote_env_has SMTP_URL; then say "Kept the SMTP settings already on the server."
-else warn "No SMTP settings on the server: the app will refuse to start. Run the wizard again and enter the password."; exit 1; fi
+else say "Kept the SMTP settings already on the server."; fi
 
 # ── 9 ─────────────────────────────────────────────────────────────────────
 stage "Google sign-in (optional)"

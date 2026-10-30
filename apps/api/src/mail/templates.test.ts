@@ -56,6 +56,16 @@ describe('review and handover emails', () => {
     for (const body of [mail.text, mail.html]) expect(body).toContain('use the same link')
   })
 
+  it('tells an outside reviewer what Wordwright is, in both versions', () => {
+    const mail = reviewInvitationEmail({ ...base, inviterName: 'Ada', ttlDays: 14 })
+    for (const body of [mail.text, mail.html]) {
+      expect(body).toContain('Wordwright helps people who love writing to do more of it.')
+      expect(body).toContain(
+        'Wordwright helps spark ideas, research different perspectives, work out what to say, and improve your drafts, but it never writes your words for you.',
+      )
+    }
+  })
+
   it('offers the handover without a promise about the offerer', () => {
     const mail = handoverOfferEmail({ ...base, fromName: 'Ada' })
     expect(mail.text).toContain('Nothing changes until you accept:')

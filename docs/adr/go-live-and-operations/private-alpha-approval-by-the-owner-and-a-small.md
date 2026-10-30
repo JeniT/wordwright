@@ -20,3 +20,7 @@
   or a change of mind can be undone either way. Admins and the person deciding are never decided about in the app.
 - **No email to the owner when someone signs up** (optional in the issue). The owner opens `/admin`, which lists those
   waiting; a digest can be added if the wait becomes a problem.
+- **The admin role lives on a seeded Admin account, not the owner's own (#367).** At start the server creates `admin` for
+  the first `ADMIN_EMAILS` address if no account has it: confirmed, approved, no password, so the role can be handed over
+  later. The reserved name is bypassed only there. The way in is "Forgot password", which therefore also serves
+  password-less accounts that have no linked provider; the response still does not say whether an account exists.

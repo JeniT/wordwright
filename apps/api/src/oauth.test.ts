@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FakeIdentityProvider, type IdentityClaims } from './auth/identity'
+import { FakeIdentityProvider, type IdentityClaims } from '@wordwright/core'
 import {
   lastResetToken,
   PASSWORD,
@@ -67,7 +67,7 @@ describe('login with an external identity provider', () => {
   it('sends a PKCE challenge and uses the matching verifier on exchange', async () => {
     const { client, idp } = withIdp()
     const start = await client().get('/api/auth/oauth/google/start')
-    expect(start.headers.get('location')).toMatch(/cc=/)
+    expect(start.headers.get('location')).toMatch(/code_challenge=/)
     await signInWithIdp(client())
     expect(idp.exchanged[0]!.codeVerifier.length).toBeGreaterThan(20)
   })

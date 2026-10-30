@@ -1,5 +1,5 @@
 import { createTransport, type Transporter } from 'nodemailer'
-import { MailError, type Email, type Mailer } from './mailer'
+import { MailError, type Email, type Mailer } from '@wordwright/core'
 
 export interface SmtpMailerOptions {
   /** e.g. `smtps://user:pass@smtp.example.com:465` or `smtp://localhost:1025` (Mailpit). */

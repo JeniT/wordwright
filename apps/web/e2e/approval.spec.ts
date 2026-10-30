@@ -57,16 +57,25 @@ test('sign up, wait, get approved by the owner, and get in', async ({ page, brow
   await expect(page.getByRole('heading', { level: 1, name: 'Waiting for approval' })).toBeVisible()
   await page.goBack()
 
-  // The owner: confirms the address from the email, then opens the accounts.
+  // The owner: the seeded Admin account has no password, so they ask for a link and choose one.
   const ownerContext = await browser.newContext()
   const owner = await ownerContext.newPage()
   const ownerProblems = watchForProblems(owner)
-  await signUp(owner, 'Olive Owner', APPROVAL_ADMIN_EMAIL)
-  const confirm = (
-    await waitForEmail(APPROVAL_ADMIN_EMAIL, 'Confirm your email address')
-  ).text.match(/https?:\/\/\S+\/verify-email\?token=[\w-]+/)![0]
-  await owner.goto(confirm)
-  await expect(owner.getByText('Thanks, your email address is confirmed.')).toBeVisible()
+  await owner.goto('/forgot-password')
+  await owner.getByLabel('Email').fill(APPROVAL_ADMIN_EMAIL)
+  await owner.getByRole('button', { name: 'Send reset link' }).click()
+  const reset = (await waitForEmail(APPROVAL_ADMIN_EMAIL, 'Reset your password')).text.match(
+    /https?:\/\/\S+\/reset-password\?token=[\w-]+/,
+  )![0]
+  await owner.goto(reset)
+  await owner.getByLabel('New password').fill(PASSWORD)
+  await owner.getByRole('button', { name: 'Change password' }).click()
+  await expect(owner.getByText('Your password has been changed')).toBeVisible()
+  await owner.getByRole('link', { name: 'Sign in' }).click()
+  await owner.getByLabel('Email').fill(APPROVAL_ADMIN_EMAIL)
+  await owner.getByLabel('Password').fill(PASSWORD)
+  await owner.getByRole('button', { name: 'Sign in' }).click()
+  await expect(owner).toHaveURL((url) => !url.pathname.startsWith('/login'))
   await owner.goto('/admin')
   await expect(owner.getByRole('heading', { level: 1, name: 'Accounts' })).toBeVisible()
   const waiting = owner.getByRole('list', { name: 'Accounts waiting for approval' })

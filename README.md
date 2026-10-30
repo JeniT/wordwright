@@ -44,7 +44,7 @@ The side menu **follows you**: what it lists depends on where you are (home → 
 
 ## Getting started
 
-Requires Node 24+ and pnpm.
+Requires Node 26+ and pnpm.
 
 ```bash
 pnpm install
@@ -87,7 +87,9 @@ Application code depends on **ports** in `packages/core/src/providers`, never on
 - `ResearchProvider` — finds pages for the Research step (`AnthropicResearchProvider`, `FakeResearchProvider`).
 - `FeedFetcher` and `PageInfoFetcher` — read a feed, or a page's title and authors, from an address a person typed
   (SSRF-guarded; fakes for tests).
-- `Mailer` (`apps/api/src/mail`) — email: `console`, `file` or `smtp`.
+- `Mailer` — email. Adapters in `apps/api/src/mail` (`console`, `file`, `smtp`); `MemoryMailer` for tests.
+- `IdentityProvider` — "log in with X". `OidcProvider` (`apps/api/src/auth/oidc.ts`) covers Google and any other
+  OpenID Connect service; `FakeIdentityProvider` for tests.
 - `SearchProvider` — for news, web and scholarly sources (Crossref, OpenAlex, ...). Only a fake exists so far.
 
 **Prompts** (the instructions given to the AI) are not in code: they are Markdown files in [`prompts/`](prompts/README.md).
@@ -100,6 +102,8 @@ tests inject fakes and nothing hits the network.
 ## Accounts, AI keys and features
 
 - [docs/accounts.md](docs/accounts.md): accounts and sign-in, publications and sharing, ideas, drafts, deletion, and email.
+- Admin: the first address in `ADMIN_EMAILS` gets an **Admin** account when the server starts, with no password. Ask for a
+  link at `/forgot-password` to set one. Details in [docs/deploy.md](docs/deploy.md#letting-people-in-the-private-alpha).
 - [docs/byok.md](docs/byok.md): each user's own LLM key, and how to add a provider.
 - [docs/ai-features.md](docs/ai-features.md): the brainstorm (Refine), Research, Critique and Rephrase, with their APIs and limits.
 

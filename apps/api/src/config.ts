@@ -1,3 +1,4 @@
+import { dirname, join } from 'node:path'
 import { z } from 'zod'
 import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
 
@@ -11,6 +12,11 @@ const ConfigSchema = z.object({
   /** Encrypts users' stored API keys. Required in production. Losing it makes stored keys unreadable. */
   KEY_ENCRYPTION_SECRET: z.string().default(''),
   DATABASE_PATH: z.string().default('./data/wordwright.sqlite'),
+  /**
+   * Where each account deletion is noted (ids only), so deletions can be repeated after a restore (#410). It must be
+   * outside what a rollback replaces; the default, beside the database in the data volume, is.
+   */
+  DELETION_JOURNAL_PATH: z.string().default(''),
   /** Replace all LLM calls with a canned fake that accepts any key (development and e2e tests only). */
   FAKE_LLM: z
     .enum(['true', 'false'])
@@ -60,8 +66,17 @@ const ConfigSchema = z.object({
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean),
     ),
-  /** Sign-ups allowed an hour across the whole site (the API doesn't see client IPs). */
+  /** Sign-ups allowed an hour across the whole site, whoever makes them (each address also has its own limit). */
   SIGNUPS_PER_HOUR: z.coerce.number().int().min(1).default(30),
+  /**
+   * The API is reached only through Caddy (the production image sets this). Caddy puts the client's address in
+   * X-Forwarded-For, so sign-in and sign-up can also be throttled per address (#390). Leave it off when the API can be
+   * reached any other way: then anyone could write that header.
+   */
+  TRUST_PROXY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
   GOOGLE_CLIENT_ID: z.string().default(''),
   GOOGLE_CLIENT_SECRET: z.string().default(''),
 })
@@ -93,6 +108,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   }
   if (config.MAIL_TRANSPORT === 'smtp' && !/^smtps?:\/\//.test(config.SMTP_URL)) {
     throw new Error('SMTP_URL (smtp:// or smtps://...) is required when MAIL_TRANSPORT=smtp')
+  }
+  if (!config.DELETION_JOURNAL_PATH) {
+    config.DELETION_JOURNAL_PATH = join(dirname(config.DATABASE_PATH), 'deletions.jsonl')
   }
   if (!config.SESSION_SECRET) config.SESSION_SECRET = 'insecure-development-secret'
   if (!config.KEY_ENCRYPTION_SECRET)

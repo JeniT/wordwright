@@ -1,0 +1,20 @@
+# Automated update pull requests (docs/dependencies.md). Security alerts and security updates are repository
+# settings, switched on under Settings → Code security; this file adds the routine version updates.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # One pull request per week for routine updates; security updates are raised separately and at once.
+    groups:
+      routine:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

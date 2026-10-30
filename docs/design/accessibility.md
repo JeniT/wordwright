@@ -32,4 +32,7 @@ Part of the [design system](README.md). Read this when finishing any screen: foc
   state ("No notes yet.") belongs inside it. Pass `loading` to say what is loading ("Reading your feeds…") and
   `detail` when the server's reason helps ("Too many requests…"). A page about one idea or publication uses `IdeaGate` or
   `PublicationGate`, which also handle "not found".
+- **Opening a page by its address:** until the first navigation ends (sign-in check, then the page's code) the app shell
+  shows a quiet "Loading…" (`role="status"`) in the main area, so a hard load or deep link is never footer-only. Pages
+  need nothing for this; it does not show on later in-app navigations.
 - The e2e suite runs axe over the main pages. A new screen needs to be in it.

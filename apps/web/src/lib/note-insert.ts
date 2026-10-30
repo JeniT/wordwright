@@ -26,16 +26,3 @@ export function linkMarkdown(item: Article): string {
   const link = `[${title}](${item.url})`
   return item.authors.length ? `${link} by ${nameList(item.authors)}` : link
 }
-
-/** Case, spacing and Markdown punctuation ignored, so text can be found again after the editor rewrites it. */
-const plain = (text: string) =>
-  text
-    .replace(/\\(.)/g, '$1')
-    .replace(/[*_`#>[\]()-]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
-
-/** Whether words that were inserted can still be found, as they were, in the draft. */
-export const stillInDraft = (body: string, inserted: string) =>
-  plain(body).includes(plain(inserted))

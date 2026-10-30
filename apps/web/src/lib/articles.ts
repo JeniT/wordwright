@@ -37,7 +37,7 @@ export function useArticleActions(owner: () => Owner) {
   /** Keeps what the server answered, and anything else that shows the list or when the idea changed. */
   function keep(saved: Idea | Article[]) {
     const { publicationId, ideaId } = owner()
-    if (Array.isArray(saved)) queryClient.setQueryData(['articles', publicationId], saved)
+    if (Array.isArray(saved)) queryClient.setQueryData(queryKeys.articles(publicationId), saved)
     else queryClient.setQueryData(queryKeys.idea(publicationId, ideaId ?? undefined), saved)
     // The ideas' lists show when each last changed; nothing here waits for them.
     void invalidateRoots(queryClient, 'ideas')
@@ -147,7 +147,7 @@ export function useArticleList(owner: () => Owner) {
     () => owner().ideaId ?? undefined,
   )
   const own = useQuery({
-    queryKey: ['articles', () => owner().publicationId],
+    queryKey: computed(() => queryKeys.articles(owner().publicationId)),
     queryFn: () => api.listPublicationArticles(owner().publicationId),
     enabled: computed(() => !forIdea.value),
   })

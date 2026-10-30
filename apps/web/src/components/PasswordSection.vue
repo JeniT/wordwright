@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { ref } from 'vue'
 import { api } from '../lib/api'
+import { invalidateRoots } from '../lib/queries'
 import { useSessionStore } from '../stores/session'
 import TextField from './TextField.vue'
 import SaveStatus from './SaveStatus.vue'
@@ -21,7 +22,7 @@ const change = useMutation({
 })
 const setup = useMutation({
   mutationFn: () => api.requestPasswordSetup(),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me'] }),
+  onSuccess: () => invalidateRoots(queryClient, 'me'),
 })
 </script>
 

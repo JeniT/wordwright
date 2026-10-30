@@ -16,6 +16,8 @@ assistance ladder. This task is the service; the window is #162, the title entry
   reopening starts again, as adding a new draft gets round the critique limit. Critique's own cap is unchanged.
 - **Stateless on the server.** The request carries the rounds already asked (Aim and options), the server checks and
   counts nothing, and the only record will be made when an option is used (#162, a row beside `draft_insertions`).
+  (#322: the server does now share one per-person throttle with Critique, 30 requests per 10 minutes, against abuse such
+  as a loop on a stolen session. It is far above what a writer uses and is not a quota on writing.)
 - **How many, and how long.** Short wording (a title, or up to 25 words) gets a list of about 8 options (5 to 10
   accepted); longer wording gets a carousel of about 4 (3 to 5). An option may be at most the larger of 1.5 times the
   wording or the wording plus 15 words, and a title option at most 20 words, so a phrase cannot become a paragraph.

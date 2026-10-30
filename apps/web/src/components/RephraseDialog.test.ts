@@ -135,7 +135,7 @@ describe('RephraseDialog', () => {
     expect(screen.getByText('Round 1 of 3')).toBeInTheDocument()
 
     await fireEvent.click(
-      within(items[1]!).getByRole('button', { name: /Replace the wording with option 2/ }),
+      within(items[1]!).getByRole('button', { name: /Replace wording with option 2/ }),
     )
     expect(screen.getByLabelText('Current wording')).toHaveValue(
       'Round 1 option 2 puts it another way.',
@@ -147,7 +147,7 @@ describe('RephraseDialog', () => {
     const view = show()
     await ask('Plainer for someone new')
     const list = await screen.findByRole('list', { name: 'Options' })
-    await fireEvent.click(within(list).getAllByRole('button', { name: /Replace the wording/ })[0]!)
+    await fireEvent.click(within(list).getAllByRole('button', { name: /Replace wording/ })[0]!)
     await fireEvent.update(
       screen.getByLabelText('Current wording'),
       'My own version of option one.',
@@ -165,7 +165,7 @@ describe('RephraseDialog', () => {
     const view = show()
     await ask('Plainer for someone new')
     const list = await screen.findByRole('list', { name: 'Options' })
-    await fireEvent.click(within(list).getAllByRole('button', { name: /Replace the wording/ })[2]!)
+    await fireEvent.click(within(list).getAllByRole('button', { name: /Replace wording/ })[2]!)
     await fireEvent.click(useThis())
     expect(lastEmit(view, 'use')).toMatchObject({ text: 'Round 1 option 3 puts it another way.' })
   })
@@ -239,7 +239,7 @@ describe('RephraseDialog', () => {
     expect(within(carousel).getByText('Option 2 of 4')).toBeInTheDocument()
 
     await fireEvent.click(
-      within(carousel).getByRole('button', { name: /Replace the wording with option 2/ }),
+      within(carousel).getByRole('button', { name: /Replace wording with option 2/ }),
     )
     expect(screen.getByLabelText('Current wording')).toHaveValue('Paragraph 2 puts it another way.')
   })

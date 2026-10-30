@@ -38,7 +38,7 @@ const submit = () =>
 <template>
   <ModalDialog
     :open="open"
-    title="Handover draft"
+    title="Hand over editing"
     close-label="Close"
     :footer="!others.length"
     @close="emit('close')"
@@ -57,7 +57,7 @@ const submit = () =>
         </select>
       </div>
       <button type="submit" class="btn btn-primary" :disabled="actions.busy.value || !target">
-        Handover draft
+        Hand over editing
       </button>
       <button type="button" class="btn btn-neutral" @click="emit('close')">Cancel</button>
       <p class="basis-full text-ink-soft">They are emailed, and choose whether to accept.</p>

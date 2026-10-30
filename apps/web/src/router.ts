@@ -46,7 +46,7 @@ function whenInPage(selector: string): Promise<string | null> {
 }
 
 /** Pages a reviewer-only account may open (the others are open to everyone, or for guests). */
-const REVIEWER_PAGES = new Set(['reviews', 'review', 'start-writing'])
+const REVIEWER_PAGES = new Set(['reviews', 'review', 'start-writing', 'account-delete'])
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -178,32 +178,12 @@ export const routes: RouteRecordRaw[] = [
     props: true,
     meta: { level: 'publication', step: 'scan', tutorial: true },
   },
-  // Scan was called Search until #307; to be dropped by the pre-launch sweep (#308).
-  {
-    path: '/p/:publicationId/search',
-    name: 'search',
-    redirect: (to) => ({ name: 'scan', params: to.params }),
-  },
   {
     path: '/p/:publicationId/read',
     name: 'read',
     component: () => import('./views/ReadView.vue'),
     props: true,
     meta: { level: 'publication', step: 'read', tutorial: true },
-  },
-  // Inspiration was split into Scan and Read; the old addresses still land on the right one.
-  {
-    path: '/p/:publicationId/inspiration',
-    name: 'inspiration',
-    redirect: (to) => ({
-      name: to.hash === '#reading-list' ? 'read' : 'scan',
-      params: to.params,
-    }),
-  },
-  {
-    path: '/p/:publicationId/articles',
-    name: 'publication-articles',
-    redirect: (to) => ({ name: 'read', params: to.params }),
   },
   {
     path: '/p/:publicationId/articles/:articleId',
@@ -218,23 +198,6 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('./views/PublicationNotesView.vue'),
     props: true,
     meta: { level: 'publication', step: 'notes', tutorial: true },
-  },
-  // Ideas used to have a page of their own; they are listed on the landing page now (new ones start in Quick add).
-  {
-    path: '/p/:publicationId/ideas',
-    name: 'publication-ideas',
-    redirect: (to) => ({ name: 'publication', params: to.params }),
-  },
-  {
-    path: '/p/:publicationId/ideas/new',
-    name: 'new-idea',
-    redirect: (to) => ({ name: 'publication', params: to.params }),
-  },
-  // The description used to have a page of its own; it is a settings page now.
-  {
-    path: '/p/:publicationId/describe',
-    name: 'describe-publication',
-    redirect: (to) => ({ name: 'publication-settings-description', params: to.params }),
   },
 
   // Settings are a menu of short pages, like the account's; the bare address and the gear lead to the first.
@@ -284,11 +247,6 @@ export const routes: RouteRecordRaw[] = [
     meta: { level: 'idea', step: 'research', tutorial: true },
   },
   {
-    // The AI research used to have a page apart from the articles; they are now 01 Research and 02 Read.
-    path: '/p/:publicationId/ideas/:id/research/find',
-    redirect: (to) => ({ name: 'idea-research', params: to.params, query: to.query }),
-  },
-  {
     path: '/p/:publicationId/ideas/:id/read',
     name: 'idea-read',
     component: () => import('./views/IdeaReadView.vue'),
@@ -317,20 +275,11 @@ export const routes: RouteRecordRaw[] = [
     meta: { level: 'idea', step: 'refine', tutorial: true },
   },
   {
-    path: '/p/:publicationId/ideas/:id/brainstorm',
-    redirect: (to) => ({ name: 'brainstorm', params: to.params, query: to.query }),
-  },
-  {
     path: '/p/:publicationId/ideas/:id/drafts',
     name: 'idea-drafts',
     component: () => import('./views/IdeaDraftsView.vue'),
     props: true,
     meta: { level: 'idea', step: 'draft', tutorial: true },
-  },
-  {
-    // Publishing is done to one draft, at the bottom of its page; old links land on the idea's drafts.
-    path: '/p/:publicationId/ideas/:id/publish',
-    redirect: (to) => ({ name: 'idea-drafts', params: to.params, query: to.query }),
   },
   {
     path: '/p/:publicationId/ideas/:id/settings',
@@ -400,6 +349,42 @@ export const routes: RouteRecordRaw[] = [
     path: '/help/formatting',
     name: 'help-formatting',
     component: () => import('./views/HelpFormattingView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/drafting',
+    name: 'help-drafting',
+    component: () => import('./views/HelpDraftingView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/account',
+    name: 'help-account',
+    component: () => import('./views/HelpAccountView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/accessibility',
+    name: 'help-accessibility',
+    component: () => import('./views/HelpAccessibilityView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/privacy-notice',
+    name: 'help-privacy-notice',
+    component: () => import('./views/HelpPrivacyNoticeView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/terms',
+    name: 'help-terms',
+    component: () => import('./views/HelpTermsView.vue'),
+    meta: { open: true },
+  },
+  {
+    path: '/help/cookies',
+    name: 'help-cookies',
+    component: () => import('./views/HelpCookiesView.vue'),
     meta: { open: true },
   },
   {

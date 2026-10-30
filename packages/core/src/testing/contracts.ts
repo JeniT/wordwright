@@ -5,6 +5,8 @@ import { FeedError, MAX_FEED_CANDIDATES, type FeedFetcher } from '../providers/f
 import type { PageInfoFetcher } from '../providers/pages'
 import type { ResearchProvider } from '../providers/research'
 import type { SearchProvider } from '../providers/search'
+import type { FakeIdentity, IdentityProvider } from '../providers/identity'
+import type { Email, Mailer } from '../providers/mail'
 
 /**
  * Behaviour every LLMProvider must satisfy. Run it against the fake in CI and,
@@ -420,6 +422,117 @@ export function researchProviderContract(
       await expect(
         create(searched, invented).find({ ...request, signal: controller.signal }),
       ).rejects.toThrow()
+    })
+  })
+}
+
+/**
+ * Behaviour every Mailer must have: accepts an email without throwing, and the content arrives intact.
+ * `setup` supplies the mailer and a way to read back what it delivered.
+ */
+export function mailerContract(
+  name: string,
+  setup: () => Promise<{ mailer: Mailer; delivered: () => Promise<Email[]> }>,
+) {
+  describe(`Mailer contract: ${name}`, () => {
+    const sample: Email = {
+      to: 'ada@example.com',
+      subject: 'Hello Ada',
+      text: 'Plain text body with https://app.test/x?token=abc',
+      html: '<p>HTML body</p>',
+    }
+
+    it('delivers the recipient, subject, text and html unchanged', async () => {
+      const { mailer, delivered } = await setup()
+      await mailer.send(sample)
+      const [email] = await delivered()
+      expect(email).toMatchObject({ to: sample.to, subject: sample.subject })
+      expect(email!.text.trim()).toBe(sample.text)
+      expect(email!.html?.trim()).toBe(sample.html)
+    })
+  })
+}
+
+/**
+ * Behaviour every IdentityProvider must satisfy. `setup` is told who the (pretend) identity provider
+ * will vouch for and the nonce the sign-in will use, and returns the provider, a code it will accept,
+ * one it will refuse, and any secrets it holds (such as a client secret) that must never appear in an
+ * error. A real adapter is run against a stubbed token endpoint.
+ */
+export function identityProviderContract(
+  name: string,
+  setup: (scenario: { identity: FakeIdentity; nonce: string }) => Promise<{
+    provider: IdentityProvider
+    goodCode: string
+    badCode: string
+    secrets: string[]
+  }>,
+) {
+  describe(`IdentityProvider contract: ${name}`, () => {
+    const nonce = 'nonce-4f1c'
+    const identity = {
+      subject: 'sub-1',
+      email: 'Ada@Example.com',
+      emailVerified: true,
+      name: 'Ada',
+    }
+    const exchange = (code: string) => ({
+      code,
+      codeVerifier: 'verifier-9a7e2b',
+      redirectUri: 'https://app.test/auth/callback',
+      nonce,
+    })
+
+    it('has an id and a label', async () => {
+      const { provider } = await setup({ identity, nonce })
+      expect(provider.id).not.toBe('')
+      expect(provider.label).not.toBe('')
+    })
+
+    it('sends the person to an address carrying the state, nonce and an S256 code challenge', async () => {
+      const { provider } = await setup({ identity, nonce })
+      const url = new URL(
+        provider.authorizationUrl({
+          state: 'state-1',
+          nonce,
+          codeChallenge: 'challenge-1',
+          redirectUri: 'https://app.test/auth/callback',
+        }),
+      )
+      expect(url.protocol).toBe('https:')
+      expect(url.searchParams.get('state')).toBe('state-1')
+      expect(url.searchParams.get('nonce')).toBe(nonce)
+      expect(url.searchParams.get('code_challenge')).toBe('challenge-1')
+      expect(url.searchParams.get('code_challenge_method')).toBe('S256')
+    })
+
+    it('turns a good code into the claims it vouches for, with the email lower-cased', async () => {
+      const { provider, goodCode } = await setup({ identity, nonce })
+      expect(await provider.exchangeCode(exchange(goodCode))).toEqual({
+        subject: 'sub-1',
+        email: 'ada@example.com',
+        emailVerified: true,
+        name: 'Ada',
+      })
+    })
+
+    it('treats an email it never said was verified as unverified', async () => {
+      const { provider, goodCode } = await setup({
+        identity: { ...identity, emailVerified: undefined },
+        nonce,
+      })
+      expect((await provider.exchangeCode(exchange(goodCode))).emailVerified).toBe(false)
+    })
+
+    it('rejects a code it refuses, with an error that holds no secrets', async () => {
+      const { provider, badCode, secrets } = await setup({ identity, nonce })
+      const err = await provider.exchangeCode(exchange(badCode)).catch((e: unknown) => e)
+      expect(err).toBeInstanceOf(Error)
+      const message = (err as Error).message
+      expect(message).not.toBe('')
+      for (const secret of [...secrets, badCode, 'verifier-9a7e2b']) {
+        expect(message).not.toContain(secret)
+      }
     })
   })
 }

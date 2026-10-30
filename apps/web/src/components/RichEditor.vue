@@ -5,8 +5,8 @@ import StarterKit from '@tiptap/starter-kit'
 import { Mark } from '@tiptap/pm/model'
 import { TextSelection as CursorSelection } from '@tiptap/pm/state'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
-import { DRAFT_SECTIONS, DRAFT_TOOLS } from '../lib/editor-tools'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { DRAFT_SECTIONS, DRAFT_TOOLS, openLinkOnModClick } from '../lib/editor-tools'
 import Icon from './Icon.vue'
 import EditorToolbar from './EditorToolbar.vue'
 import {
@@ -20,6 +20,7 @@ import { COMMENT_QUOTE_MAX_LENGTH, countWords } from '@wordwright/core'
 import { NOTE_DRAG_TYPE, ARTICLE_DRAG_TYPE } from '../lib/note-drag'
 import type { TextSelection } from '../lib/text-selection'
 import { scrollPageToTop } from '../lib/scroll'
+import { trackKeyboardInset } from '../lib/keyboard-inset'
 
 const model = defineModel<string>({ required: true })
 /** Editing the Markdown itself in a plain text box, instead of the rich-text editor. */
@@ -128,13 +129,7 @@ const editor = useEditor({
         hand(drag, position)
         return true
       },
-      click: (_view, event) => {
-        const link = (event.target as HTMLElement).closest('a')
-        if (!link || !(event.ctrlKey || event.metaKey)) return false
-        event.preventDefault()
-        window.open(link.href, '_blank', 'noopener')
-        return true
-      },
+      click: (_view, event) => openLinkOnModClick(event),
     },
   },
   onFocus: () => {
@@ -392,6 +387,41 @@ function focusStart() {
   else editor.value?.commands.focus('start')
 }
 
+// ---- the toolbar pinned to the bottom of a phone's screen (#380)
+const root = useTemplateRef<HTMLElement>('root')
+const dock = useTemplateRef<HTMLElement>('dock')
+let stopKeyboard: (() => void) | undefined
+// Made here, in setup, so that it is the toolbar's observer (made when the toolbar is set up, after this) that is last.
+const dockObserver =
+  typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(reserveDock)
+/** Room under the text for the pinned bar (so the last line can scroll clear of it), and for the caret to scroll to. */
+function reserveDock() {
+  const el = dock.value
+  const pinned = !!el && getComputedStyle(el).position === 'fixed'
+  const height = pinned ? el.offsetHeight : 0
+  root.value?.style.setProperty('--dock-height', `${height}px`)
+  const view = editor.value?.view
+  if (view && !view.isDestroyed) {
+    view.setProps({ scrollMargin: { top: 0, right: 0, bottom: height + 8, left: 0 } })
+  }
+}
+onMounted(() => {
+  stopKeyboard = trackKeyboardInset()
+  watch(
+    dock,
+    (el) => {
+      dockObserver?.disconnect()
+      if (el) dockObserver?.observe(el)
+      reserveDock()
+    },
+    { immediate: true },
+  )
+})
+onBeforeUnmount(() => {
+  stopKeyboard?.()
+  dockObserver?.disconnect()
+})
+
 defineExpose({
   focusStart,
   commentTarget,
@@ -428,39 +458,52 @@ watch(model, (value) => {
 </script>
 
 <template>
-  <div>
-    <!-- Sticky, so formatting stays in reach in a long draft. -->
+  <div ref="root" class="phone:pb-(--dock-height,0px)">
+    <!-- Sticky, so formatting stays in reach in a long draft. On a phone the toolbar is pinned to the bottom of the
+         screen, above the keyboard (the `dock`), and only the status line is left to stick at the top. -->
     <div
       v-if="editable !== false"
-      class="sticky top-(--bar-top,0px) z-10 mb-3 border-b border-line bg-paper py-1"
+      class="sticky top-(--bar-top,0px) z-10 mb-3 border-b border-line bg-paper py-1 phone:contents"
     >
       <!-- Above the buttons: the save state (the page's, in the slot) and how long the text is. -->
-      <div class="mb-1 flex items-baseline justify-between gap-3 text-sm text-ink-soft">
+      <div
+        class="mb-1 flex items-baseline justify-between gap-3 text-sm text-ink-soft phone:sticky phone:top-(--bar-top,0px) phone:z-10 phone:mb-3 phone:border-b phone:border-line phone:bg-paper phone:py-1"
+      >
         <div class="min-h-5"><slot name="status" /></div>
         <p data-testid="word-count">{{ wordCountText }}</p>
       </div>
-      <EditorToolbar
-        v-model:markdown-mode="markdownMode"
-        :editor="editor"
-        :tools="DRAFT_TOOLS"
-        :sections="DRAFT_SECTIONS"
-        markdown-toggle
-        :actions="actions"
-        :rephrase-ready="rephraseReady"
-        @comment="emit('comment')"
-        @rephrase="emit('rephrase')"
-      />
-      <!-- The reason a button did nothing, and what the two do. -->
-      <slot name="toolbar-notes" />
+      <div
+        ref="dock"
+        class="phone:fixed phone:inset-x-0 phone:bottom-(--keyboard-inset,0px) phone:z-20 phone:flex phone:flex-col-reverse phone:border-t phone:border-line phone:bg-paper phone:px-4 phone:py-1"
+      >
+        <EditorToolbar
+          v-model:markdown-mode="markdownMode"
+          :editor="editor"
+          :tools="DRAFT_TOOLS"
+          :sections="DRAFT_SECTIONS"
+          markdown-toggle
+          :actions="actions"
+          :rephrase-ready="rephraseReady"
+          @comment="emit('comment')"
+          @rephrase="emit('rephrase')"
+        />
+        <!-- The reason a button did nothing, and what the two do. -->
+        <slot name="toolbar-notes" />
+      </div>
     </div>
     <div
       v-if="commentBar"
-      class="sticky top-(--bar-top,0px) z-10 mb-3 flex justify-end border-b border-line bg-paper py-1"
+      class="sticky top-(--bar-top,0px) z-10 mb-3 flex justify-end border-b border-line bg-paper py-1 phone:contents"
     >
-      <button type="button" class="btn btn-outline btn-sm" @click="emit('comment')">
-        <Icon name="comment" />
-        Add comment
-      </button>
+      <div
+        ref="dock"
+        class="flex justify-end phone:fixed phone:inset-x-0 phone:bottom-(--keyboard-inset,0px) phone:z-20 phone:border-t phone:border-line phone:bg-paper phone:px-4 phone:py-1"
+      >
+        <button type="button" class="btn btn-outline btn-sm" @click="emit('comment')">
+          <Icon name="comment" />
+          Add comment
+        </button>
+      </div>
     </div>
     <EditorContent v-show="!sourceMode" :editor="editor" class="prose-editor" />
     <textarea

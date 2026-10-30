@@ -22,13 +22,13 @@ export interface Step {
   route: string
 }
 
-export const PUBLICATION_STEPS: Step[] = [
+const PUBLICATION_STEPS: Step[] = [
   { key: 'scan', label: 'Scan', route: 'scan' },
   { key: 'read', label: 'Read', route: 'read' },
   { key: 'notes', label: 'Note', route: 'publication-notes' },
 ]
 
-export const IDEA_STEPS: Step[] = [
+const IDEA_STEPS: Step[] = [
   { key: 'research', label: 'Research', route: 'idea-research' },
   { key: 'read', label: 'Read', route: 'idea-read' },
   { key: 'notes', label: 'Note', route: 'idea-notes' },
@@ -37,7 +37,7 @@ export const IDEA_STEPS: Step[] = [
 ]
 
 /** The account settings pages: plain links in the menu (settings are not a sequence, so no numbers). */
-export const ACCOUNT_PAGES: Step[] = [
+const ACCOUNT_PAGES: Step[] = [
   { key: 'details', label: 'Your details', route: 'account-details' },
   { key: 'ai', label: 'Your AI', route: 'account-ai' },
   { key: 'display', label: 'Display', route: 'account-display' },
@@ -50,7 +50,7 @@ export const ACCOUNT_PAGES: Step[] = [
 export interface SettingsPage extends Step {
   ownerOnly?: boolean
 }
-export const PUBLICATION_SETTINGS_PAGES: SettingsPage[] = [
+const PUBLICATION_SETTINGS_PAGES: SettingsPage[] = [
   { key: 'details', label: 'Details', route: 'publication-settings-details', ownerOnly: true },
   { key: 'description', label: 'Description', route: 'publication-settings-description' },
   { key: 'feeds', label: 'Feeds', route: 'publication-settings-feeds' },
@@ -72,7 +72,7 @@ export interface Crumb {
 
 export type NavLevel = 'home' | 'publication' | 'publication-settings' | 'idea' | 'account'
 
-export const stepsFor = (level: NavLevel) =>
+const stepsFor = (level: NavLevel) =>
   level === 'idea' ? IDEA_STEPS : level === 'publication' ? PUBLICATION_STEPS : []
 
 /** "01", "02" ... for a step, or '' when the page isn't a numbered step. */
@@ -129,7 +129,7 @@ export function useNav() {
   const atIdea = () => level.value === 'idea' && !!ideaId.value
   const feeds = useSources(() => publicationId.value, atPublication)
   const reading = useQuery({
-    queryKey: ['articles', () => publicationId.value],
+    queryKey: computed(() => queryKeys.articles(publicationId.value)),
     queryFn: () => api.listPublicationArticles(publicationId.value),
     enabled: atPublication,
   })

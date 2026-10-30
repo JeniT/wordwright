@@ -24,6 +24,11 @@ test('incoming changes to a shared spot are an overlap even if the branch never 
   ])
 })
 
+test('an incoming package.json change is no overlap unless the branch changed it too', () => {
+  assert.deepEqual(findOverlap(['a.ts'], ['package.json']), [])
+  assert.deepEqual(findOverlap(['package.json'], ['package.json']), ['package.json'])
+})
+
 test('the same file is not listed twice', () => {
   assert.deepEqual(findOverlap(['package.json'], ['package.json']), ['package.json'])
 })
@@ -89,9 +94,9 @@ test('CLI: a shared-spot file on main exits 1', () => {
   const dir = repo()
   commit(dir, 'mine.txt', 'mine')
   git(dir, 'checkout', '-q', 'main')
-  commit(dir, 'package.json', 'theirs')
+  commit(dir, 'pnpm-lock.yaml', 'theirs')
   git(dir, 'checkout', '-q', 'work')
   const { code, out } = run(dir)
   assert.equal(code, 1)
-  assert.match(out, /overlap: package\.json/)
+  assert.match(out, /overlap: pnpm-lock\.yaml/)
 })

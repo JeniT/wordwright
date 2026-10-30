@@ -72,11 +72,15 @@ describe('logging', () => {
     // message. A new logging call in another file fails this test so that someone looks at it first.
     const reviewed = [
       'admin-cli.ts', // a command run by hand: prints fixed sentences and the address the operator typed
+      'replay-deletions-cli.ts', // a command run by hand: prints counts and the time the operator typed
+      'forget-kept-name-cli.ts', // a command run by hand: prints counts and the name the operator typed
+      'forget-ai-keys-cli.ts', // a command run by hand: prints counts only
       'app.ts',
       'server.ts',
       'mail/background.ts',
-      'mail/mailer.ts', // the console mailer, which production refuses to start with
+      'mail/console-mailer.ts', // the console mailer, which production refuses to start with
       'routes/assist.ts',
+      'services/deletion-journal.ts', // logs the error's name only, never a path or an id
       'services/brainstorm.ts',
       'services/icon-backfill.ts',
       'services/maintenance.ts',

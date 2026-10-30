@@ -61,15 +61,21 @@ test('the gear opens the account level, the menu moves between its pages, and /a
 test('each page is accessible in light, in dark and on a phone, with no sideways scroll', async ({
   page,
 }) => {
+  test.slow() // about 25s on its own, so a busy machine passes the 30s default
   await signUp(page)
   for (const [label, path] of PAGES) {
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
     await noViolations(page, `${label}, light`)
   }
-  await page.emulateMedia({ colorScheme: 'dark' })
+  // Reduced motion ends the colour transitions at once; axe measuring contrast halfway through one is a flake.
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
   for (const [label, path] of PAGES) {
     await page.goto(path)
+    await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
+    // The dev server adds each stylesheet as its script runs; on a busy machine axe could measure the page
+    // with some of them missing (dark background, black links). Idle network means they have all arrived.
+    await page.waitForLoadState('networkidle')
     await noViolations(page, `${label}, dark`)
   }
   await page.setViewportSize({ width: 390, height: 800 })
@@ -83,6 +89,7 @@ test('each page is accessible in light, in dark and on a phone, with no sideways
   for (const [label, path] of PAGES) {
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
+    await page.waitForLoadState('networkidle')
     await noViolations(page, `${label}, phone`)
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,

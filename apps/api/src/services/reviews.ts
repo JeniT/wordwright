@@ -7,6 +7,7 @@ import type {
   ReviewInvitationPreview,
   ReviewSummary,
   SendForReviewInput,
+  Mailer,
 } from '@wordwright/core'
 import type { RateLimiter } from '../auth/rate-limit'
 import { generateToken, hashToken } from '../auth/secrets'
@@ -14,12 +15,11 @@ import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import { fail } from '../errors'
 import { sendInBackground } from '../mail/background'
-import type { Mailer } from '../mail/mailer'
 import { reviewFinishedEmail, reviewInvitationEmail, reviewRequestEmail } from '../mail/templates'
 import type { AccountService, Session } from './accounts'
 import { addComment, deleteComment, editComment } from './comments'
 
-export const REVIEW_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const REVIEW_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export interface ReviewServiceDeps {
   store: Store

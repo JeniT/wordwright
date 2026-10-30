@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": ["docs/design-concepts/**"],
+  "rules": { "types": "off" },
+  "ignoreIssues": { "apps/web/e2e/fixtures.ts": ["exports"] },
+  "workspaces": {
+    ".": { "entry": ["scripts/*.mjs"] },
+    "apps/web": {
+      "entry": ["src/views/Account*View.vue", "src/views/PublicationSettings*View.vue"]
+    }
+  }
+}

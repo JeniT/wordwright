@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { hashToken } from './auth/secrets'
-import type { Mailer } from './mail/mailer'
+import type { Mailer } from '@wordwright/core'
 import {
   lastInvitationToken,
   PASSWORD,

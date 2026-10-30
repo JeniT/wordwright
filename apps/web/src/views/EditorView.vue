@@ -454,7 +454,7 @@ onBeforeUnmount(() => {
 })
 
 // ---- comments: the editor sees everyone's (the AI's critique included) and the others only their own; the server
-// decides which. The latest critique's summary and the looks used are the editor's alone.
+// decides which. The latest critique's summary and the critiques used are the editor's alone.
 const lastCritique = useDraftCritique(
   () => props.publicationId,
   () => props.id,
@@ -739,36 +739,15 @@ async function requestCritique() {
           <NewTabLink to="/help/formatting" class="underline">Formatting and shortcuts</NewTabLink>
         </p>
 
-        <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-          <AiButton
-            v-if="canEdit"
-            class="btn btn-outline"
-            :busy="critiquing"
-            busy-text="Reading your draft…"
-            :disabled="outOfLooks"
-            :aria-describedby="looks ? 'critique-looks critique-sent' : 'critique-sent'"
-            @click="requestCritique"
-          >
-            Critique
-          </AiButton>
-          <Explain v-if="canEdit" label="About Critique" class="-ml-2">
-            If you ask for a critique, your AI will give you comments on how to improve your draft.
-            AI will always find something wrong with your text, so you can only do this a limited
-            number of times for a draft; you can change this limit in your user settings.
-          </Explain>
-          <p
-            v-if="canEdit"
-            id="critique-sent"
-            class="min-w-0 flex-1 basis-64 text-sm text-ink-soft"
-          >
-            Critique will send this publication’s description and this draft’s title and text to
-            your AI. It will not send your notes.
-          </p>
+        <!-- Critique is in the Comments tab; this button is for the width where the panel is neither beside nor a tab. -->
+        <div
+          v-if="draft.data.value?.ideaId"
+          class="mt-6 border-t border-line pt-4 max-md:hidden lg:hidden"
+        >
           <button
-            v-if="draft.data.value?.ideaId"
             ref="openButton"
             type="button"
-            class="btn btn-outline max-md:hidden lg:hidden"
+            class="btn btn-outline"
             aria-controls="draft-notes"
             :aria-expanded="notesOpen"
             @click="openFromPage"
@@ -776,16 +755,6 @@ async function requestCritique() {
             Open panel
           </button>
         </div>
-        <p v-if="looks && canEdit" id="critique-looks" class="mt-2 text-sm text-ink-soft">
-          <template v-if="outOfLooks">
-            You have had your {{ looks.allowed }} {{ looks.allowed === 1 ? 'look' : 'looks' }} at
-            this draft. The next step is to
-            <RouterLink :to="{ hash: '#publish' }" class="underline">publish it</RouterLink>. Change
-            how many looks a draft gets in your
-            <RouterLink to="/account/ai" class="underline">account settings</RouterLink>.
-          </template>
-          <template v-else>{{ looks.used }} of {{ looks.allowed }} looks used</template>
-        </p>
         <div
           v-if="autosave.state.value === 'failed'"
           role="alert"
@@ -901,7 +870,48 @@ async function requestCritique() {
               @set-resolved="resolve"
               @close-composer="composing = null"
               @start-comment="startComment"
-            />
+            >
+              <template #after>
+                <div v-if="canEdit" class="mt-6 border-t border-line pt-4">
+                  <div class="flex flex-wrap items-center gap-1">
+                    <AiButton
+                      class="btn btn-outline"
+                      :busy="critiquing"
+                      busy-text="Reading your draft…"
+                      :disabled="outOfLooks"
+                      :aria-describedby="looks ? 'critique-looks critique-sent' : 'critique-sent'"
+                      @click="requestCritique"
+                    >
+                      Critique
+                    </AiButton>
+                    <Explain label="About Critique">
+                      If you ask for a critique, your AI will give you comments on how to improve
+                      your draft. AI will always find something wrong with your text, so you can
+                      only do this a limited number of times for a draft; you can change this limit
+                      in your user settings.
+                    </Explain>
+                  </div>
+                  <p id="critique-sent" class="mt-2 text-sm text-ink-soft">
+                    Critique will send this publication’s description and this draft’s title and
+                    text to your AI. It will not send your notes.
+                  </p>
+                  <p v-if="looks" id="critique-looks" class="mt-2 text-sm text-ink-soft">
+                    <template v-if="outOfLooks">
+                      You have used your {{ looks.allowed }}
+                      {{ looks.allowed === 1 ? 'critique' : 'critiques' }} of this draft. The next
+                      step is to
+                      <RouterLink :to="{ hash: '#publish' }" class="underline" @click="closeNotes"
+                        >publish it</RouterLink
+                      >. Change how many critiques a draft gets in your
+                      <RouterLink to="/account/ai" class="underline">account settings</RouterLink>.
+                    </template>
+                    <template v-else
+                      >{{ looks.used }} of {{ looks.allowed }} critiques used</template
+                    >
+                  </p>
+                </div>
+              </template>
+            </CommentsPanel>
           </template>
         </TabPanels>
         <!-- Outside the tabs: a drop or an unread item can be answered while another tab is showing. -->

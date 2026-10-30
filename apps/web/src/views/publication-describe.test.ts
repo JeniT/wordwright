@@ -219,14 +219,7 @@ describe('the Save button', () => {
   })
 })
 
-describe('the old describe address', () => {
-  it('leads to the Description page in the settings', async () => {
-    fakeServer()
-    const { router } = await renderAt('/p/ada-publication/describe')
-    await screen.findByRole('heading', { level: 1, name: 'Description' })
-    expect(router.currentRoute.value.path).toBe('/p/ada-publication/settings/description')
-  })
-
+describe('the description settings page', () => {
   it('can be cleared from the settings page', async () => {
     const { calls } = fakeServer({ ...bare, description: 'Old words.' })
     await renderAt('/p/ada-publication/settings/description')

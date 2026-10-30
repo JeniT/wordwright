@@ -1,8 +1,8 @@
 # Deploying Wordwright
 
-Read this when you deploy, back up, restore or roll back the server, or set up its email, firewall or Google sign-in.
+Read this when you deploy, back up, restore or roll back the server, or set up its email, firewall or Google sign-in. When something is wrong, or for monitoring, secrets and limits, see [runbook.md](runbook.md).
 
-**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [Rolling back](#rolling-back) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
+**Contents:** [Setting up a new server](#setting-up-a-new-server) · [The files](#the-files) · [Trying it on your own machine](#trying-it-on-your-own-machine) · [Shipping a build](#shipping-a-build) · [Backups](#backups) · [The one-time wipe](#the-one-time-wipe-before-the-first-invitations) · [Rolling back](#rolling-back) · [Repeating deletions after a restore](#after-a-rollback-or-restore-repeat-the-deletions) · [Removing a kept name](#removing-a-kept-display-name-on-request) · [The firewall, and outgoing mail](#the-firewall-and-outgoing-mail) · [Google sign-in](#google-sign-in) · [Logs](#logs) · [Letting people in (the private alpha)](#letting-people-in-the-private-alpha) · [Looking at it](#looking-at-it)
 
 Production is **one machine** (an UpCloud VM in London; see [the decision](adr/go-live-and-operations/production-runs-as-two-containers-on-one-machine.md)) running two
 containers with Docker Compose:
@@ -12,6 +12,12 @@ containers with Docker Compose:
 
 **There must be exactly one `api` container.** The rate limiter lives in its memory and the database is one file; a
 second copy would split the limits and fight over the file. Don't scale it.
+
+**The API trusts Caddy for the client's address.** The api image sets `TRUST_PROXY=true`, so sign-in and sign-up are also
+throttled per address, read from `X-Forwarded-For`. Caddy replaces whatever the client sent there with the address it
+saw. That is safe only because the api container publishes no port (`scripts/deploy-compose.test.mjs` checks): keep
+it that way, or anyone could set the header. If a CDN or another proxy is ever put in front of Caddy, every request
+would seem to come from that proxy and share one allowance: set Caddy's `trusted_proxies` to it first.
 
 The domain and DNS (Gandi), the Scaleway account and the Google sign-in are set up in their own dashboards (#349, #350);
 the server itself is set up by a wizard (next section). This page is what runs on it.
@@ -33,6 +39,9 @@ read-only token for the private images; makes the two secrets and sends them to 
 details; takes the Google sign-in ID and secret if you have them; starts the app and checks `https://app.wordwright.io/health`; walks you through checking real email; and
 installs a nightly backup timer and fetches a first copy to your computer.
 
+If it stops part way, fix what it says and run it again. It notices the base setup and the SSH lock-down already done
+(root can no longer log in by then) and skips them; decline a new image build and a new token to keep them.
+
 Secrets go from your keyboard to the server and are never written on your computer. The one file it keeps
 (`deploy/.env.server-setup`, ignored by git) holds only non-secret answers, so you can stop with Ctrl-C and run it again
 where it left off. It keeps secrets the server already has, rather than making new ones: **a new
@@ -41,21 +50,27 @@ see exactly what runs as root.
 
 ## The files
 
-| File                            | What it is                                                                                      |
-| ------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `Dockerfile`                    | Builds both images (`--target api` and `--target web`).                                         |
-| `deploy/compose.yaml`           | The two services, the volumes, the health check, and a cap on log size (the disk is small).     |
-| `deploy/Caddyfile`              | HTTPS, security headers, the web app with its fallback page, `/api/*` and `/health` to the API. |
-| `deploy/production.env.example` | Every setting production needs. Copy to `deploy/.env` on the server; `.env` is never committed. |
-| `deploy/deploy.sh`              | Backs up (`backup.sh`), pulls, restarts, waits until ready.                                     |
-| `deploy/setup-wizard.sh`        | Walks you through setting up a new server (below).                                              |
-| `deploy/server-setup.sh`        | What runs as root on the server: `base`, `harden`, `timer`.                                     |
-| `deploy/backup.sh`              | One backup onto the server's own disk, and off-site if set up; the nightly timer runs it.       |
-| `deploy/rollback.sh`            | Back to an older build and the database from before the update.                                 |
-| `deploy/offsite-wizard.sh`      | Sets up the encrypted off-site copy in Scaleway (below).                                        |
-| `deploy/offsite.sh`             | Uploads, lists, fetches and verifies the off-site copies.                                       |
-| `scripts/backup-db.mjs`         | A safe copy of the live database, with old copies removed.                                      |
-| `.github/workflows/image.yml`   | Builds the images and pushes them to ghcr.io when you run it.                                   |
+| File                            | What it is                                                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `Dockerfile`                    | Builds both images (`--target api` and `--target web`).                                                                            |
+| `deploy/compose.yaml`           | The two services, the volumes, the health check, and a cap on log size (the disk is small).                                        |
+| `deploy/Caddyfile`              | HTTPS, security headers (with the Content-Security-Policy), the web app with its fallback page, `/api/*` and `/health` to the API. |
+| `deploy/production.env.example` | Every setting production needs. Copy to `deploy/.env` on the server; `.env` is never committed.                                    |
+| `deploy/deploy.sh`              | Backs up (`backup.sh`), pulls, restarts, waits until ready.                                                                        |
+| `deploy/setup-wizard.sh`        | Walks you through setting up a new server (below).                                                                                 |
+| `deploy/server-setup.sh`        | What runs as root on the server: `base`, `harden`, `timer`.                                                                        |
+| `deploy/backup.sh`              | One backup onto the server's own disk, and off-site if set up; the nightly timer runs it.                                          |
+| `deploy/rollback.sh`            | Back to an older build and the database from before the update; says how to repeat the deletions since.                            |
+| `deploy/offsite-wizard.sh`      | Sets up the encrypted off-site copy in Scaleway (below).                                                                           |
+| `deploy/offsite.sh`             | Uploads, lists, fetches and verifies the off-site copies.                                                                          |
+| `deploy/restore-key-secret.sh`  | Puts your saved `KEY_ENCRYPTION_SECRET` on a rebuilt server, pasted at a hidden prompt.                                            |
+| `scripts/backup-db.mjs`         | A safe copy of the live database, with old copies removed.                                                                         |
+| `.github/workflows/image.yml`   | Builds the images and pushes them to ghcr.io when you run it.                                                                      |
+
+**The Content-Security-Policy** in `deploy/Caddyfile` lets the page run only its own files and the one inline script in
+`apps/web/index.html`, which it names by hash. Change that script and the page stops applying a saved theme until the hash
+is updated too; `pnpm test:scripts` fails until it is. A request to `/api` over 8 MB is refused by Caddy, and the API
+refuses anything over 2 MB itself (a picture: over 1 MB) with a message.
 
 `/health` says the process is up (it is published, for uptime monitors). `/ready` says the database is open and every
 migration has run; the container's health check uses it, and Caddy does not publish it. The API runs from its
@@ -99,9 +114,12 @@ The wizard installs a timer that runs `deploy/backup.sh` at 02:30 every night: t
 result into `~/backups` on the server (14 days kept; `BACKUP_KEEP_DAYS` changes it). Fetch them with
 `rsync -a wordwright@<server>:backups/ <a folder on your computer>/`.
 
+The script refuses to back up when the disk is 90% full or more, and, once `~/wordwright/monitor.env` is set up, ends by
+pinging a heartbeat monitor; a night without a ping is the alert ([runbook.md](runbook.md#monitoring-and-alerts)).
+
 Those copies are on the server's own disk, so by themselves they do not survive losing the server. Two more things
-keep them safe: the encrypted off-site copy below, and the secrets kept apart from the data (`KEY_ENCRYPTION_SECRET`
-in particular: without it stored AI keys cannot be read, and without `SESSION_SECRET` everyone is signed out). Keep
+keep them safe: the encrypted off-site copy below, and the secrets kept apart from the data (`KEY_ENCRYPTION_SECRET`:
+without it stored AI keys cannot be read). Keep
 the retention short: a deleted account's data should not linger in old copies.
 
 ### Off-site copies (Scaleway Object Storage)
@@ -146,11 +164,48 @@ If the server is fine but the database is not, fetch a backup and roll back to i
 ./rollback.sh <the build you want> ~/restored/wordwright-20261023-023000.sqlite
 ```
 
-If the server is gone: make a new one with `deploy/setup-wizard.sh`, then before anyone uses it, stop the app, put your
-**saved** `KEY_ENCRYPTION_SECRET` (and `SESSION_SECRET`) into `~/wordwright/.env` in place of the new ones the wizard
-made (a new key secret makes every stored AI key unreadable), run `deploy/offsite-wizard.sh` and answer **no** to "is
-this the first time" to enter the saved encryption password and salt, then fetch the newest backup and roll back to it as
-above. This path is written but has not been practised yet: the restore rehearsal in #322 should do it once.
+If the server is gone, in this order, before anyone uses the new one:
+
+1. Make a new server with `deploy/setup-wizard.sh`. When it shows a new `KEY_ENCRYPTION_SECRET`, do **not** save it
+   over your old one.
+2. Put the **saved** `KEY_ENCRYPTION_SECRET` on it: run `deploy/restore-key-secret.sh` on your computer (add the
+   server, as `wordwright@<address>` or a Host from your `~/.ssh/config`, if the wizard was run elsewhere) and paste it at
+   the hidden prompt. It restarts the app with it. With the wizard's new one, every stored AI key is unreadable. The new
+   `SESSION_SECRET` can stay: it only signs the cookie used part way through Google sign-in.
+3. Run `deploy/offsite-wizard.sh` and answer **no** to "is this the first time", to enter the saved encryption password
+   and salt.
+4. Fetch the backup and roll back to it as above, with the build that made it (a build refuses a database made by a
+   newer one), then bring back `deletions.jsonl` and repeat the deletions
+   ([below](#after-a-rollback-or-restore-repeat-the-deletions)).
+
+[The restore rehearsal](runbook.md#the-restore-rehearsal) practises this.
+
+## The one-time wipe before the first invitations
+
+Migrations were collapsed into one schema (#308, [the decision](adr/go-live-and-operations/migrations-collapsed-into-one-schema-before-launch.md)),
+so the existing production database, which is at an older version, is refused by the new build. It holds only the
+owner's own data, so it is wiped and recreated. This is done once, by you, as the last step before the landing page
+and the first invitations. In `~/wordwright` on the server:
+
+1. **Back up first**, and confirm the off-site copy: `./backup.sh`, then `./offsite.sh verify`. Keep that backup; it is
+   the way back if anything below goes wrong.
+2. **Stop the app and set the old database aside** (nothing is deleted; delete `/data/replaced-*` later, once you are
+   sure):
+   ```bash
+   docker compose stop api
+   docker compose run --rm --no-deps -T api sh -c 'mkdir -p /data/replaced-before-collapse && mv /data/*.sqlite* /data/replaced-before-collapse/'
+   ```
+   The database is `/data/wordwright.sqlite` unless `DATABASE_PATH` in `.env` says otherwise; the `mv` must move that file and its `-wal` and
+   `-shm` files. Leave `deletions.jsonl` and the backups where they are.
+3. **Deploy the build with the collapsed schema**: set `WORDWRIGHT_TAG` in `.env` to its commit hash and run
+   `./deploy.sh`. The api starts on an empty database and creates the schema.
+4. **Check**: `curl -s https://<your address>/ready` answers; the Admin account is created again on start (`ADMIN_EMAILS`), so ask for a password link as in
+   [Letting people in](#letting-people-in-the-private-alpha); sign in, add an AI key, create a publication and an idea;
+   run `./backup.sh`.
+5. Once you are happy, remove the old files: `docker compose run --rm --no-deps -T api rm -r /data/replaced-before-collapse`.
+
+Do not do this again: after the first invitations, the database holds other people's writing and changes are appended
+migrations. A rollback to a build from before the collapse needs the database from before it too (the backup in step 1).
 
 ## Rolling back
 
@@ -171,6 +226,28 @@ works whoever owns the file on the server.
 Find the older hash in the Images runs on GitHub (Actions → Images), or the line `WORDWRIGHT_TAG=` in your notes from the
 last deploy. If the old build only needs a configuration fix, change `.env` and run `docker compose up -d` instead;
 nothing about the data changes.
+
+### After a rollback or restore, repeat the deletions
+
+Going back to an older database brings back anyone who deleted their account since that backup, which they did not agree
+to. The app therefore notes every deletion (the time and the account's id, nothing personal) in `deletions.jsonl` in the
+data volume, which a rollback does not touch; it keeps 45 days of them, and `backup.sh` copies it into `~/backups` and the
+off-site copy ([the decision](adr/go-live-and-operations/a-list-of-account-deletions-outside-the-database-repeats-them-after-a-restore.md)).
+Right after any rollback or restore, **before anyone uses the app**, in `~/wordwright`, with the time the backup was taken
+(`rollback.sh` prints the whole command, taking the time from the backup's name):
+
+```bash
+docker compose exec api ./node_modules/.bin/tsx src/replay-deletions-cli.ts 2026-10-23T02:30:00Z          # shows what it would do
+docker compose exec api ./node_modules/.bin/tsx src/replay-deletions-cli.ts 2026-10-23T02:30:00Z --apply  # does it
+```
+
+It prints how many were recorded since that time, how many it deleted again, and how many were not in this database (people who
+joined after the backup, or were already gone). It is safe to run twice. The people who left will have lost nothing else:
+only deletions are repeated, and anything else written after the backup is lost, as `rollback.sh` says.
+
+If the server was lost too, restore as above and then bring the list back before you replay: `./offsite.sh fetch
+deletions.jsonl`, then `docker compose run --rm --no-deps -T api sh -c 'cat >> /data/deletions.jsonl' < ~/restored/deletions.jsonl`.
+Without a list, the deletions cannot be repeated: say so in the breach log's terms if it matters ([breach-procedure.md](breach-procedure.md)), and treat anyone who wrote to `hello@` asking to be deleted as still to be deleted.
 
 A rehearsal on the real server is part of #17: deploy a build, register a test account, roll back to the previous build,
 and check the test account is gone and the app is healthy. Try it before the alpha has real accounts.
@@ -233,15 +310,15 @@ refusal.
 After any change to the sender or the DNS, sign up with a Gmail (or other) address and read the message's headers
 (Gmail: ⋮ → Show original). Look for `dkim=pass` for `wordwright.io`, `spf=pass` and `dmarc=pass`. The first
 real check (23 Oct 2026, through Gandi's forwarding to Gmail) passed all three, with DMARC at `p=none`; tightening that to
-`quarantine` once a couple of weeks of reports have come in clean is a later step (#322).
+`quarantine` once a couple of weeks of reports have come in clean is a later step (#415).
 
 ## Google sign-in
 
 Optional: without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` the app works with email sign-in only (#350).
 
-**Where it stands (23 Oct 2026):** the Google Cloud project, consent screen and OAuth client exist, with the app in
-**Testing** (not published). The privacy notice and terms links on the consent screen wait for #321, and the proper
-verification waits until after #320 and #321.
+**Where it stands (27 Oct 2026):** the Google Cloud project, consent screen and OAuth client exist, with the app in
+**Testing** (not published), and production offers Google sign-in (`/api/auth/config` lists it). The privacy notice
+and terms are live (#321), so the consent screen can link to them (below). Verification waits until the alpha needs it.
 
 ### The decision: stay in Testing for the private alpha
 
@@ -256,7 +333,13 @@ once the privacy notice and terms are live.
 
 ### The Google Cloud settings
 
-- **Project** `Wordwright`; **consent screen** type External, app name `Wordwright`, support and developer contact emails.
+- **Project** `Wordwright`; **consent screen** type External, app name `Wordwright`, user support email
+  `hello@wordwright.io`, and a developer contact email.
+- **Branding** (Google Auth Platform → Branding): application home page `https://wordwright.io`, privacy policy
+  `https://app.wordwright.io/help/privacy-notice`, terms of service `https://app.wordwright.io/help/terms`, and
+  authorised domain `wordwright.io` (it covers `app.`). Before submitting for verification, the home page must describe
+  the app and link to the privacy notice: the `wordwright.io` holding page does neither yet, so give it those or use
+  `https://app.wordwright.io` as the home page then.
 - **Scopes:** `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile`. Add no others.
 - **OAuth client** (Web application): authorised redirect URI exactly
   `https://app.wordwright.io/api/auth/oauth/google/callback` (`PUBLIC_URL` plus the path; a trailing slash or `http` makes
@@ -278,6 +361,8 @@ read `.env` again). Or edit by hand: `nano .env`, set both lines (the app refuse
 3. Sign in with a Google account that is not on the test list: Google should refuse with "access blocked".
 4. If Google shows `redirect_uri_mismatch`, compare the URI in the error with the one above.
 
+## Logs
+
 Production logs must hold no request bodies, AI keys, tokens, reset or invitation links, or writing. What is there:
 
 - **The app** (`docker compose logs api`): start-up lines (the SMTP check, the address it listens on), the method and path
@@ -289,13 +374,42 @@ Production logs must hold no request bodies, AI keys, tokens, reset or invitatio
   address). It writes no access log.
 - **Nothing sensitive travels in a URL**: tokens and keys go in request bodies, and only the path is ever logged.
 
+Checked for #322 (27 October 2026): every logging call in `apps/api/src` was read; mail failures pass through the
+SMTP mailer's summary (code and SMTP status) before they are logged, and AI errors are logged by name only.
+
 Two tests keep it so: an unexpected error is logged without its message, and every file that writes to the log is on a
 reviewed list (`apps/api/src/errors.test.ts`), so a new log line forces a look at what it prints.
 
+## Removing a kept display name on request
+
+When someone deletes their account they choose whether their display name stays on what they wrote in publications that
+continue ([account deletion](adr/accounts-and-security/account-deletion-semantics.md)). They cannot undo that in the app,
+because the account is gone. If they ask you to remove it (an email to `hello@wordwright.io`):
+
+1. **Be satisfied it is them.** The name is not tied to an address any more, so the database cannot confirm who is asking. Ask them for the publication it was in, and the rough date they left. Do not act on a bare name you have doubts about.
+2. **See what it would change**, in `~/wordwright`, with the name exactly as it appears:
+
+   ```bash
+   docker compose exec api ./node_modules/.bin/tsx src/forget-kept-name-cli.ts "Ada Lovelace"
+   ```
+
+   It lists where the name is held and how many places, and changes nothing. **It matches the name, not the person**, so
+   it also clears anyone else who kept the same name. If the count is larger than you expect, or the name is a common one,
+   check with the person which publication they mean before going on.
+
+3. **Do it**: run the same command with `--apply` on the end. Their work then reads "a former member", in the app and in
+   downloads.
+4. **Tell them**, within the month, and that copies in backups go when the backups expire (up to about 37 days). The
+   backups are not edited; after a restore, run step 3 again.
+
+Keep the request and the date, as for any right ([data-map.md](data-map.md)). No personal data goes in the log.
+
 ## Letting people in (the private alpha)
 
-New accounts wait until an admin approves them (`ACCOUNT_APPROVAL=required`, the default). Put your own address in
-`ADMIN_EMAILS` in `.env` before the first deploy, sign up with it, and confirm the email: you are then an admin, with an
+New accounts wait until an admin approves them (`ACCOUNT_APPROVAL=required`, the default). Put the admin
+address in `ADMIN_EMAILS` in `.env` (`admin@wordwright.io`, a real inbox: it is the only way in). On the first start the
+server creates an **Admin** account for the _first_ address, with a confirmed email, approved, and no password. Open
+`/forgot-password`, ask for a link for that address, and choose a password: you are then signed in as an admin, with an
 **Accounts** link at the foot of the menu. Admin is never set in the app. To give or take it away later, on the server:
 
 ```bash
@@ -307,11 +421,12 @@ On a server whose `.env` already exists (the wizard does not write `ADMIN_EMAILS
 
 ```bash
 cd ~/wordwright
-grep -q '^ADMIN_EMAILS=' .env && sed -i 's|^ADMIN_EMAILS=.*|ADMIN_EMAILS=jeni@wordwright.io|' .env || echo 'ADMIN_EMAILS=jeni@wordwright.io' >> .env
+grep -q '^ADMIN_EMAILS=' .env && sed -i 's|^ADMIN_EMAILS=.*|ADMIN_EMAILS=admin@wordwright.io|' .env || echo 'ADMIN_EMAILS=admin@wordwright.io' >> .env
 docker compose up -d
 ```
 
-An account that already exists becomes an admin (and is approved) the next time it is used, once its email is confirmed.
+Your own account stops being listed there once Admin can sign in; then take its admin role away with the `revoke`
+command above. An account that already exists becomes an admin (and is approved) the next time it is used, once its email is confirmed.
 
 Approving and declining email the person, so email has to be working first (see above). Everyone who had an account
 before approval began is already approved.

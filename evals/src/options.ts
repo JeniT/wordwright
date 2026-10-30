@@ -2,7 +2,7 @@ import { CASES } from './cases'
 import { DEFAULT_GRADER, matchesCase } from './config'
 import { defaultModel } from './factory'
 
-export const MAX_TRIALS = 20
+const MAX_TRIALS = 20
 
 export type GroupChoice = 'current' | 'targets' | 'all'
 

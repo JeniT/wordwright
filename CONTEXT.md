@@ -106,7 +106,7 @@ A person's name as a small rounded label saying who recorded, wrote or edits som
 _Avoid_: Author badge, avatar, byline (a byline is the author of a piece)
 
 **Handover**:
-The explicit transfer of a draft's editor role: the editor offers the draft to a named member, who accepts it. Until accepted the offerer stays editor, and can withdraw the offer. A member can ask for the draft, which only prompts the editor, and can withdraw the request.
+The explicit transfer of a draft's editor role: the editor offers the draft to a named member, who accepts it. Until accepted the offerer stays editor, and can withdraw the offer. A member can ask for the draft, which only prompts the editor, and can withdraw the request. The button that starts it is “Hand over editing”; “Send for review” is a different thing (see Review request).
 _Avoid_: Transfer, claim
 
 **Reassignment**:
@@ -122,7 +122,7 @@ _Avoid_: Suggestion, feedback item, point (the AI's critique "points" are commen
 Its author rewording it, while it is unresolved (and, for a reviewer, while their review is open). Only the wording changes; the paragraph and any marked words stay. An edited comment shows a small "edited" mark. Nobody can edit another person's comment, and the editor cannot edit the AI's.
 
 **Delete** (comment):
-Its author removing it for good, on the same terms as Edit. Permanent, and a critique look is not given back. The editor deals with other people's and the AI's comments by resolving, never by deleting.
+Its author removing it for good, on the same terms as Edit. Permanent, and a used critique is not given back. The editor deals with other people's and the AI's comments by resolving, never by deleting.
 
 **General comment**:
 A comment about the whole draft rather than a paragraph: either made with the title selected, or made with nothing selected. It has no mark in the text; its card carries a "General" chip. (The code calls its anchor `WHOLE_DRAFT`.)
@@ -137,11 +137,8 @@ Set aside by the draft's editor as dealt with: hidden, never deleted, for everyo
 _Avoid_: Dismissed, read (the earlier names)
 
 **Critique**:
-A rationed AI review of a draft that produces ranked comments. Only the draft's editor can ask for one.
-
-**Look**:
-One critique of a draft, as the writer sees it (“2 of 3 looks used”). A draft gets a few; the writer sets how many in their account settings.
-_Avoid_: Round (that is Rephrase's word), go, pass
+A rationed AI review of a draft that produces ranked comments. Only the draft's editor can ask for one. A draft gets a few (“2 of 3 critiques used”); the writer sets how many in their account settings.
+_Avoid_: Look, round (that is Rephrase’s word), go, pass
 
 **Review request**:
 One sending of a draft for review: a snapshot, with the reviews of the people asked and any invitations not yet answered. The editor can name it; until then it is called by the date and time it was sent. The Reviews tab beside the draft shows one at a time, latest first, with how far it has got as “1 of 2 reviews complete” (those who have finished, of those reading, finished or yet to answer; closed ones don't count). Closing its reviews is final.
@@ -182,8 +179,8 @@ _Avoid_: Transfer, copy (a moved note's source article is copied, but the note i
 The action of asking for options for a passage of a draft (up to one paragraph) or for its title, which the writer has selected because they are struggling with it.
 
 **Round**:
-One set of options in a Rephrase window. A window allows as many as the writer's number of looks; asking again needs a changed Aim.
-_Avoid_: Look (that is Critique's word), attempt
+One set of options in a Rephrase window. A window allows as many as the writer’s critique limit; asking again needs a changed Aim.
+_Avoid_: attempt
 
 **Aim**:
 What the writer says a passage or title should do, in their own words, stated before any options are offered. Changing it is what allows another round.

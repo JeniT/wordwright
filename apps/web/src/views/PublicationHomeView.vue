@@ -56,8 +56,8 @@ defineProps<{ publicationId: string }>()
     </p>
 
     <Explain tutorial-only class="mb-6">
-      This is your publication’s home. Start with your ideas, or if you are stuck, see the latest
-      from your feeds, then your reading and notes.
+      This is your publication’s home. Start with your ideas or, if you are stuck, find an article
+      in your feeds to inspire you.
     </Explain>
 
     <NextStep
@@ -65,7 +65,10 @@ defineProps<{ publicationId: string }>()
       top
       :to="{ name: 'publication-settings-description', params: { publicationId } }"
       label="Describe this publication"
-    />
+    >
+      Add a description that your AI can use to tune its critique, conversation, research, and
+      suggestions to this publication and its audience.
+    </NextStep>
 
     <PublicationAttention :publication-id="publicationId" />
 
@@ -88,7 +91,7 @@ defineProps<{ publicationId: string }>()
 
       <RecentArticles
         nested
-        explain="Second, read the articles or news stories in this idea’s articles and take notes on them. These can also be moved to a new or existing idea’s articles."
+        explain="Second, read articles or news stories for an idea and take notes on them. Notes can be moved to a different idea later."
         :publication-id="publicationId"
         :idea-id="null"
         :to="{ name: 'read', params: { publicationId } }"

@@ -66,6 +66,12 @@ describe('extractAuthors', () => {
     ).toEqual(["Zo&eacute; O'Neil"]) // unknown named entities are left as they came, never turned into markup
   })
 
+  it('decodes the typographic entities a page title does', () => {
+    expect(
+      extractAuthors(head('<meta name="author" content="Siobh&aacute;n O&rsquo;Brien">')),
+    ).toEqual(['Siobh&aacute;n O’Brien']) // the same named entities as titles, still no more
+  })
+
   it('ignores broken JSON-LD and gives plain text, never HTML', () => {
     expect(extractAuthors(head('<script type="application/ld+json">{nope</script>'))).toEqual([])
     expect(extractAuthors(head('<meta name="author" content="&lt;b&gt;Bold&lt;/b&gt;">'))).toEqual([

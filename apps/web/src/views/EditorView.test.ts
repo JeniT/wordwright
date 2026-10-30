@@ -129,6 +129,11 @@ const state = (r: object | null, used = 1, allowed = 3) => ({ round: r, used, al
 const showTab = async (name: string) =>
   fireEvent.click(await screen.findByRole('tab', { name: new RegExp(`^${name}`) }))
 const commentsRegion = async () => screen.findByRole('region', { name: 'Comments' })
+/** The Critique button is in the Comments tab, so show that first. */
+const findCritique = async () => {
+  await showTab('Comments')
+  return screen.findByRole('button', { name: 'Critique' })
+}
 
 describe('EditorView critique', () => {
   it('points users without an API key to their account settings', async () => {
@@ -139,7 +144,7 @@ describe('EditorView critique', () => {
       ),
     )
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
+    await fireEvent.click(await findCritique())
     await screen.findByRole('alert')
     await screen.findByText('Your AI needs your key first.', { exact: false })
     await screen.findByRole('link', { name: 'Add your AI key' })
@@ -157,7 +162,7 @@ describe('EditorView critique', () => {
       ),
     )
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
+    await fireEvent.click(await findCritique())
     await screen.findByText('A decent start.')
     const points = within(await commentsRegion()).getAllByRole('listitem')
     expect(points[0]).not.toHaveTextContent('Some text') // no excerpt: the paragraph is on the page
@@ -166,6 +171,10 @@ describe('EditorView critique', () => {
     expect(points[1]).toHaveTextContent('General')
     expect(points[1]!.querySelector('.chip-quiet')).not.toBeNull()
     expect(points[1]).toHaveTextContent('The order is odd.')
+    // Critique follows the comments, so they are met before another critique is asked for.
+    expect(
+      points[1]!.compareDocumentPosition(await findCritique()) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
     // Only the paragraph point is marked, in the text; the whole-piece point has no paragraph to mark.
     expect(await screen.findAllByRole('button', { name: /^Comment \d/ })).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Comment 1' })).toBeTruthy()
@@ -261,7 +270,7 @@ describe('EditorView critique', () => {
     expect(screen.queryByRole('tab', { name: /Comments, / })).toBeNull()
   })
 
-  it('shows the Comments tab as soon as a critique is asked for, with the wait in it', async () => {
+  it('keeps the Comments tab showing from the press of Critique, with the wait in it', async () => {
     mockEditor(() => HttpResponse.json(state(round([pointOn('p1')]))), null, {
       used: 0,
       allowed: 3,
@@ -271,7 +280,7 @@ describe('EditorView critique', () => {
       'aria-selected',
       'true',
     )
-    await fireEvent.click(screen.getByRole('button', { name: 'Critique' }))
+    await fireEvent.click(await findCritique())
     await waitFor(() =>
       expect(screen.getByRole('tab', { name: /^Comments/ })).toHaveAttribute(
         'aria-selected',
@@ -426,26 +435,26 @@ describe('EditorView critique', () => {
     }
   })
 
-  it('says how many looks are used before the button is pressed, and updates it afterwards', async () => {
+  it('says how many critiques are used before the button is pressed, and updates it afterwards', async () => {
     mockEditor(() => HttpResponse.json(state(round([pointOn('p1')]), 1, 3)), null, {
       used: 0,
       allowed: 3,
     })
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByText('0 of 3 looks used')
-    expect(screen.getByRole('button', { name: 'Critique' })).toBeEnabled()
-    await fireEvent.click(screen.getByRole('button', { name: 'Critique' }))
-    await screen.findByText('1 of 3 looks used')
+    await screen.findByText('0 of 3 critiques used')
+    expect(await findCritique()).toBeEnabled()
+    await fireEvent.click(await findCritique())
+    await screen.findByText('1 of 3 critiques used')
   })
 
-  it('stops, kindly, when the looks are used up, and says what to do next', async () => {
+  it('stops, kindly, when the critiques are used up, and says what to do next', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]), {
       used: 3,
       allowed: 3,
     })
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByText(/You have had your 3 looks at this draft/)
-    expect(screen.getByRole('button', { name: 'Critique' })).toBeDisabled()
+    await screen.findByText(/You have used your 3 critiques of this draft/)
+    expect(await findCritique()).toBeDisabled()
     expect(screen.getByRole('link', { name: 'publish it' })).toHaveAttribute(
       'href',
       '/p/p1/drafts/d1#publish',
@@ -458,13 +467,13 @@ describe('EditorView critique', () => {
     expect(await screen.findByText('A decent start.')).toBeTruthy()
   })
 
-  it('says "look" when the limit is one', async () => {
+  it('says "critique" when the limit is one', async () => {
     mockEditor(() => new Response(null, { status: 500 }), round([pointOn('p1')]), {
       used: 1,
       allowed: 1,
     })
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByText(/You have had your 1 look at this draft/)
+    await screen.findByText(/You have used your 1 critique of this draft/)
   })
 
   it('says so when a draft is ready, rather than finding something', async () => {
@@ -472,7 +481,7 @@ describe('EditorView critique', () => {
       HttpResponse.json(state(round([], { summary: 'This is ready to publish.', ready: true }))),
     )
     await renderAt('/p/p1/drafts/d1')
-    await fireEvent.click(await screen.findByRole('button', { name: 'Critique' }))
+    await fireEvent.click(await findCritique())
     await screen.findByText('This is ready to publish.')
     expect(within(await commentsRegion()).queryByRole('listitem')).toBeNull()
     expect(screen.getByText(/nothing important left/i)).toBeTruthy()
@@ -809,7 +818,7 @@ describe('the notes beside the draft', () => {
       'href',
       '/p/p1/ideas/i1/refine',
     )
-    expect(notes.getByRole('link', { name: /A paper/ })).toBeInTheDocument()
+    expect(await notes.findByRole('link', { name: /A paper/ })).toBeInTheDocument()
     expect(notes.getAllByText('Bob')[0]).toHaveClass('rounded-full') // the person, as a chip, not "by Bob"
     expect(notes.queryByText('Already used.')).toBeNull()
   })
@@ -877,6 +886,8 @@ describe('the notes beside the draft', () => {
     it('adds a link to the article a note came from', async () => {
       const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       await renderAt('/p/p1/drafts/d1')
+      // The article list arrives separately from the notes; the drop and the insert need it.
+      await screen.findByRole('link', { name: /A paper/ })
       await fireEvent.click(
         await screen.findByRole('button', { name: /^Insert at cursor: note “A useful quote\.”/ }),
       )
@@ -989,6 +1000,8 @@ describe('the notes beside the draft', () => {
     it('keeps the source link with a note taken from a source, as the button does', async () => {
       const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       await renderAt('/p/p1/drafts/d1')
+      // The article list arrives separately from the notes; the drop and the insert need it.
+      await screen.findByRole('link', { name: /A paper/ })
       await screen.findByText('A useful quote.')
       await fireEvent.drop(editorEl(), carrying(NOTE_DRAG_TYPE, 'n3'))
       await waitFor(() => expect(api.posted).toHaveLength(1))
@@ -1021,6 +1034,8 @@ describe('the notes beside the draft', () => {
         authors: ['Ada Lovelace', 'Bo Chen'],
       })
       await renderAt('/p/p1/drafts/d1')
+      // The article list arrives separately from the notes; the drop and the insert need it.
+      await screen.findByRole('link', { name: /A paper/ })
       await screen.findByText('Erosion loops.')
       await fireEvent.drop(editorEl(), carrying(ARTICLE_DRAG_TYPE, 'l1'))
 
@@ -1034,6 +1049,8 @@ describe('the notes beside the draft', () => {
     it('asks first when the dropped article is not marked read, and inserts nothing yet', async () => {
       const api = mockDrafting()
       await renderAt('/p/p1/drafts/d1')
+      // The article list arrives separately from the notes; the drop and the insert need it.
+      await screen.findByRole('link', { name: /A paper/ })
       await screen.findByText('Erosion loops.')
       await fireEvent.drop(editorEl(), carrying(ARTICLE_DRAG_TYPE, 'l1'))
       expect(
@@ -1175,7 +1192,7 @@ describe('the notes beside the draft', () => {
     })
 
     it('makes the link something that can be opened: Ctrl or Cmd and click opens it, a plain click only edits', async () => {
-      mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
+      const api = mockDrafting({ readAt: '2026-01-02T00:00:00Z' })
       const open = vi.spyOn(window, 'open').mockImplementation(() => null)
       await renderAt('/p/p1/drafts/d1')
       await insertLink()
@@ -1192,12 +1209,16 @@ describe('the notes beside the draft', () => {
       expect(open).toHaveBeenCalledWith('https://example.org/paper', '_blank', 'noopener')
       await fireEvent.click(link, { metaKey: true })
       expect(open).toHaveBeenCalledTimes(2)
+      // Inserting the link saves the draft; wait for that, so it can't arrive during the next test.
+      await waitFor(() => expect(api.saved).toHaveLength(1))
     })
 
     describe('when it is not marked read', () => {
       it('asks first, with the safe choice focused, and offers to read it, mark it read, or cancel', async () => {
         const api = mockDrafting()
         await renderAt('/p/p1/drafts/d1')
+        // The article list arrives separately from the notes; the insert needs it.
+        await screen.findByRole('link', { name: /A paper/ })
         await insertLink()
         const box = await dialog()
         expect(box).toHaveTextContent('“A paper” is in your articles')
@@ -1597,22 +1618,31 @@ describe('what the editing page says, and where', () => {
   it('says on the page what Critique sends and does not send, whatever the mode', async () => {
     mockEditor(() => new Response(null))
     await renderAt('/p/p1/drafts/d1')
-    const button = await screen.findByRole('button', { name: 'Critique' })
+    const button = await findCritique()
     expect(
       screen.getByText(
         'Critique will send this publication’s description and this draft’s title and text to your AI. It will not send your notes.',
       ),
     ).toBeInTheDocument()
     expect(button).toHaveAccessibleDescription(/It will not send your notes/)
-    expect(button.parentElement).toContainElement(
+    expect(button.closest('[role="tabpanel"]')).toContainElement(
       screen.getByText(/Critique will send this publication/),
     )
+  })
+
+  it('keeps Critique in the Comments tab, where the empty text points, not under the draft (#428)', async () => {
+    mockEditor(() => new Response(null))
+    await renderAt('/p/p1/drafts/d1')
+    const button = await findCritique()
+    expect(button.closest('[role="tabpanel"]')).toHaveAccessibleName(/^Comments/)
+    expect(button.closest('article')).toBeNull()
+    expect(await screen.findByText(/No comments yet\. Press Critique below/)).toBeInTheDocument() // once the comments have loaded
   })
 
   it('keeps the explanations behind info icons while tutorial mode is off', async () => {
     mockEditor(() => new Response(null))
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByRole('button', { name: 'Critique' })
+    await findCritique()
     expect(screen.getByRole('button', { name: 'About Critique' })).toHaveAccessibleDescription(
       /a limited number of times for a draft/,
     )
@@ -1624,7 +1654,7 @@ describe('what the editing page says, and where', () => {
   it('puts each icon beside its own button, and none on a line of its own', async () => {
     mockEditor(() => new Response(null))
     await renderAt('/p/p1/drafts/d1')
-    const critique = await screen.findByRole('button', { name: 'Critique' })
+    const critique = await findCritique()
     const row = critique.parentElement!
     expect(row.contains(screen.getByRole('button', { name: 'About Critique' }))).toBe(true)
     expectNoLoneInfoIcons(document.body)
@@ -1633,7 +1663,7 @@ describe('what the editing page says, and where', () => {
   it('has no info icon beside the Notes tab, only the tutorial note', async () => {
     mockEditor(() => new Response(null))
     await renderAt('/p/p1/drafts/d1')
-    await screen.findByRole('button', { name: 'Critique' })
+    await findCritique()
     expect(screen.queryByRole('button', { name: 'About adding notes' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'About inserting links' })).toBeNull()
   })

@@ -13,15 +13,17 @@ import {
   type LLMRequest,
   type ResearchFinding,
   type ResearchRequest,
+  type IdentityProvider,
+  MemoryMailer,
+  type Mailer,
 } from '@wordwright/core'
 import { crc32, inflateRawSync } from 'node:zlib'
 import { createApp } from './app'
 import { exampleFeeds } from './feeds/factory'
-import type { IdentityProvider } from './auth/identity'
 import { createScryptHasher } from './auth/password'
 import { openDatabase } from './db/database'
 import { createStore } from './db/store'
-import { MemoryMailer, type Mailer } from './mail/mailer'
+import { MemoryDeletionJournal } from './services/deletion-journal'
 
 export const PUBLIC_URL = 'http://localhost:5173'
 
@@ -38,6 +40,8 @@ export interface TestOptions {
   approvalRequired?: boolean
   adminEmails?: string[]
   signupsPerHour?: number
+  /** Behind a proxy: the client's address is read from X-Forwarded-For, as in production (#390). */
+  trustProxy?: boolean
 }
 
 /** A tiny cookie-keeping HTTP client over `app.request`, standing in for a browser. */
@@ -156,6 +160,7 @@ export function setup(options: TestOptions = {}) {
     })
   const feeds = options.feeds ?? exampleFeeds()
   const clock = { now: new Date('2026-01-01T00:00:00Z') }
+  const deletionJournal = new MemoryDeletionJournal()
   const app = createApp({
     store,
     mailer,
@@ -165,6 +170,8 @@ export function setup(options: TestOptions = {}) {
     approvalRequired: options.approvalRequired,
     adminEmails: options.adminEmails,
     signupsPerHour: options.signupsPerHour,
+    trustProxy: options.trustProxy,
+    deletionJournal,
     providers: { search: [] },
     feeds,
     llmFactory,
@@ -207,6 +214,8 @@ export function setup(options: TestOptions = {}) {
     feeds,
     pageFetcher,
     clock,
+    /** The deletions the app has noted (#410). */
+    deletionJournal,
     /** A fresh "browser" with its own cookie jar. */
     client: () => new TestClient(app),
   }

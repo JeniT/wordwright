@@ -195,9 +195,9 @@ describe('the menu in a publication', () => {
     expect(header.queryByText(/Shared with/)).toBeNull()
   })
 
-  it('has no Ideas step: the old address leads to the landing page, where they are listed', async () => {
+  it('has no Ideas step: they are listed on the landing page', async () => {
     mockApp()
-    const { router } = await renderAt('/p/ada-substack/ideas')
+    const { router } = await renderAt('/p/ada-substack')
     const nav = await screen.findByRole('navigation', { name: 'Publication' })
     expect(router.currentRoute.value.name).toBe('publication')
     expect(within(nav).queryByRole('link', { name: /Ideas/ })).toBeNull()
@@ -281,19 +281,6 @@ describe('the menu in an idea', () => {
       '/p/ada-substack/ideas/i1/research',
     )
   })
-
-  it('keeps Research current at its old address, which now leads there', async () => {
-    mockApp()
-    server.use(
-      http.get('*/api/publications/ada-substack/ideas/i1/research', () => HttpResponse.json([])),
-    )
-    await renderAt('/p/ada-substack/ideas/i1/research/find')
-    const nav = await screen.findByRole('navigation', { name: 'Idea' })
-    expect(within(nav).getByRole('link', { name: 'Research' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-  })
 })
 
 describe('step pages', () => {
@@ -359,7 +346,7 @@ describe('the idea’s name', () => {
 describe('the menu folds away on pages read beside another window', () => {
   it('everywhere else, only on a phone', async () => {
     mockApp()
-    await renderAt('/p/ada-substack/ideas')
+    await renderAt('/p/ada-substack')
     const button = await screen.findByRole('button', { name: 'Menu' })
     expect(button.closest('[class*="sticky"]')).toHaveClass('md:hidden')
   })
@@ -446,10 +433,10 @@ describe('the folded menu is a drawer over the page', () => {
   })
 })
 
-describe('the old Publish step', () => {
-  it('is gone from the menu, and its address leads to the idea’s drafts', async () => {
+describe('the Publish step', () => {
+  it('is not in the menu: publishing is done on a draft', async () => {
     mockApp()
-    await renderAt('/p/ada-substack/ideas/i1/publish')
+    await renderAt('/p/ada-substack/ideas/i1/drafts')
     expect(await screen.findByRole('heading', { level: 1, name: 'Draft' })).toBeInTheDocument()
     const nav = await screen.findByRole('navigation', { name: 'Idea' })
     expect(within(nav).queryByRole('link', { name: 'Publish' })).toBeNull()

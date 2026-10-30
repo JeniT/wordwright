@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/vue'
 import { nextTick } from 'vue'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import InfoTip from './InfoTip.vue'
 
 function show() {
@@ -55,5 +55,62 @@ describe('InfoTip', () => {
     show()
     await escape()
     expect(dismissed()).toBe(false)
+  })
+
+  describe('where it opens', () => {
+    const rect = (left: number, top: number, width = 28, height = 28) =>
+      ({ left, top, right: left + width, bottom: top + height, width, height }) as DOMRect
+    /** The icon sits in a clipping box, as the side panel is, with these edges. */
+    function inBox(box: DOMRect, at: DOMRect) {
+      const panel = document.createElement('div')
+      panel.style.overflowY = 'auto'
+      document.body.append(panel)
+      vi.spyOn(panel, 'getBoundingClientRect').mockReturnValue(box)
+      render(InfoTip, {
+        props: { label: 'About this' },
+        slots: { default: 'Why we ask.' },
+        container: panel,
+      })
+      vi.spyOn(root(), 'getBoundingClientRect').mockReturnValue(at)
+    }
+
+    const tipLeft = () => parseFloat(tip().style.left)
+    const tipWidth = () => parseFloat(tip().style.width)
+
+    it('starts at the icon and opens below it when there is room', async () => {
+      inBox(rect(0, 0, 600, 600), rect(120, 40))
+      await fireEvent.mouseEnter(root())
+      expect(tipLeft()).toBe(0)
+      expect(tipWidth()).toBe(256)
+      expect(tip()).toHaveClass('top-full')
+    })
+
+    it('slides left to stay inside a panel when the icon is near its right edge', async () => {
+      inBox(rect(0, 0, 352, 600), rect(320, 40))
+      await fireEvent.mouseEnter(root())
+      expect(320 + tipLeft() + tipWidth()).toBeLessThanOrEqual(352 - 8)
+      expect(320 + tipLeft()).toBeGreaterThanOrEqual(8)
+    })
+
+    it('slides and narrows when neither side has the full width, as in a narrow panel', async () => {
+      inBox(rect(0, 0, 300, 600), rect(140, 40))
+      await fireEvent.mouseEnter(root())
+      expect(tipWidth()).toBe(256)
+      expect(140 + tipLeft() + tipWidth()).toBeLessThanOrEqual(300 - 8)
+      expect(140 + tipLeft()).toBeGreaterThanOrEqual(8)
+    })
+
+    it('narrows to the panel when the panel is narrower than the tip', async () => {
+      inBox(rect(0, 0, 200, 600), rect(100, 40))
+      await fireEvent.mouseEnter(root())
+      expect(tipWidth()).toBe(184)
+      expect(100 + tipLeft()).toBe(8)
+    })
+
+    it('opens upwards from an icon near the bottom', async () => {
+      inBox(rect(0, 0, 352, 300), rect(20, 270))
+      await fireEvent.mouseEnter(root())
+      expect(tip()).toHaveClass('bottom-full')
+    })
   })
 })

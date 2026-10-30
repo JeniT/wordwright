@@ -1,5 +1,11 @@
-import type { Approval, RegisterInput, SignedInDevice, User } from '@wordwright/core'
-import type { IdentityClaims } from '../auth/identity'
+import type {
+  Approval,
+  RegisterInput,
+  SignedInDevice,
+  User,
+  IdentityClaims,
+  Mailer,
+} from '@wordwright/core'
 import { UNKNOWN_DEVICE } from '../auth/device'
 import type { PasswordHasher } from '../auth/password'
 import { generateToken, hashToken } from '../auth/secrets'
@@ -7,7 +13,6 @@ import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import { fail, notFound } from '../errors'
 import { sendInBackground } from '../mail/background'
-import type { Mailer } from '../mail/mailer'
 import {
   passwordChangedEmail,
   passwordResetEmail,
@@ -15,10 +20,11 @@ import {
   deletionReminderEmail,
   verifyEmailEmail,
 } from '../mail/templates'
+import { noteDeletion, type DeletionJournal } from './deletion-journal'
 import { removeUserAndOwnedData } from './remove-user'
 import { isSoleOwnerOfSharedPublication, NEEDS_ANOTHER_OWNER } from './owners'
 
-export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 export const RESET_TTL_MS = 60 * 60 * 1000
 export const VERIFY_TTL_MS = 24 * 60 * 60 * 1000
 
@@ -59,6 +65,8 @@ export interface AccountServiceDeps {
   unconfirmedTtlDays?: number
   /** Where delivery failures are reported. */
   logger?: Pick<Console, 'error'>
+  /** Notes each deletion, so it can be repeated after a restore (#410). */
+  deletionJournal?: DeletionJournal
   /**
    * The private alpha (#328): whether a new account waits for the owner's approval. False makes every account
    * approved from the start (development, tests, and a site that is open to anyone).
@@ -360,12 +368,15 @@ export class AccountService {
 
   /**
    * Always resolves the same way, so the response can't be used to discover which emails
-   * have accounts. Only users with a local password get a link.
+   * have accounts. Only accounts that sign in with a password, or with nothing yet, get a link.
    */
   async requestPasswordReset(email: string): Promise<void> {
     const { store } = this.d
     const user = store.users.findByEmail(email)
-    if (!user || !store.users.getPasswordHash(user.id)) return
+    // An account with no password and no other way in (the seeded Admin, #367) gets a link to choose one.
+    if (!user) return
+    if (!store.users.getPasswordHash(user.id) && store.users.listProviders(user.id).length > 0)
+      return
     const token = generateToken()
     store.tokens.createReset(hashToken(token), user.id, this.expiresIn(RESET_TTL_MS))
     const link = `${this.d.publicUrl}/reset-password?token=${token}`
@@ -559,6 +570,12 @@ export class AccountService {
       }
       removeUserAndOwnedData(store, user, { keepName })
     })
+    // After the commit, so a deletion that was rolled back is never noted (replaying one would delete a live account).
+    noteDeletion(
+      this.d.deletionJournal,
+      { at: this.now().toISOString(), userId: user.id, keepName },
+      this.d.logger,
+    )
   }
 
   // ---- internals ----------------------------------------------------------

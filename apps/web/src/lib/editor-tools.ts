@@ -161,3 +161,15 @@ export function toolTitle(tool: Tool): string {
   if (!tool.shortcut) return tool.label
   return `${tool.label} (${tool.shortcut.replace('Mod', onMac ? '⌘' : 'Ctrl')})`
 }
+
+/**
+ * A Ctrl or ⌘ click on a link in an editor opens it in a new tab, as it would on a page; a plain click places the
+ * caret, as in any editor. Returns whether it handled the click (a ProseMirror `handleDOMEvents` handler).
+ */
+export function openLinkOnModClick(event: MouseEvent): boolean {
+  const link = (event.target as HTMLElement).closest('a')
+  if (!link || !(event.ctrlKey || event.metaKey)) return false
+  event.preventDefault()
+  window.open(link.href, '_blank', 'noopener')
+  return true
+}

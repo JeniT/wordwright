@@ -14,7 +14,7 @@ import {
   type FeedValidators,
   type FetchedIcon,
 } from '@wordwright/core'
-import { isPublicAddress } from './addresses'
+import { isPublicAddress } from '../pages/addresses'
 import { parseFeed, parseFeedItems, parseHtmlLinks, webUrl } from './parse-feed'
 
 export interface HttpFeedFetcherOptions {

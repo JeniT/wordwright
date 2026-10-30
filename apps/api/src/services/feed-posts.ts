@@ -12,7 +12,7 @@ import { fail } from '../errors'
  * What has become of each post of a publication's feeds: on a list of articles (added here, or by hand), ignored by
  * someone, or still new. Looked up by address, so the same post in two feeds is one thing.
  */
-export function postStatuses(store: Store, publicationId: string): (url: string) => PostStatus {
+function postStatuses(store: Store, publicationId: string): (url: string) => PostStatus {
   const states = postStates(store, publicationId)
   return (url) => states(url).status
 }

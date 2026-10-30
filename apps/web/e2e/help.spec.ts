@@ -64,10 +64,10 @@ test('the key screen links to help in a new tab, so a half-typed key is kept', a
   // From the list, with the keyboard, to a page and Back to where we were; the other help page is accessible too.
   await page.getByRole('link', { name: 'Help', exact: true }).focus()
   await page.keyboard.press('Enter')
-  await page.getByRole('link', { name: 'Privacy and your writing' }).focus()
+  await page.getByRole('link', { name: 'Your AI provider and privacy' }).focus()
   await page.keyboard.press('Enter')
   await expect(
-    page.getByRole('heading', { level: 1, name: 'Privacy and your writing' }),
+    page.getByRole('heading', { level: 1, name: 'Your AI provider and privacy' }),
   ).toBeVisible()
   await noViolations(page, 'privacy page, signed in')
   await page.getByRole('link', { name: /Back/ }).click()
@@ -78,4 +78,23 @@ test('the key screen links to help in a new tab, so a half-typed key is kept', a
   await page.getByRole('link', { name: 'Help', exact: true }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Help' })).toBeVisible()
   await noViolations(page, 'help list, signed in')
+})
+
+test('sign-up links to the terms and privacy notice, and the footer reaches the cookie statement', async ({
+  page,
+}) => {
+  await page.goto('/register')
+  await page.getByRole('main').getByRole('link', { name: 'terms of use', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Terms of use' })).toBeVisible()
+  await noViolations(page, 'terms')
+  await page.getByRole('link', { name: /Back/ }).click()
+  await page.getByRole('main').getByRole('link', { name: 'privacy notice', exact: true }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Privacy notice' })).toBeVisible()
+  await noViolations(page, 'privacy notice')
+  await page
+    .getByRole('navigation', { name: 'Legal' })
+    .getByRole('link', { name: 'Cookies' })
+    .click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Cookies' })).toBeVisible()
+  await noViolations(page, 'cookies')
 })

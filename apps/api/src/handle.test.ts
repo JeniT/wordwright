@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FakeIdentityProvider } from './auth/identity'
+import { FakeIdentityProvider } from '@wordwright/core'
 import { PASSWORD, register, setup, signUp, type TestClient } from './test-helpers'
 
 const put = (c: TestClient, handle: string) => c.put('/api/account/handle', { handle })

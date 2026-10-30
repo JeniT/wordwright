@@ -9,7 +9,7 @@ import { usePublications } from './usePublications'
 export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 /** "Moved 2 items and 5 notes to “Rivers”." */
-export function moveSummary(result: MoveResult, destination: string): string {
+function moveSummary(result: MoveResult, destination: string): string {
   const parts = []
   if (result.articles) parts.push(plural(result.articles, 'item', 'items'))
   if (result.notes) parts.push(plural(result.notes, 'note', 'notes'))
@@ -241,11 +241,7 @@ export function useMoveDestination(
 }
 
 /** What moving the ideas to the publication would do; asked for once both are chosen, and never spends anything. */
-export function useIdeaMovePreview(
-  publicationId: () => string,
-  ids: () => string[],
-  to: () => string,
-) {
+function useIdeaMovePreview(publicationId: () => string, ids: () => string[], to: () => string) {
   return useQuery({
     queryKey: computed(() => queryKeys.ideaMovePreview(publicationId(), ids(), to())),
     queryFn: () => api.previewMoveIdeas(publicationId(), ids(), to()),
@@ -272,7 +268,7 @@ export function ideaMoveContents(p: {
 }
 
 /** Moves whole ideas to another publication; the pages that show ideas, drafts or notes are refreshed after. */
-export function useMoveIdeas(publicationId: () => string) {
+function useMoveIdeas(publicationId: () => string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (v: { ids: string[]; to: string }) => api.moveIdeas(publicationId(), v.ids, v.to),

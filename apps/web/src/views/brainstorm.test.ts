@@ -40,7 +40,7 @@ const summary = (
   title,
   titleByAi,
 })
-const page = '/p/ada-substack/ideas/i1/brainstorm'
+const page = '/p/ada-substack/ideas/i1/refine'
 
 let counter = 0
 const userMessage = (
@@ -1211,7 +1211,7 @@ describe('several conversations', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'New conversation' }))
     expect(await screen.findByText('Fresh start.')).toBeInTheDocument()
     expect(made).toEqual(['c3'])
-    expect(posted.c3).toEqual([{ start: true }])
+    await waitFor(() => expect(posted.c3).toEqual([{ start: true }]))
     expect(api.posts).toEqual([]) // nothing went into the others
   })
 

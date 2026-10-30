@@ -93,10 +93,44 @@ describe('AccountView', () => {
     expect(body).toBeUndefined() // nothing is deleted until the person confirms
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete account' }))
     await waitFor(() => expect(router.currentRoute.value.name).toBe('register'))
+    expect(router.currentRoute.value.query).toEqual({ deleted: '1' })
     expect(body).toEqual({
       password: 'my password 123',
       keepName: true,
     })
+  })
+
+  it('names what the deletion removes and what happens to their name', async () => {
+    server.use(
+      signedInAs(testUser),
+      http.get('*/api/publications', () => HttpResponse.json([publication])),
+    )
+    await renderAt('/account/delete')
+    await fireEvent.update(
+      await screen.findByLabelText('Password', { selector: 'input' }),
+      'my password 123',
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+    let dialog = await screen.findByRole('dialog', { name: 'Delete your account?' })
+    expect(within(dialog).getByText(/every publication only you belong to/)).toBeTruthy()
+    expect(within(dialog).getByText(/the ideas, notes and drafts in that publication/)).toBeTruthy()
+    expect(within(dialog).queryByText(/your own ideas, notes and drafts/)).toBeNull()
+    expect(
+      within(dialog).getByText(/your account details, including the saved AI key/),
+    ).toBeTruthy()
+    expect(
+      within(dialog).getByText(
+        /You’re removed from shared publications but what you wrote there stays/,
+      ),
+    ).toBeTruthy()
+    expect(
+      within(dialog).getByText(/Your name stays on your notes and comments there/),
+    ).toBeTruthy()
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await fireEvent.click(screen.getByRole('radio', { name: /a former member/ }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+    dialog = await screen.findByRole('dialog', { name: 'Delete your account?' })
+    expect(within(dialog).getByText(/show as “a former member”/)).toBeTruthy()
   })
 
   it('asks whether to keep their name on their notes, and sends the answer', async () => {
@@ -112,6 +146,8 @@ describe('AccountView', () => {
     const { router } = await renderAt('/account/delete')
     const keep = await screen.findByRole('radio', { name: /Keep my display name on my notes/ })
     expect(keep).toBeChecked() // the default
+    const group = screen.getByRole('group', { name: 'Your name on what you wrote' })
+    expect(group).toHaveTextContent('“A former member” is what other members of a publication see')
     await fireEvent.click(screen.getByRole('radio', { name: /a former member/ }))
     await fireEvent.update(
       screen.getByLabelText('Password', { selector: 'input' }),
@@ -444,6 +480,10 @@ describe('AccountView: critiques of a draft', () => {
         .getAllByRole('option')
         .map((o) => o.textContent?.trim()),
     ).toEqual(['1', '2', '3 (suggested)', '4', '5'])
+    // It says what a critique is, before asking for a number.
+    expect(screen.getByRole('region', { name: 'Critique limit' })).toHaveTextContent(
+      /Your AI can critique your draft and give you comments on it/,
+    )
     // The same setting limits the rounds in a Rephrase window (#161), and the page says so.
     expect(screen.getByRole('region', { name: 'Critique limit' })).toHaveTextContent(
       /rephrase parts of your drafts/,

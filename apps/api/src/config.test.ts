@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { loadConfig } from './config'
 
@@ -59,7 +60,36 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ UNCONFIRMED_ACCOUNT_TTL_DAYS: '2.5' })).toThrow()
   })
 
+  it('trusts a proxy’s X-Forwarded-For only when told to (#390)', () => {
+    expect(loadConfig({}).TRUST_PROXY).toBe(false)
+    expect(loadConfig({ TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true)
+    expect(() => loadConfig({ TRUST_PROXY: 'yes' })).toThrow()
+  })
+
+  // .env.example is how people learn a setting exists, so a new one must be added there too.
+  it('has every setting in .env.example', () => {
+    const example = readFileSync(new URL('../.env.example', import.meta.url), 'utf8')
+    const listed = new Set([...example.matchAll(/^#?\s*([A-Z_]+)=/gm)].map((m) => m[1]))
+    // NODE_ENV is set by the image and the tools, never by hand.
+    const missing = Object.keys(loadConfig({})).filter(
+      (key) => key !== 'NODE_ENV' && !listed.has(key),
+    )
+    expect(missing).toEqual([])
+  })
+
   it('needs both Google settings or neither', () => {
     expect(() => loadConfig({ GOOGLE_CLIENT_ID: 'id' })).toThrow(/GOOGLE_CLIENT/)
+  })
+})
+
+describe('the deletion journal path', () => {
+  it('sits beside the database unless set', () => {
+    expect(loadConfig({ DATABASE_PATH: '/data/wordwright.sqlite' }).DELETION_JOURNAL_PATH).toBe(
+      '/data/deletions.jsonl',
+    )
+    expect(
+      loadConfig({ DATABASE_PATH: '/data/w.sqlite', DELETION_JOURNAL_PATH: '/elsewhere/d.jsonl' })
+        .DELETION_JOURNAL_PATH,
+    ).toBe('/elsewhere/d.jsonl')
   })
 })

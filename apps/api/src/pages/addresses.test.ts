@@ -35,6 +35,12 @@ describe('isPublicAddress', () => {
     '::ffff:7f00:1',
     '64:ff9b::7f00:1',
     '2002:7f00:1::',
+    '2002:a00:1::', // 6to4 wrapping 10.0.0.1
+    '64:ff9b:1::a00:1', // local-use NAT64
+    'fec0::1', // deprecated site-local
+    '::10.0.0.1', // deprecated IPv4-compatible form
+    '198.51.100.7',
+    '203.0.113.9',
   ])('refuses %s', (address) => expect(isPublicAddress(address)).toBe(false))
 
   it('allows a public IPv4 address written as IPv6', () => {

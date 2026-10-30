@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { FakeIdentityProvider } from './auth/identity'
-import type { Mailer } from './mail/mailer'
+import { FakeIdentityProvider, type Mailer } from '@wordwright/core'
 import { lastResetToken, PASSWORD, register, setup, type TestClient } from './test-helpers'
 
 const NEW_PASSWORD = 'a completely new password'

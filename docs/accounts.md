@@ -7,8 +7,8 @@ Read this when you change sign-in, registration, passwords, publications and the
 - **A publication is a place you publish** (a Substack, a blog, a magazine, a newsletter): each has a name, an optional website, and an
   optional picture (a coloured monogram is drawn when there isn't one). The home page lists them;
   `/publications/new` creates one; `/p/<id>` is its landing page, an overview that opens with its description (clamped, with Show more) then a Quick add panel (new idea, note, something to read), then its newest feed posts, the first items in its articles, its latest notes and its ideas (see _Navigation_ below for its steps);
-  `/p/<id>/settings` edits it, shares it and deletes it. A publication also has a **description** (stored as Markdown, up to 5000 characters, but written in a small rich-text editor with bold, italic, lists and links, so nobody needs to know Markdown: what the publication is, who reads it, what kinds of writing go there), which anyone who shares the publication can edit (`PUT /api/publications/:id/description`); the name and website stay the owner's. The writer always writes it themselves: it is the **Description** page in the publication's settings (`/p/<id>/settings/description`, also reached from the publication page's "Describe this publication" step; `/p/<id>/describe` redirects there), a box with a link to a help page (`/help/description`) on what a description needs to say to be useful to your AI. Nothing drafts a description with AI any more (#150).
-- **Ideas** (`/p/<id>/ideas/new`; an idea is five steps at `/p/<id>/ideas/<idea>/…`, below): something to write about, which doesn't need an
+  `/p/<id>/settings` edits it, shares it and deletes it. A publication also has a **description** (stored as Markdown, up to 5000 characters, but written in a small rich-text editor with bold, italic, lists and links, so nobody needs to know Markdown: what the publication is, who reads it, what kinds of writing go there), which anyone who shares the publication can edit (`PUT /api/publications/:id/description`); the name and website stay the owner's. The writer always writes it themselves: it is the **Description** page in the publication's settings (`/p/<id>/settings/description`, also reached from the publication page's "Describe this publication" step), a box with a link to a help page (`/help/description`) on what a description needs to say to be useful to your AI. Nothing drafts a description with AI any more (#150).
+- **Ideas** (started from Quick add on the publication page; an idea is five steps at `/p/<id>/ideas/<idea>/…`, below): something to write about, which doesn't need an
   external source. An idea has a name ("What's your core idea?"), free-form notes, articles (up to
   50; see below), and one or more drafts: one for a single post, several (kept in the order they were
   added) for a linked set of posts. Anyone a publication is shared with can work on its ideas. Deleting an idea
@@ -51,7 +51,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   **Dragging notes and articles into a draft:** the drafting side bar's notes and articles can be dragged by their rail onto the draft, landing where
   they are dropped (the _Add to draft_ button does the same at the cursor). An article goes in as a link with its authors (“Title by A and B”).
   **The publication's own articles and notes** have their own places: the list of articles is the publication's
-  **Read** step (`/p/<id>/read`; the old `/p/<id>/inspiration` and `/p/<id>/inspiration#reading-list` lead there; each article opens its own page at
+  **Read** step (`/p/<id>/read`; each article opens its own page at
   `/p/<id>/articles/<item>`) and **Note** is its third step (`/p/<id>/notes`). The idea’s list of articles is separate from the publication's. They are the idea's screens with a different owner (articles, article page, notes with
   reorder, merge, split, tags and hold-to-delete), and a note says which item it came from. Nothing on them can be
   drafted from: notes go into an idea first (T37d). The API: items and notes can belong to a
@@ -84,7 +84,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   edits, and the dialog says so (sending again makes a new copy). People by email get a 7-day link (`/review-invite`)
   bound to that address, with the same quiet `202`, throttles and blocks as publication invitations; a new person makes a
   **reviewer-only account** with just a name and password (no username, no publication) and lands on the review itself, and every route outside
-  `/reviews/*` (plus `/auth/me`, sign-out, accepting an invitation and deleting the account) answers 404. Members of the
+  `/reviews/*` (plus `/auth/me`, sign-out, accepting an invitation and deleting the account) answers 404. The web app offers the deletion as a **Delete your account** link at the foot of the reviewer's Drafts to review page (`/account/delete`, the one account page a reviewer-only account may open; it leaves out the download step, since they have nothing to download) (#408). Members of the
   publication can be asked directly and find the review on their home page. A review is _open_, _ended_ (the reviewer
   pressed **End review**: the editor is emailed once, "X has finished reviewing Y and left N comments") or _closed_
   (the editor or an owner stopped accepting, `DELETE …/reviewers/:review` or `POST …/reviewers/close`); the last two are
@@ -108,9 +108,9 @@ Read this when you change sign-in, registration, passwords, publications and the
   AI's critique points are the same kind of comment (`byAi`). `GET …/comments` is independent review: the editor gets
   every comment, resolved ones included, each with its author; everyone else gets only their own open ones
   (`visibleComments` in `services/comments.ts` is the one place that decides, and the critique route likewise tells
-  non-editors nothing, not even how many looks are used). Only the editor resolves (`PUT …/comments/:id`,
+  non-editors nothing, not even how many critiques are used). Only the editor resolves (`PUT …/comments/:id`,
   `{resolved}`): the comment is hidden, never deleted, and the editor can show it again. A comment carries words about
-  the writing and no replacement text, has no cap, does not count against the critique looks, and is never sent to the AI.
+  the writing and no replacement text, has no cap, does not count against the critique limit, and is never sent to the AI.
   A commenter's name stays after they leave the publication, and after they delete their account if they chose to keep it.
 - **Handles and publication ids:** every user has a unique `handle` (letters and digits only), shown to people as their
   _username_. They choose it when they sign up, and the form checks it against everyone else's as they
@@ -138,7 +138,7 @@ Read this when you change sign-in, registration, passwords, publications and the
 - **Feeds**: each publication keeps a list of RSS/Atom feeds (up to 50), managed on the **Feeds** page of the publication's
   settings (`/p/<id>/settings/feeds`) by any member: paste a feed link, or the address of a site that has one, and the server reads
   it to show the feed's title, description and picture (the site's icon, else the feed's own logo, which is often too wide to read at icon size). They are listed alphabetically
-  (there is no order to keep); remove one. **Scan** (`/p/<id>/scan`; the old `/p/<id>/search` and `/p/<id>/inspiration` lead there) shows their
+  (there is no order to keep); remove one. **Scan** (`/p/<id>/scan`) shows their
   posts, and offers "Set up feeds →" while there are none and "Manage feeds" after. Addresses are tidied (https assumed,
   `#fragment` dropped) and duplicates refused. A person can add 30 sources an hour, since each one makes the
   server fetch pages. The fetch refuses private-network addresses and bounds time (10 s) and size (3 MB).
@@ -191,6 +191,13 @@ Read this when you change sign-in, registration, passwords, publications and the
   pending change. Accounts with no password (Google-only) add one first. The notice to the old address has a
   **"this wasn't me"** link (7 days, while the account still has the address it moved to): on a button press it
   restores the old address, signs out every device and emails a password-reset link there.
+- **Throttles.** Per account: 10 sign-in attempts and 10 reset requests in 15 minutes. Per client address, when the
+  API runs behind Caddy (`TRUST_PROXY=true`, set in the production image; #390): 30 sign-in attempts and 10 reset
+  requests in 15 minutes, 5 sign-ups an hour and 60 username checks a minute, so one person can't try a password
+  against many accounts. The address is the last entry of `X-Forwarded-For`, which Caddy sets; an IPv6 address counts
+  by its /64, since one connection usually has a whole /64 to choose from. Without
+  `TRUST_PROXY` (development, e2e) there is no per-address limit, since anyone could write that header. Each refusal
+  is a 429 that says how long to wait.
 - **Login with Google:** OpenID Connect code flow with PKCE, state and nonce, ID-token signature
   verified with `jose`. Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and register
   `${PUBLIC_URL}/api/auth/oauth/google/callback` as the redirect URI. Other OIDC providers are a few
@@ -205,6 +212,12 @@ Read this when you change sign-in, registration, passwords, publications and the
   person is approval:** a reviewer made by following a review link starts `approved` if the inviter is, and a `waiting`
   account that accepts a publication or review invitation from an approved person becomes `approved` (a `declined` one
   stays declined: the owner has decided). Existing accounts were made `approved` by the migration.
+  **What the sign-in pages say (#434):** the sign-in page opens with the short description of Wordwright; the create-account page opens with the short and longer descriptions (`CONTEXT.md`, "Describing Wordwright"), then says it is a private alpha (linking to `/help/terms#t-alpha`), that accounts are approved by hand, and gives `hello@wordwright.io`.
+  **Seeded Admin (#367):** at server start, if `ADMIN_EMAILS` is set and no account has its _first_ address, the server
+  creates **Admin** (username `admin`, confirmed email, approved, admin, **no password**; `seedAdminAccount` in
+  `services/admin.ts`). It bypasses the reserved-name block, which sign-up still enforces. The owner sets a password
+  through "Forgot password", which sends a link to any account with no password and no linked provider (so a
+  Google-only account still gets nothing), and answers the same whether or not the address has an account.
   **Admin:** `users.is_admin` is set only from `ADMIN_EMAILS` (comma-separated; applied when that confirmed address next
   uses the app, and the account is approved at the same time; a first sign-up with such an address is approved at once through Google, or as soon as the confirmation link is opened (even signed out) for the email form, and neither is held up by the sign-up allowance. An unconfirmed account with that address stays waiting, so knowing the owner's address is not a way in) or the command
   `pnpm --filter @wordwright/api admin grant|revoke <email>`; no route sets it, a changed email address clears it, and
@@ -260,7 +273,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   whether to **keep their name** on their notes, brainstorming messages, research runs and draft insertions in
   publications that continue (the default; `keepName` in `DELETE /api/account`) or show them as "a former member".
   Only the display name is copied (into `kept_name` columns, at deletion; never the email or username), and
-  choosing not to leaves no trace of it on any row. Leaving or being removed from a publication keeps the name anyway.
+  choosing not to leaves no trace of it on any row. Leaving or being removed from a publication keeps the name anyway. To take a kept name back afterwards, the owner runs `forget-kept-name-cli.ts` ([deploy.md](deploy.md#removing-a-kept-display-name-on-request)); every column that can hold one is in `KEPT_NAME_COLUMNS` in `db/users.ts`, and a new one is added there.
 - **Email:** see below.
 
 ## Email
@@ -279,3 +292,7 @@ Production refuses to start unless it's `smtp` with a `MAIL_FROM`. At startup th
 the SMTP server and logs a warning if not. Emails are sent _after_ the response, so the forgot-password
 answer is the same, and just as fast, whether or not the address has an account; delivery failures are
 logged (user id and error code only, never the link).
+
+## Legal and policy pages (#321)
+
+The privacy notice, terms of use and cookie statement are help pages (`/help/privacy-notice`, `/help/terms`, `/help/cookies`), open to everyone, as is the accessibility statement. `LegalLinks` lists them in the footer of every page; sign-up links to the terms and notice. They restate [data-map.md](data-map.md) and [processors.md](processors.md): change them in the same commit as any change to what is stored, who processes it, how long it is kept, or the cookies and `localStorage` entries. The contact address is `hello@wordwright.io`. The wording awaits the owner's review and a lawyer's check (#405).

@@ -164,7 +164,7 @@ describe('EditorView: Rephrase', () => {
     expect(saved).toEqual([]) // nothing was typed, so there was nothing to save first
 
     await fireEvent.click(
-      within(dialog).getByRole('button', { name: /Replace the wording with option 5/ }),
+      within(dialog).getByRole('button', { name: /Replace wording with option 5/ }),
     )
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
@@ -389,7 +389,7 @@ describe('EditorView: Rephrase', () => {
       expect(asked[0]).toMatchObject({ draftId: 'd1', kind: 'title', wording: 'T' })
 
       await fireEvent.click(
-        within(dialog).getByRole('button', { name: /Replace the wording with option 2/ }),
+        within(dialog).getByRole('button', { name: /Replace wording with option 2/ }),
       )
       await fireEvent.click(within(dialog).getByRole('button', { name: 'Use this' }))
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())

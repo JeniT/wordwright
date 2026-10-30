@@ -12,8 +12,8 @@ import {
   safeNextPath,
   VerifyEmailInputSchema,
   type AuthConfig,
+  type IdentityProvider,
 } from '@wordwright/core'
-import type { IdentityProvider } from '../auth/identity'
 import { requireUser, SESSION_COOKIE, type AppEnv } from '../auth/middleware'
 import type { RateLimiter } from '../auth/rate-limit'
 import { describeDevice } from '../auth/device'
@@ -41,10 +41,19 @@ export interface AuthRouteDeps {
   resetLimiter: RateLimiter
   /** Throttles "resend verification email" per user. */
   verificationLimiter: RateLimiter
-  /** Throttles username availability checks (one shared bucket: the API doesn't see client IPs). */
+  /** Throttles username availability checks (one bucket shared by everyone; each address also has its own). */
   handleCheckLimiter: RateLimiter
   /** Throttles sign-ups (one shared bucket, for the same reason). */
   registerLimiter: RateLimiter
+  /** Where the request came from, when that is known (behind the proxy, #390). */
+  clientAddress: (c: Context) => string | undefined
+  /** Throttles by that address, so one person can't try a password against many accounts. */
+  byAddress: {
+    login: RateLimiter
+    reset: RateLimiter
+    register: RateLimiter
+    handleCheck: RateLimiter
+  }
 }
 
 const STATUS = {
@@ -90,7 +99,15 @@ export function authRoutes(d: AuthRouteDeps) {
 
   const throttle = (limiter: RateLimiter, email: string) => {
     if (!limiter.allow(email)) {
-      throw fail(429, 'Too many attempts. Try again later.')
+      throw fail(429, `Too many attempts. Try again in ${limiter.wait}.`)
+    }
+  }
+
+  /** Counts the request against its address, when known. */
+  const throttleAddress = (c: Context, limiter: RateLimiter) => {
+    const address = d.clientAddress(c)
+    if (address && !limiter.allow(address)) {
+      throw fail(429, `Too many attempts from your network. Try again in ${limiter.wait}.`)
     }
   }
 
@@ -107,6 +124,7 @@ export function authRoutes(d: AuthRouteDeps) {
       // Unauthenticated so it works on the sign-up form. Usernames are already public (they start
       // every publication address), so this reveals nothing new, but it is throttled all the same.
       .get('/handle-available', (c) => {
+        throttleAddress(c, d.byAddress.handleCheck)
         throttle(d.handleCheckLimiter, 'handle-check')
         const parsed = UsernameInputSchema.safeParse(c.req.query('handle') ?? '')
         if (!parsed.success) {
@@ -118,9 +136,11 @@ export function authRoutes(d: AuthRouteDeps) {
       })
 
       .post('/register', validateJson(RegisterInputSchema), async (c) => {
-        // The owner (an address in ADMIN_EMAILS) is never turned away by the allowance, which a busy hour could use up.
-        if (!d.accounts.isAdminEmail(c.req.valid('json').email))
+        // The owner (an address in ADMIN_EMAILS) is never turned away by the allowances, which a busy hour could use up.
+        if (!d.accounts.isAdminEmail(c.req.valid('json').email)) {
+          throttleAddress(c, d.byAddress.register)
           throttle(d.registerLimiter, 'register')
+        }
         const session = await d.accounts
           .register(c.req.valid('json'), deviceOf(c))
           .catch(toHttpError)
@@ -140,6 +160,7 @@ export function authRoutes(d: AuthRouteDeps) {
 
       .post('/login', validateJson(LoginInputSchema), async (c) => {
         const { email, password } = c.req.valid('json')
+        throttleAddress(c, d.byAddress.login)
         throttle(d.loginLimiter, email)
         const session = await d.accounts.login(email, password, deviceOf(c)).catch(toHttpError)
         setSession(c, session)
@@ -155,6 +176,7 @@ export function authRoutes(d: AuthRouteDeps) {
 
       .post('/forgot-password', validateJson(ForgotPasswordInputSchema), async (c) => {
         const { email } = c.req.valid('json')
+        throttleAddress(c, d.byAddress.reset)
         throttle(d.resetLimiter, email)
         await d.accounts.requestPasswordReset(email)
         // Same answer whether or not the address has an account.
@@ -267,5 +289,5 @@ export function authRoutes(d: AuthRouteDeps) {
   )
 }
 
-export const redirectUri = (publicUrl: string, providerId: string) =>
+const redirectUri = (publicUrl: string, providerId: string) =>
   `${publicUrl}/api/auth/oauth/${providerId}/callback`

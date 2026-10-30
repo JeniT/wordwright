@@ -16,9 +16,21 @@ describe('Help', () => {
       'href',
       '/help/api-key',
     )
-    expect(within(list).getByRole('link', { name: 'Privacy and your writing' })).toHaveAttribute(
-      'href',
-      '/help/privacy',
+    expect(
+      within(list).getByRole('link', { name: 'Your AI provider and privacy' }),
+    ).toHaveAttribute('href', '/help/privacy')
+  })
+
+  it('publishes an accessibility statement, linked from the help list', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/help')
+    await fireEvent.click(await screen.findByRole('link', { name: 'Accessibility statement' }))
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Accessibility statement' }),
+    ).toBeVisible()
+    expect(screen.getByRole('link', { name: /report it on GitHub/ })).toHaveAttribute(
+      'target',
+      '_blank',
     )
   })
 
@@ -48,7 +60,7 @@ describe('Help', () => {
     server.use(signedInAs(testUser))
     await renderAt('/help/privacy')
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Privacy and your writing' }),
+      await screen.findByRole('heading', { level: 1, name: 'Your AI provider and privacy' }),
     ).toBeVisible()
     expect(screen.getByText(/within 30 days/)).toBeInTheDocument()
   })
@@ -144,4 +156,95 @@ describe('Help', () => {
     }
     expect(within(main).getByText(/The Comment and Rephrase buttons wait/)).toBeInTheDocument()
   })
+
+  it('explains drafting on its own page, and lists it', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help')
+    const list = await screen.findByRole('list', { name: 'Help pages' })
+    await fireEvent.click(within(list).getByRole('link', { name: 'Drafting' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Drafting' })).toBeVisible()
+    const main = screen.getByRole('main')
+    expect(within(main).getByRole('heading', { name: 'The side panel' })).toBeVisible()
+    expect(within(main).getByRole('heading', { name: 'Critique' })).toBeVisible()
+    expect(within(main).getByRole('link', { name: 'AI settings page' })).toHaveAttribute(
+      'href',
+      '/help/ai-settings',
+    )
+    expect(within(main).getByRole('link', { name: 'formatting page' })).toHaveAttribute(
+      'href',
+      '/help/formatting',
+    )
+    // The names on the page are the ones on the buttons.
+    expect(main).toHaveTextContent('Hand over editing')
+    expect(main).toHaveTextContent('Send for review')
+    expect(main).toHaveTextContent('Draft panel')
+    expect(main).not.toHaveTextContent(/\blooks?\b|!/i)
+  })
+
+  it('explains the account pages, downloading and deleting, and lists it', async () => {
+    server.use(signedInAs(testUser))
+    await renderAt('/help')
+    const list = await screen.findByRole('list', { name: 'Help pages' })
+    await fireEvent.click(within(list).getByRole('link', { name: 'Account settings' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Account settings' })).toBeVisible()
+    const main = screen.getByRole('main')
+    expect(within(main).getByRole('heading', { name: 'Downloading your writing' })).toBeVisible()
+    expect(within(main).getByRole('heading', { name: 'Deleting your account' })).toBeVisible()
+    expect(within(main).getByRole('link', { name: 'privacy notice' })).toHaveAttribute(
+      'href',
+      '/help/privacy-notice',
+    )
+    expect(within(main).getByRole('link', { name: 'terms of use' })).toHaveAttribute(
+      'href',
+      '/help/terms',
+    )
+    // The names on the page are the ones on the account pages.
+    expect(main).toHaveTextContent('Download your writing')
+    expect(main).toHaveTextContent('Sign-in and security')
+    expect(main).toHaveTextContent('“a former member”')
+    expect(main).not.toHaveTextContent(/\blooks?\b|!/i)
+  })
+
+  it('publishes the privacy notice, terms and cookie statement, listed in Help and linked from the footer', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/help')
+    const list = await screen.findByRole('list', { name: 'Help pages' })
+    for (const [title, href] of [
+      ['Privacy notice', '/help/privacy-notice'],
+      ['Terms of use', '/help/terms'],
+      ['Cookies', '/help/cookies'],
+    ]) {
+      expect(within(list).getByRole('link', { name: title }), title).toHaveAttribute('href', href)
+      expect(
+        within(screen.getByRole('navigation', { name: 'Legal' })).getByRole('link', {
+          name: title,
+        }),
+        title,
+      ).toHaveAttribute('href', href)
+    }
+  })
+
+  it.each([
+    ['/help/privacy-notice', 'Privacy notice', /ZB302880/],
+    ['/help/terms', 'Terms of use', /This is an alpha/],
+    ['/help/cookies', 'Cookies', /wordwright_session/],
+  ])('shows %s to someone who is signed out', async (path, title, text) => {
+    server.use(signedInAs(null))
+    await renderAt(path)
+    expect(await screen.findByRole('heading', { level: 1, name: title })).toBeVisible()
+    expect(screen.getByRole('main')).toHaveTextContent(text)
+    if (path !== '/help/cookies')
+      expect(screen.getByRole('heading', { name: 'In short' })).toBeVisible()
+    expect(screen.getByRole('main')).not.toHaveTextContent(/!|\bwe[’']ll\b/i)
+  })
+
+  it.each(['/help/privacy-notice', '/help/accessibility'])(
+    'gives the contact address on %s',
+    async (path) => {
+      server.use(signedInAs(null))
+      await renderAt(path)
+      const links = await screen.findAllByRole('link', { name: 'hello@wordwright.io' })
+      for (const link of links) expect(link).toHaveAttribute('href', 'mailto:hello@wordwright.io')
+    },
+  )
 })

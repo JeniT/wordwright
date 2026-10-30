@@ -40,26 +40,28 @@ titles/openings/social posts. Users bring their own LLM API key; the service has
 | Changing sign-in, accounts, publications, sharing, ideas or drafts      | [docs/accounts.md](docs/accounts.md)                                   |
 | Changing key handling or adding an LLM provider                         | [docs/byok.md](docs/byok.md)                                           |
 | Changing brainstorm, Research, Critique or Rephrase                     | [docs/ai-features.md](docs/ai-features.md)                             |
-| Deploying or operating a server                                         | [docs/deploy.md](docs/deploy.md)                                       |
+| Deploying or operating a server                                         | [docs/deploy.md](docs/deploy.md), [docs/runbook.md](docs/runbook.md)   |
 
 Any other doc: [docs/README.md](docs/README.md) says when to open each one.
 Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue list --label ready`.
 `docs/design-concepts/` is an archive of options considered; read it only when asked.
 
-## Commands (Node 24+, pnpm)
+## Commands (Node 26+, pnpm)
 
-|                 |                                                                                                            |
-| --------------- | ---------------------------------------------------------------------------------------------------------- |
-| `pnpm dev`      | web on :5173, API on :8787 (set `FAKE_LLM=true` to avoid real LLM calls)                                   |
-| `pnpm check`    | format check + lint + typecheck + unit/component/API tests + doc links. **Must pass before every commit.** |
-| `pnpm test:e2e` | Playwright; fails on any uncaught exception, `console.error`, failed request or 5xx                        |
-| `pnpm build`    | production build (`pnpm check` has already typechecked)                                                    |
-| `pnpm eval`     | rough smoke test of the AI's behaviour; asks for a key (hidden) and trials; costs money                    |
+|                 |                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm dev`      | web on :5173, API on :8787 (set `FAKE_LLM=true` to avoid real LLM calls)                   |
+| `pnpm check`    | every check except build and e2e (`scripts/check.mjs`). **Must pass before every commit.** |
+| `pnpm test:e2e` | Playwright; fails on any uncaught exception, `console.error`, failed request or 5xx        |
+| `pnpm build`    | production build (`pnpm check` has already typechecked)                                    |
+| `pnpm eval`     | rough smoke test of the AI's behaviour; asks for a key (hidden) and trials; costs money    |
 
 ## Gotchas nothing else records
 
 - Work in a worktree (`.worktrees/issue-N`); local `main` is shared by every session and receives only a fast-forward
   from `origin/main`.
+- In a worktree, bring in the base branch with `git fetch origin` then `git merge origin/main`; the app's
+  `sync_with_base_branch` refuses `.worktrees/`.
 - Edit with the Edit tool, or `perl -pi -e` across files: this is macOS and BSD `sed -i` fails.
 - Keys go into the app's own field. A key typed into a chat with an agent is leaked.
 - Prompts live in `prompts/` as Markdown; a change there changes the product's behaviour, so say so in the commit

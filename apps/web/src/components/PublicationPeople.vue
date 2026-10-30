@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref, useId } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../lib/api'
+import { invalidateRoots } from '../lib/queries'
 import { MEMBER_ABILITIES_TEXT, OWNER_ABILITIES } from '../lib/publication-roles'
 import { useSessionStore } from '../stores/session'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -14,7 +15,7 @@ const props = defineProps<{ publication: Publication }>()
 const session = useSessionStore()
 const router = useRouter()
 const queryClient = useQueryClient()
-const refresh = () => queryClient.invalidateQueries({ queryKey: ['publications'] })
+const refresh = () => invalidateRoots(queryClient, 'publications')
 
 const isOwner = computed(() => props.publication.role === 'owner')
 const onlyOwner = computed(

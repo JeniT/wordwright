@@ -1,0 +1,494 @@
+[
+  {
+    "type": "table",
+    "name": "users",
+    "tbl_name": "users",
+    "sql": "CREATE TABLE users (\n    id TEXT PRIMARY KEY,\n    name TEXT NOT NULL,\n    email TEXT NOT NULL UNIQUE,            -- stored lower-cased; uniqueness is enforced here\n    email_verified INTEGER NOT NULL DEFAULT 0,\n    created_at TEXT NOT NULL,\n    -- The username, which starts the address of each publication the person creates. Null only for a reviewer-only\n    -- account (no username, no publication). Unique when set.\n    handle TEXT,\n    -- False only for sign-ups through an identity provider, who were given a username.\n    handle_chosen INTEGER NOT NULL DEFAULT 1,\n    reviewer_only INTEGER NOT NULL DEFAULT 0,\n    -- When an unconfirmed account was warned that it is about to be deleted (once only).\n    deletion_reminded_at TEXT\n  , approval TEXT NOT NULL DEFAULT 'approved'\n    CHECK (approval IN ('waiting', 'approved', 'declined')), is_admin INTEGER NOT NULL DEFAULT 0)"
+  },
+  {
+    "type": "index",
+    "name": "users_handle",
+    "tbl_name": "users",
+    "sql": "CREATE UNIQUE INDEX users_handle ON users(handle)"
+  },
+  {
+    "type": "table",
+    "name": "retired_handles",
+    "tbl_name": "retired_handles",
+    "sql": "CREATE TABLE retired_handles (\n    handle TEXT PRIMARY KEY,\n    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    retired_at TEXT NOT NULL\n  )"
+  },
+  {
+    "type": "index",
+    "name": "retired_handles_user",
+    "tbl_name": "retired_handles",
+    "sql": "CREATE INDEX retired_handles_user ON retired_handles(user_id)"
+  },
+  {
+    "type": "table",
+    "name": "password_credentials",
+    "tbl_name": "password_credentials",
+    "sql": "CREATE TABLE password_credentials (\n    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,\n    hash TEXT NOT NULL,\n    updated_at TEXT NOT NULL\n  )"
+  },
+  {
+    "type": "table",
+    "name": "identities",
+    "tbl_name": "identities",
+    "sql": "CREATE TABLE identities (\n    provider TEXT NOT NULL,\n    subject TEXT NOT NULL,\n    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    created_at TEXT NOT NULL,\n    PRIMARY KEY (provider, subject)\n  )"
+  },
+  {
+    "type": "index",
+    "name": "identities_user",
+    "tbl_name": "identities",
+    "sql": "CREATE INDEX identities_user ON identities(user_id)"
+  },
+  {
+    "type": "table",
+    "name": "sessions",
+    "tbl_name": "sessions",
+    "sql": "CREATE TABLE sessions (\n    token_hash TEXT PRIMARY KEY,\n    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    created_at TEXT NOT NULL,\n    expires_at TEXT NOT NULL\n  , id TEXT, device_label TEXT, last_used_at TEXT)"
+  },
+  {
+    "type": "index",
+    "name": "sessions_user",
+    "tbl_name": "sessions",
+    "sql": "CREATE INDEX sessions_user ON sessions(user_id)"
+  },
+  {
+    "type": "table",
+    "name": "password_resets",
+    "tbl_name": "password_resets",
+    "sql": "CREATE TABLE password_resets (\n    token_hash TEXT PRIMARY KEY,\n    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    expires_at TEXT NOT NULL,\n    used_at TEXT\n  )"
+  },
+  {
+    "type": "table",
+    "name": "email_verifications",
+    "tbl_name": "email_verifications",
+    "sql": "CREATE TABLE email_verifications (\n    token_hash TEXT PRIMARY KEY,\n    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    email TEXT NOT NULL,\n    expires_at TEXT NOT NULL,\n    used_at TEXT\n  )"
+  },
+  {
+    "type": "index",
+    "name": "email_verifications_user",
+    "tbl_name": "email_verifications",
+    "sql": "CREATE INDEX email_verifications_user ON email_verifications(user_id)"
+  },
+  {
+    "type": "table",
+    "name": "email_changes",
+    "tbl_name": "email_changes",
+    "sql": "CREATE TABLE email_changes (\n    token_hash TEXT PRIMARY KEY,\n    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    new_email TEXT NOT NULL,\n    expires_at TEXT NOT NULL,\n    used_at TEXT\n  )"
+  },
+  {
+    "type": "index",
+    "name": "email_changes_user",
+    "tbl_name": "email_changes",
+    "sql": "CREATE INDEX email_changes_user ON email_changes(user_id)"
+  },
+  {
+    "type": "table",
+    "name": "email_change_undos",
+    "tbl_name": "email_change_undos",
+    "sql": "CREATE TABLE email_change_undos (\n    token_hash TEXT PRIMARY KEY,\n    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    old_email TEXT NOT NULL,\n    new_email TEXT NOT NULL,\n    expires_at TEXT NOT NULL,\n    used_at TEXT\n  )"
+  },
+  {
+    "type": "index",
+    "name": "email_change_undos_user",
+    "tbl_name": "email_change_undos",
+    "sql": "CREATE INDEX email_change_undos_user ON email_change_undos(user_id)"
+  },
+  {
+    "type": "table",
+    "name": "llm_credentials",
+    "tbl_name": "llm_credentials",
+    "sql": "CREATE TABLE llm_credentials (\n    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,\n    provider TEXT NOT NULL,\n    encrypted_key TEXT NOT NULL,\n    key_hint TEXT NOT NULL,\n    model TEXT NOT NULL,\n    updated_at TEXT NOT NULL\n  )"
+  },
+  {
+    "type": "table",
+    "name": "user_settings",
+    "tbl_name": "user_settings",
+    "sql": "CREATE TABLE user_settings (\n    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,\n    critique_rounds INTEGER CHECK (critique_rounds BETWEEN 1 AND 5),\n    updated_at TEXT NOT NULL\n  , tutorial_mode INTEGER CHECK (tutorial_mode IN (0, 1)), tutorial_seen TEXT, tutorial_answered INTEGER CHECK (tutorial_answered IN (0, 1)))"
+  },
+  {
+    "type": "table",
+    "name": "publications",
+    "tbl_name": "publications",
+    "sql": "CREATE TABLE publications (\n    id TEXT PRIMARY KEY,                   -- <creator's username>-<slug of name>\n    name TEXT NOT NULL,\n    created_at TEXT NOT NULL,\n    site_url TEXT,\n    description TEXT                       -- Markdown, the writer's own words\n  )"
+  },
+  {
+    "type": "table",
+    "name": "publication_members",
+    "tbl_name": "publication_members",
+    "sql": "CREATE TABLE publication_members (\n    publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,\n    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    role TEXT NOT NULL CHECK (role IN ('owner', 'member')),\n    joined_at TEXT NOT NULL,\n    PRIMARY KEY (publication_id, user_id)\n  )"
+  },
+  {
+    "type": "index",
+    "name": "publication_members_user",
+    "tbl_name": "publication_members",
+    "sql": "CREATE INDEX publication_members_user ON publication_members(user_id)"
+  },
+  {
+    "type": "table",
+    "name": "publication_aliases",
+    "tbl_name": "publication_aliases",
+    "sql": "CREATE TABLE publication_aliases (\n    old_id TEXT PRIMARY KEY,\n    publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE\n  )"
+  },
+  {
+    "type": "index",
+    "name": "publication_aliases_publication",
+    "tbl_name": "publication_aliases",
+    "sql": "CREATE INDEX publication_aliases_publication ON publication_aliases(publication_id)"
+  },
+  {
+    "type": "table",
+    "name": "publication_images",
+    "tbl_name": "publication_images",
+    "sql": "CREATE TABLE publication_images (\n    publication_id TEXT PRIMARY KEY REFERENCES publications(id) ON DELETE CASCADE,\n    content_type TEXT NOT NULL,\n    data BLOB NOT NULL,\n    updated_at TEXT NOT NULL\n  )"
+  },
+  {
+    "type": "table",
+    "name": "publication_site_icons",
+    "tbl_name": "publication_site_icons",
+    "sql": "CREATE TABLE publication_site_icons (\n    publication_id TEXT PRIMARY KEY REFERENCES publications(id) ON DELETE CASCADE,\n    content_type TEXT NOT NULL,\n    data BLOB NOT NULL,\n    updated_at TEXT NOT NULL\n  , square INTEGER CHECK (square IN (0, 1)))"
+  },
+  {
+    "type": "table",
+    "name": "invitations",
+    "tbl_name": "invitations",
+    "sql": "CREATE TABLE invitations (\n    id TEXT PRIMARY KEY,\n    publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,\n    invited_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    email TEXT NOT NULL,\n    token_hash TEXT NOT NULL UNIQUE,\n    created_at TEXT NOT NULL,\n    expires_at TEXT NOT NULL,\n    accepted_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n    accepted_at TEXT\n  )"
+  },
+  {
+    "type": "index",
+    "name": "invitations_publication",
+    "tbl_name": "invitations",
+    "sql": "CREATE INDEX invitations_publication ON invitations(publication_id)"
+  },
+  {
+    "type": "index",
+    "name": "invitations_email",
+    "tbl_name": "invitations",
+    "sql": "CREATE INDEX invitations_email ON invitations(email)"
+  },
+  {
+    "type": "table",
+    "name": "invitation_blocks",
+    "tbl_name": "invitation_blocks",
+    "sql": "CREATE TABLE invitation_blocks (\n    email TEXT NOT NULL,\n    sender_id TEXT REFERENCES users(id) ON DELETE CASCADE,\n    created_at TEXT NOT NULL\n  )"
+  },
+  {
+    "type": "index",
+    "name": "invitation_blocks_unique",
+    "tbl_name": "invitation_blocks",
+    "sql": "CREATE UNIQUE INDEX invitation_blocks_unique ON invitation_blocks(email, COALESCE(sender_id, ''))"
+  },
+  {
+    "type": "table",
+    "name": "publication_sources",
+    "tbl_name": "publication_sources",
+    "sql": "CREATE TABLE publication_sources (\n    id TEXT PRIMARY KEY,\n    publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,\n    url TEXT NOT NULL,\n    position INTEGER NOT NULL,\n    created_at TEXT NOT NULL,\n    title TEXT,\n    description TEXT,\n    site_url TEXT,\n    UNIQUE (publication_id, url)\n  )"
+  },
+  {
+    "type": "index",
+    "name": "publication_sources_publication",
+    "tbl_name": "publication_sources",
+    "sql": "CREATE INDEX publication_sources_publication ON publication_sources(publication_id, position)"
+  },
+  {
+    "type": "table",
+    "name": "publication_source_icons",
+    "tbl_name": "publication_source_icons",
+    "sql": "CREATE TABLE publication_source_icons (\n    source_id TEXT PRIMARY KEY REFERENCES publication_sources(id) ON DELETE CASCADE,\n    content_type TEXT NOT NULL,\n    data BLOB NOT NULL,\n    updated_at TEXT NOT NULL\n  , square INTEGER CHECK (square IN (0, 1)))"
+  },
+  {
+    "type": "table",
+    "name": "publication_source_fetches",
+    "tbl_name": "publication_source_fetches",
+    "sql": "CREATE TABLE publication_source_fetches (\n    source_id TEXT PRIMARY KEY REFERENCES publication_sources(id) ON DELETE CASCADE,\n    items TEXT NOT NULL DEFAULT '[]',\n    etag TEXT,\n    last_modified TEXT,\n    checked_at TEXT,\n    last_worked_at TEXT,\n    last_error TEXT,\n    last_error_at TEXT\n  )"
+  },
+  {
+    "type": "table",
+    "name": "feed_post_ignores",
+    "tbl_name": "feed_post_ignores",
+    "sql": "CREATE TABLE feed_post_ignores (\n    publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,\n    post_key TEXT NOT NULL,\n    ignored_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n    ignored_at TEXT NOT NULL,\n    PRIMARY KEY (publication_id, post_key)\n  )"
+  },
+  {
+    "type": "table",
+    "name": "ideas",
+    "tbl_name": "ideas",
+    "sql": "CREATE TABLE ideas (\n    id TEXT PRIMARY KEY,\n    publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,\n    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n    name TEXT NOT NULL,\n    created_at TEXT NOT NULL,\n    updated_at TEXT NOT NULL\n  )"
+  },
+  {
+    "type": "index",
+    "name": "ideas_publication",
+    "tbl_name": "ideas",
+    "sql": "CREATE INDEX ideas_publication ON ideas(publication_id)"
+  },
+  {
+    "type": "table",
+    "name": "drafts",
+    "tbl_name": "drafts",
+    "sql": "CREATE TABLE drafts (\n    id TEXT PRIMARY KEY,\n    publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,\n    idea_id TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,\n    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n    -- The one person who changes its words; cleared if their account goes (removing a member or an account hands\n    -- their drafts to an owner first). A save must quote the version it was based on.\n    editor_id TEXT REFERENCES users(id) ON DELETE SET NULL,\n    version INTEGER NOT NULL DEFAULT 1,\n    title TEXT NOT NULL,\n    body TEXT NOT NULL,\n    -- The order of an idea's drafts (the reading order of a linked set).\n    position INTEGER NOT NULL DEFAULT 0,\n    created_at TEXT NOT NULL,\n    updated_at TEXT NOT NULL\n  , published_at TEXT, published_url TEXT)"
+  },
+  {
+    "type": "index",
+    "name": "drafts_publication",
+    "tbl_name": "drafts",
+    "sql": "CREATE INDEX drafts_publication ON drafts(publication_id)"
+  },
+  {
+    "type": "index",
+    "name": "drafts_idea",
+    "tbl_name": "drafts",
+    "sql": "CREATE INDEX drafts_idea ON drafts(idea_id)"
+  },
+  {
+    "type": "table",
+    "name": "idea_notes",
+    "tbl_name": "idea_notes",
+    "sql": "CREATE TABLE idea_notes (\n    id TEXT PRIMARY KEY,\n    publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,\n    idea_id TEXT REFERENCES ideas(id) ON DELETE CASCADE,\n    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n    text TEXT NOT NULL,\n    origin TEXT NOT NULL CHECK (origin IN ('entered', 'brainstorm', 'reading')),\n    position INTEGER NOT NULL,\n    added_at TEXT,\n    created_at TEXT NOT NULL,\n    updated_at TEXT NOT NULL,\n    -- The reading-list item a note was taken from; it keeps no claim on it if the item is removed.\n    article_id TEXT REFERENCES \"articles\"(id) ON DELETE SET NULL,\n    is_quote INTEGER NOT NULL DEFAULT 0 CHECK (is_quote IN (0, 1)),\n    kept_name TEXT\n  )"
+  },
+  {
+    "type": "index",
+    "name": "idea_notes_idea",
+    "tbl_name": "idea_notes",
+    "sql": "CREATE INDEX idea_notes_idea ON idea_notes(idea_id)"
+  },
+  {
+    "type": "index",
+    "name": "idea_notes_publication",
+    "tbl_name": "idea_notes",
+    "sql": "CREATE INDEX idea_notes_publication ON idea_notes(publication_id)"
+  },
+  {
+    "type": "trigger",
+    "name": "idea_notes_quote_text_is_fixed",
+    "tbl_name": "idea_notes",
+    "sql": "CREATE TRIGGER idea_notes_quote_text_is_fixed\n  BEFORE UPDATE OF text ON idea_notes\n  WHEN old.is_quote = 1 AND new.text <> old.text\n  BEGIN\n    SELECT RAISE(ABORT, 'A quotation cannot be edited');\n  END"
+  },
+  {
+    "type": "table",
+    "name": "idea_note_tags",
+    "tbl_name": "idea_note_tags",
+    "sql": "CREATE TABLE idea_note_tags (\n    note_id TEXT NOT NULL REFERENCES idea_notes(id) ON DELETE CASCADE,\n    tag TEXT NOT NULL,\n    PRIMARY KEY (note_id, tag COLLATE NOCASE)\n  )"
+  },
+  {
+    "type": "table",
+    "name": "articles",
+    "tbl_name": "articles",
+    "sql": "CREATE TABLE \"articles\" (\n    id TEXT PRIMARY KEY,\n    publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,\n    idea_id TEXT REFERENCES ideas(id) ON DELETE CASCADE,\n    url TEXT NOT NULL,\n    title TEXT NOT NULL,\n    created_at TEXT NOT NULL,\n    read_at TEXT,\n    origin TEXT NOT NULL DEFAULT 'entered'\n      CHECK (origin IN ('entered', 'brainstorm', 'research', 'idea_generation', 'feed')),\n    authors TEXT NOT NULL DEFAULT '[]',    -- a JSON list of names\n    why TEXT,                              -- the AI's reason for suggesting it\n    source_id TEXT REFERENCES publication_sources(id) ON DELETE SET NULL,\n    kept INTEGER NOT NULL DEFAULT 0 CHECK (kept IN (0, 1))\n  )"
+  },
+  {
+    "type": "table",
+    "name": "article_tags",
+    "tbl_name": "article_tags",
+    "sql": "CREATE TABLE \"article_tags\" (\n    article_id TEXT NOT NULL REFERENCES \"articles\"(id) ON DELETE CASCADE,\n    tag TEXT NOT NULL,\n    PRIMARY KEY (article_id, tag COLLATE NOCASE)\n  )"
+  },
+  {
+    "type": "table",
+    "name": "idea_messages",
+    "tbl_name": "idea_messages",
+    "sql": "CREATE TABLE idea_messages (\n    id TEXT PRIMARY KEY,\n    idea_id TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,\n    seq INTEGER NOT NULL,\n    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),\n    kind TEXT NOT NULL CHECK (kind IN ('kickoff', 'message')),\n    -- Who sent it, or whose key the reply was paid for with; SET NULL so a leaving member's messages stay.\n    author_id TEXT REFERENCES users(id) ON DELETE SET NULL,\n    provider TEXT,\n    model TEXT,\n    -- What is replayed to the model: a JSON array of content blocks.\n    content TEXT NOT NULL,\n    -- What people see.\n    display_text TEXT NOT NULL,\n    -- The idea snapshot this message carries, if any; a new one is sent only when the idea has changed.\n    snapshot TEXT,\n    status TEXT NOT NULL DEFAULT 'complete' CHECK (status IN ('complete', 'stopped')),\n    stop_reason TEXT,\n    input_tokens INTEGER,\n    output_tokens INTEGER,\n    cached_tokens INTEGER,\n    created_at TEXT NOT NULL,\n    kept_name TEXT, conversation_id TEXT REFERENCES idea_conversations(id) ON DELETE CASCADE,\n    UNIQUE (idea_id, seq)\n  )"
+  },
+  {
+    "type": "table",
+    "name": "idea_message_notes",
+    "tbl_name": "idea_message_notes",
+    "sql": "CREATE TABLE idea_message_notes (\n    id TEXT PRIMARY KEY,\n    message_id TEXT NOT NULL REFERENCES idea_messages(id) ON DELETE CASCADE,\n    tool_call_id TEXT NOT NULL,\n    text TEXT NOT NULL,\n    outcome TEXT NOT NULL CHECK (outcome IN ('added', 'duplicate', 'full')),\n    -- The note it made; null once that note is deleted (or if none was made).\n    note_id TEXT REFERENCES idea_notes(id) ON DELETE SET NULL\n  )"
+  },
+  {
+    "type": "index",
+    "name": "idea_message_notes_message",
+    "tbl_name": "idea_message_notes",
+    "sql": "CREATE INDEX idea_message_notes_message ON idea_message_notes(message_id)"
+  },
+  {
+    "type": "table",
+    "name": "idea_research",
+    "tbl_name": "idea_research",
+    "sql": "CREATE TABLE idea_research (\n    id TEXT PRIMARY KEY,\n    idea_id TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,\n    -- Whose key paid for it; SET NULL so a leaving member's research stays.\n    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n    areas TEXT NOT NULL,\n    provider TEXT NOT NULL,\n    model TEXT NOT NULL,\n    created_at TEXT NOT NULL,\n    kept_name TEXT\n  )"
+  },
+  {
+    "type": "index",
+    "name": "idea_research_idea",
+    "tbl_name": "idea_research",
+    "sql": "CREATE INDEX idea_research_idea ON idea_research(idea_id)"
+  },
+  {
+    "type": "table",
+    "name": "idea_research_items",
+    "tbl_name": "idea_research_items",
+    "sql": "CREATE TABLE idea_research_items (\n    id TEXT PRIMARY KEY,\n    research_id TEXT NOT NULL REFERENCES idea_research(id) ON DELETE CASCADE,\n    position INTEGER NOT NULL,\n    url TEXT NOT NULL,\n    title TEXT NOT NULL,\n    why TEXT NOT NULL,\n    check_status TEXT NOT NULL CHECK (check_status IN ('found', 'no-title', 'not-found', 'not-public')),\n    fetched_title TEXT,\n    fetched_authors TEXT NOT NULL DEFAULT '[]',\n    status TEXT NOT NULL DEFAULT 'suggested' CHECK (status IN ('suggested', 'added', 'dismissed')),\n    -- The reading-list item an added page made, so that reconsidering it can take that item off the list again.\n    article_id TEXT REFERENCES \"articles\"(id) ON DELETE SET NULL\n  )"
+  },
+  {
+    "type": "index",
+    "name": "idea_research_items_research",
+    "tbl_name": "idea_research_items",
+    "sql": "CREATE INDEX idea_research_items_research ON idea_research_items(research_id)"
+  },
+  {
+    "type": "table",
+    "name": "critique_rounds",
+    "tbl_name": "critique_rounds",
+    "sql": "CREATE TABLE critique_rounds (\n    id TEXT PRIMARY KEY,\n    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,\n    summary TEXT NOT NULL,\n    ready INTEGER NOT NULL CHECK (ready IN (0, 1)),\n    created_at TEXT NOT NULL\n  )"
+  },
+  {
+    "type": "index",
+    "name": "critique_rounds_draft",
+    "tbl_name": "critique_rounds",
+    "sql": "CREATE INDEX critique_rounds_draft ON critique_rounds(draft_id, created_at)"
+  },
+  {
+    "type": "table",
+    "name": "draft_snapshots",
+    "tbl_name": "draft_snapshots",
+    "sql": "CREATE TABLE draft_snapshots (\n    id TEXT PRIMARY KEY,\n    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,\n    title TEXT NOT NULL,\n    body TEXT NOT NULL,\n    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n    created_at TEXT NOT NULL\n  , name TEXT)"
+  },
+  {
+    "type": "index",
+    "name": "draft_snapshots_draft",
+    "tbl_name": "draft_snapshots",
+    "sql": "CREATE INDEX draft_snapshots_draft ON draft_snapshots(draft_id, created_at)"
+  },
+  {
+    "type": "table",
+    "name": "draft_reviews",
+    "tbl_name": "draft_reviews",
+    "sql": "CREATE TABLE draft_reviews (\n    id TEXT PRIMARY KEY,\n    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,\n    snapshot_id TEXT NOT NULL REFERENCES draft_snapshots(id) ON DELETE CASCADE,\n    reviewer_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    invited_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n    state TEXT NOT NULL CHECK (state IN ('open', 'ended', 'closed')),\n    created_at TEXT NOT NULL,\n    ended_at TEXT, kept_inviter_name TEXT,\n    UNIQUE (snapshot_id, reviewer_id)\n  )"
+  },
+  {
+    "type": "index",
+    "name": "draft_reviews_reviewer",
+    "tbl_name": "draft_reviews",
+    "sql": "CREATE INDEX draft_reviews_reviewer ON draft_reviews(reviewer_id)"
+  },
+  {
+    "type": "index",
+    "name": "draft_reviews_draft",
+    "tbl_name": "draft_reviews",
+    "sql": "CREATE INDEX draft_reviews_draft ON draft_reviews(draft_id)"
+  },
+  {
+    "type": "table",
+    "name": "review_invitations",
+    "tbl_name": "review_invitations",
+    "sql": "CREATE TABLE review_invitations (\n    id TEXT PRIMARY KEY,\n    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,\n    snapshot_id TEXT REFERENCES draft_snapshots(id) ON DELETE CASCADE,\n    invited_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    email TEXT NOT NULL,\n    token_hash TEXT NOT NULL UNIQUE,\n    created_at TEXT NOT NULL,\n    expires_at TEXT NOT NULL,\n    accepted_by TEXT REFERENCES users(id) ON DELETE SET NULL\n  )"
+  },
+  {
+    "type": "index",
+    "name": "review_invitations_draft",
+    "tbl_name": "review_invitations",
+    "sql": "CREATE INDEX review_invitations_draft ON review_invitations(draft_id)"
+  },
+  {
+    "type": "table",
+    "name": "draft_comments",
+    "tbl_name": "draft_comments",
+    "sql": "CREATE TABLE draft_comments (\n    id TEXT PRIMARY KEY,\n    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,\n    round_id TEXT REFERENCES critique_rounds(id) ON DELETE CASCADE,\n    review_id TEXT REFERENCES draft_reviews(id) ON DELETE SET NULL,\n    author_id TEXT REFERENCES users(id) ON DELETE SET NULL,\n    kept_name TEXT,\n    rank INTEGER NOT NULL DEFAULT 0,\n    block TEXT NOT NULL,\n    block_hash TEXT,\n    excerpt TEXT NOT NULL,\n    text TEXT NOT NULL,\n    reason TEXT,\n    resolved_at TEXT,\n    created_at TEXT NOT NULL\n  , quote TEXT, block_text TEXT, edited_at TEXT)"
+  },
+  {
+    "type": "index",
+    "name": "draft_comments_draft",
+    "tbl_name": "draft_comments",
+    "sql": "CREATE INDEX draft_comments_draft ON draft_comments(draft_id, created_at, rank)"
+  },
+  {
+    "type": "table",
+    "name": "draft_insertions",
+    "tbl_name": "draft_insertions",
+    "sql": "CREATE TABLE draft_insertions (\n    id TEXT PRIMARY KEY,\n    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,\n    note_id TEXT REFERENCES idea_notes(id) ON DELETE SET NULL,\n    note_author_id TEXT REFERENCES users(id) ON DELETE SET NULL,\n    inserted_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n    text TEXT NOT NULL,\n    origin TEXT NOT NULL CHECK (origin IN ('entered', 'brainstorm', 'reading', 'option')),\n    source_title TEXT,\n    source_url TEXT,\n    inserted_at TEXT NOT NULL,\n    source_authors TEXT,\n    kept_note_author_name TEXT,\n    kept_inserted_by_name TEXT,\n    -- Only for an option: what was offered, the writer's aim and where the words went.\n    option_kind TEXT CHECK (option_kind IN ('title', 'passage')),\n    option_offered TEXT,\n    option_aim TEXT\n  )"
+  },
+  {
+    "type": "index",
+    "name": "draft_insertions_draft",
+    "tbl_name": "draft_insertions",
+    "sql": "CREATE INDEX draft_insertions_draft ON draft_insertions(draft_id)"
+  },
+  {
+    "type": "table",
+    "name": "draft_handovers",
+    "tbl_name": "draft_handovers",
+    "sql": "CREATE TABLE draft_handovers (\n    id TEXT PRIMARY KEY,\n    draft_id TEXT NOT NULL REFERENCES drafts(id) ON DELETE CASCADE,\n    kind TEXT NOT NULL CHECK (kind IN ('offer', 'ask', 'reassign')),\n    status TEXT NOT NULL CHECK (status IN\n      ('pending', 'accepted', 'declined', 'withdrawn', 'dismissed', 'fulfilled', 'done')),\n    actor_id TEXT REFERENCES users(id) ON DELETE SET NULL,\n    member_id TEXT REFERENCES users(id) ON DELETE SET NULL,\n    created_at TEXT NOT NULL,\n    resolved_at TEXT,\n    kept_actor_name TEXT,\n    kept_member_name TEXT,\n    reason TEXT\n  )"
+  },
+  {
+    "type": "index",
+    "name": "draft_handovers_draft",
+    "tbl_name": "draft_handovers",
+    "sql": "CREATE INDEX draft_handovers_draft ON draft_handovers(draft_id, created_at)"
+  },
+  {
+    "type": "index",
+    "name": "draft_handovers_one_offer",
+    "tbl_name": "draft_handovers",
+    "sql": "CREATE UNIQUE INDEX draft_handovers_one_offer ON draft_handovers(draft_id)\n    WHERE kind = 'offer' AND status = 'pending'"
+  },
+  {
+    "type": "index",
+    "name": "sessions_id",
+    "tbl_name": "sessions",
+    "sql": "CREATE UNIQUE INDEX sessions_id ON sessions(id)"
+  },
+  {
+    "type": "table",
+    "name": "idea_conversations",
+    "tbl_name": "idea_conversations",
+    "sql": "CREATE TABLE idea_conversations (\n        id TEXT PRIMARY KEY,\n        idea_id TEXT NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,\n        created_at TEXT NOT NULL\n      , title TEXT, title_source TEXT CHECK (title_source IN ('ai', 'writer')))"
+  },
+  {
+    "type": "index",
+    "name": "idea_conversations_idea",
+    "tbl_name": "idea_conversations",
+    "sql": "CREATE INDEX idea_conversations_idea ON idea_conversations(idea_id, created_at)"
+  },
+  {
+    "type": "index",
+    "name": "idea_messages_conversation",
+    "tbl_name": "idea_messages",
+    "sql": "CREATE INDEX idea_messages_conversation ON idea_messages(conversation_id, seq)"
+  },
+  {
+    "type": "table",
+    "name": "idea_proposals",
+    "tbl_name": "idea_proposals",
+    "sql": "CREATE TABLE \"idea_proposals\" (\n          id TEXT PRIMARY KEY,\n          message_id TEXT NOT NULL REFERENCES idea_messages(id) ON DELETE CASCADE,\n          tool_call_id TEXT NOT NULL,\n          tool TEXT NOT NULL CHECK (tool IN ('update_idea', 'create_idea', 'suggest_reading', 'suggest_note')),\n          input TEXT NOT NULL,\n          -- The idea's title when it was suggested, to notice if it has changed since.\n          base TEXT,\n          status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'dismissed')),\n          decided_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n          decided_at TEXT,\n          created_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL,\n          -- Only for suggest_reading: what looking at the address found.\n          check_status TEXT CHECK (check_status IN ('found', 'no-title', 'not-found', 'not-public')),\n          fetched_title TEXT,\n          fetched_authors TEXT NOT NULL DEFAULT '[]'\n        , author_id TEXT REFERENCES users(id) ON DELETE SET NULL, edited INTEGER NOT NULL DEFAULT 0, kept_decided_by_name TEXT)"
+  },
+  {
+    "type": "index",
+    "name": "idea_proposals_message",
+    "tbl_name": "idea_proposals",
+    "sql": "CREATE INDEX idea_proposals_message ON idea_proposals(message_id)"
+  },
+  {
+    "type": "table",
+    "name": "admin_audit",
+    "tbl_name": "admin_audit",
+    "sql": "CREATE TABLE admin_audit (\n    id INTEGER PRIMARY KEY AUTOINCREMENT,\n    admin_id TEXT REFERENCES users(id) ON DELETE SET NULL,\n    action TEXT NOT NULL CHECK (action IN ('approve', 'decline')),\n    user_id TEXT REFERENCES users(id) ON DELETE SET NULL,\n    created_at TEXT NOT NULL\n  )"
+  },
+  {
+    "type": "index",
+    "name": "articles_idea",
+    "tbl_name": "articles",
+    "sql": "CREATE INDEX articles_idea ON articles(idea_id)"
+  },
+  {
+    "type": "index",
+    "name": "articles_publication",
+    "tbl_name": "articles",
+    "sql": "CREATE INDEX articles_publication ON articles(publication_id)"
+  },
+  {
+    "type": "table",
+    "name": "moves",
+    "tbl_name": "moves",
+    "sql": "CREATE TABLE \"moves\" (\n          id TEXT PRIMARY KEY,\n          batch_id TEXT NOT NULL,\n          publication_id TEXT NOT NULL REFERENCES publications(id) ON DELETE CASCADE,\n          moved_by TEXT REFERENCES users(id) ON DELETE SET NULL,\n          moved_at TEXT NOT NULL,\n          kind TEXT NOT NULL CHECK (kind IN ('article', 'note')),\n          item_id TEXT NOT NULL,\n          from_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL,\n          to_idea_id TEXT REFERENCES ideas(id) ON DELETE SET NULL,\n          merged INTEGER NOT NULL DEFAULT 0,\n          to_publication_id TEXT REFERENCES publications(id) ON DELETE CASCADE\n        )"
+  },
+  {
+    "type": "index",
+    "name": "moves_publication",
+    "tbl_name": "moves",
+    "sql": "CREATE INDEX moves_publication ON moves(publication_id, moved_at)"
+  },
+  {
+    "type": "index",
+    "name": "moves_to_publication",
+    "tbl_name": "moves",
+    "sql": "CREATE INDEX moves_to_publication ON moves(to_publication_id) WHERE to_publication_id IS NOT NULL"
+  }
+]

@@ -19,7 +19,7 @@ export type AppEnv = {
  * What a reviewer-only account may reach (ADR 0002): who it is, signing out, its own reviews, and deleting itself.
  * Everything else answers 404, as it does for a stranger, so a reviewer finds out nothing about the rest of the app.
  */
-export function reviewerMayReach(method: string, path: string): boolean {
+function reviewerMayReach(method: string, path: string): boolean {
   const p = path.replace(/^\/api/, '')
   if (p === '/auth/me' || p === '/auth/logout') return true
   if (p === '/account' && method === 'DELETE') return true
@@ -34,7 +34,7 @@ export function reviewerMayReach(method: string, path: string): boolean {
  * it has, confirming its address, and accepting an invitation (an invitation from an approved person is what lets
  * someone in). Everything else is refused, so a waiting or declined account has no app and no AI calls.
  */
-export function unapprovedMayReach(
+function unapprovedMayReach(
   method: string,
   path: string,
   approval: 'waiting' | 'declined' = 'waiting',

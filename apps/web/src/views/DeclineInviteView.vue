@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import AuthCard from '../components/AuthCard.vue'
 import { ApiError, api, errorMessage } from '../lib/api'
+import { queryKeys } from '../lib/queries'
 import { useSessionStore } from '../stores/session'
 
 const route = useRoute()
@@ -11,7 +12,7 @@ const session = useSessionStore()
 const token = typeof route.query.token === 'string' ? route.query.token : ''
 
 const preview = useQuery({
-  queryKey: ['invitation', token],
+  queryKey: queryKeys.invitation(token),
   queryFn: () => api.previewInvitation(token),
   enabled: !!token,
   retry: false,

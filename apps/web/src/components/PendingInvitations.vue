@@ -29,7 +29,7 @@ const join = useMutation({
   onSuccess: async ({ publicationId }) => {
     await Promise.all([
       invalidateRoots(queryClient, 'my-invitations'),
-      queryClient.invalidateQueries({ queryKey: ['publications'] }),
+      invalidateRoots(queryClient, 'publications'),
     ])
     await router.push({ name: 'publication', params: { publicationId } })
   },

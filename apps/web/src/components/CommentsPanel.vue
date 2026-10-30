@@ -62,7 +62,7 @@ const props = withDefaults(
     /** Shows the Add comment button; a page with its own (a reviewer's) turns it off. */
     canComment?: boolean
   }>(),
-  { canComment: true },
+  { canComment: true, resolveProblem: undefined },
 )
 const emit = defineEmits<{
   /** A comment was pressed: show it in the draft. */
@@ -128,8 +128,7 @@ defineExpose({
 </script>
 
 <template>
-  <!-- With several comments, room below the last so that it too can scroll to the top of the area. -->
-  <section aria-labelledby="comments-heading" :class="shown.length > 1 ? 'pb-[70vh]' : ''">
+  <section aria-labelledby="comments-heading">
     <!-- The tab beside the draft already says "Comments"; the heading is for screen readers moving by headings. -->
     <h2 id="comments-heading" class="sr-only">Comments</h2>
     <!-- Show resolved on the left, Add comment on the right, on one line. -->
@@ -183,7 +182,7 @@ defineExpose({
     <QueryState :query="query" what="the comments">
       <p v-if="!comments.length && !round && !pending" class="text-sm text-ink-soft">
         <template v-if="isEditor">
-          No comments yet. Press Critique, or select words and press Comment.
+          No comments yet. Press Critique below, or select words and press Comment.
         </template>
         <template v-else> You haven’t commented yet. Select words and press Comment. </template>
       </p>
@@ -213,6 +212,10 @@ defineExpose({
 
       <p v-if="resolveProblem" role="alert" class="mt-3 text-danger">{{ resolveProblem }}</p>
     </QueryState>
+    <!-- After the comments, so that a writer meets them before another critique. -->
+    <slot name="after" />
+    <!-- With several comments, room below the last so that it too can scroll to the top of the area. -->
+    <div v-if="shown.length > 1" class="h-[70vh]" aria-hidden="true"></div>
     <TextChangedDialog
       :open="!!reading"
       :comment="reading"

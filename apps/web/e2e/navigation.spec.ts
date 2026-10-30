@@ -82,11 +82,8 @@ test('leads through a publication and an idea step by step, without ever locking
     '# A cut is a question\n\nTake out a third.\n',
   )
   await noViolations(page, 'Draft page with its publish section')
-  // The old Publish address leads to the idea's drafts.
-  const draftsHref = await page.getByRole('link', { name: '← All drafts' }).getAttribute('href')
-  await page.goto(draftsHref!.replace(/\/drafts$/, '/publish'))
+  await page.getByRole('link', { name: '← All drafts' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Draft' })).toBeVisible()
-  await expect(page).toHaveURL(/\/drafts$/)
   await expect(idea.getByRole('link', { name: 'Publish' })).toHaveCount(0)
 
   // Idea settings are apart from the steps: no step is current there.

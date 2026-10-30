@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
 import {
   NoPageInfoFetcher,
@@ -7,14 +8,15 @@ import {
   type ResearchFactory,
   type PageInfoFetcher,
   type Providers,
+  type IdentityProvider,
+  type Mailer,
 } from '@wordwright/core'
-import type { IdentityProvider } from './auth/identity'
+import { forwardedClient } from './auth/client-address'
 import { requireUser, sameOriginOnly, type AppEnv } from './auth/middleware'
 import { createScryptHasher, type PasswordHasher } from './auth/password'
 import { RateLimiter } from './auth/rate-limit'
 import { createSecretBox } from './auth/secret-box'
 import type { Store } from './db/store'
-import type { Mailer } from './mail/mailer'
 import { accountRoutes } from './routes/account'
 import { adminRoutes } from './routes/admin'
 import { AdminService } from './services/admin'
@@ -23,6 +25,7 @@ import { llmRoutes } from './routes/llm'
 import { invitationRoutes } from './routes/invitations'
 import { publicationRoutes } from './routes/publications'
 import { AccountService } from './services/accounts'
+import type { DeletionJournal } from './services/deletion-journal'
 import { BrainstormService } from './services/brainstorm'
 import { FeedItemService } from './services/feed-items'
 import { ResearchService } from './services/research'
@@ -36,11 +39,17 @@ import { ExportService } from './services/export'
 import { LlmKeyService } from './services/llm'
 import { EmailChangeService } from './services/email-change'
 import { DEFAULT_UNCONFIRMED_TTL_DAYS } from './services/maintenance'
-import { DomainError, describeError } from './errors'
+import { DomainError, describeError, fail } from './errors'
 
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
+
+/**
+ * The largest request the API reads (#317): roomy for a book-length draft and for a picture (`MAX_IMAGE_BYTES`, which
+ * its own route checks first), small enough that nobody can fill the server's memory with one.
+ */
+export const MAX_REQUEST_BYTES = 2 * 1024 * 1024
 
 export interface AppDeps {
   store: Store
@@ -71,6 +80,13 @@ export interface AppDeps {
   adminEmails?: string[]
   /** Sign-ups allowed an hour, in one shared bucket (default 30). The e2e servers raise it: one run signs up many. */
   signupsPerHour?: number
+  /**
+   * The API is reached only through Caddy, which puts the client's address in X-Forwarded-For (#390). Only then is
+   * anything throttled per address; without it, the address is unknown.
+   */
+  trustProxy?: boolean
+  /** Notes each account deletion so it can be repeated after a restore (#410). */
+  deletionJournal?: DeletionJournal
 }
 
 /** Builds the app from injected dependencies, so tests can supply fakes. */
@@ -84,8 +100,8 @@ export function createApp(deps: AppDeps) {
   })
   const clock = deps.now && (() => deps.now!().getTime())
   const limiter = (max: number, windowMs: number) => new RateLimiter(max, windowMs, clock)
-  // One shared bucket (the API doesn't see client IPs) for every way of making an account: each sends an email or
-  // adds a row. The email form and the Google callback both draw on it.
+  // One bucket shared by everyone (on top of the per-address one in authRoutes) for every way of making an account:
+  // each sends an email or adds a row. The email form and the Google callback both draw on it.
   const registerLimiter = limiter(deps.signupsPerHour ?? 30, HOUR)
   const hasher = deps.hasher ?? createScryptHasher()
   const accounts = new AccountService({
@@ -99,6 +115,7 @@ export function createApp(deps: AppDeps) {
     approvalRequired: deps.approvalRequired,
     adminEmails: deps.adminEmails?.map((e) => e.trim().toLowerCase()).filter(Boolean),
     signupAllowed: () => registerLimiter.allow('register'),
+    deletionJournal: deps.deletionJournal,
   })
 
   const emailChanges = new EmailChangeService({
@@ -133,6 +150,17 @@ export function createApp(deps: AppDeps) {
 
   const api = new Hono<AppEnv>()
   api.use(sameOriginOnly(new URL(publicUrl).origin))
+  const limitRequest = bodyLimit({
+    maxSize: MAX_REQUEST_BYTES,
+    onError: () => {
+      throw fail(413, 'That’s too large to send in one go. Make it shorter and try again.')
+    },
+  })
+  // A picture upload has its own, smaller limit, and a message that says how small the picture must be.
+  const pictureUpload = /^\/api\/publications\/[^/]+\/image$/
+  api.use((c, next) =>
+    c.req.method === 'PUT' && pictureUpload.test(c.req.path) ? next() : limitRequest(c, next),
+  )
   api.route(
     '/auth',
     authRoutes({
@@ -147,6 +175,14 @@ export function createApp(deps: AppDeps) {
       handleCheckLimiter: limiter(120, MINUTE),
       verificationLimiter: limiter(3, HOUR),
       registerLimiter,
+      clientAddress: deps.trustProxy ? forwardedClient : () => undefined,
+      // Per address (#390): roomy enough for a household or an office behind one address.
+      byAddress: {
+        login: limiter(30, 15 * MINUTE),
+        reset: limiter(10, 15 * MINUTE),
+        register: limiter(5, HOUR),
+        handleCheck: limiter(60, MINUTE),
+      },
     }),
   )
   const exportService = new ExportService(store, deps.now)
@@ -236,6 +272,8 @@ export function createApp(deps: AppDeps) {
         feeds: deps.feeds,
         // Each new source makes the server fetch pages: 30 an hour per person is plenty for real use.
         feedLimiter: limiter(30, HOUR),
+        // Critique and Rephrase share one allowance: far more than a writer uses, but not a loop on a stolen session.
+        assistLimiter: limiter(30, 10 * MINUTE),
         feedItems: new FeedItemService(
           store,
           deps.feeds,

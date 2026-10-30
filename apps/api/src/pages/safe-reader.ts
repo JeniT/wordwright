@@ -20,7 +20,7 @@ export interface SafeReaderOptions {
   allowAddress?: (address: string) => boolean
 }
 
-export class NotPublicError extends Error {
+class NotPublicError extends Error {
   readonly code = 'ENOTPUBLIC'
 }
 

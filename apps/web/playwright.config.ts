@@ -29,6 +29,11 @@ const approvalApiPort =
 const e2eDb = fileURLToPath(new URL('./.e2e-data/e2e.sqlite', import.meta.url))
 // Emails are written here as JSON files; tests read them like an inbox.
 export const e2eOutbox = fileURLToPath(new URL('./.e2e-data/outbox', import.meta.url))
+// A third pair: the built app under the production Content-Security-Policy (`vite preview`), for csp.spec.ts.
+const cspWebPort = process.env.E2E_CSP_WEB_PORT ?? (process.env.CI ? '5176' : String(7200 + slot))
+const cspApiPort = process.env.E2E_CSP_API_PORT ?? (process.env.CI ? '8790' : String(10800 + slot))
+const cspDb = fileURLToPath(new URL('./.e2e-data/csp.sqlite', import.meta.url))
+
 const approvalDb = fileURLToPath(new URL('./.e2e-data/approval.sqlite', import.meta.url))
 export const approvalOutbox = fileURLToPath(new URL('./.e2e-data/approval-outbox', import.meta.url))
 /** The owner of the approval servers: confirmed, this address becomes an admin. */
@@ -50,13 +55,18 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: /approval\.spec\.ts/,
+      testIgnore: /(approval|csp)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'approval',
       testMatch: /approval\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${approvalWebPort}` },
+    },
+    {
+      name: 'csp',
+      testMatch: /csp\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${cspWebPort}` },
     },
   ],
   webServer: [
@@ -106,6 +116,30 @@ export default defineConfig({
       env: { API_URL: `http://localhost:${approvalApiPort}` },
       url: `http://localhost:${approvalWebPort}`,
       reuseExistingServer: false,
+    },
+    {
+      command: `rm -rf "${cspDb}" "${cspDb}-wal" "${cspDb}-shm" && pnpm --filter @wordwright/api start`,
+      env: {
+        PORT: cspApiPort,
+        DATABASE_PATH: cspDb,
+        FAKE_LLM: 'true',
+        FAKE_FEEDS: 'true',
+        PAGE_FETCHER: 'fake',
+        MAIL_TRANSPORT: 'file',
+        MAIL_OUTBOX_DIR: fileURLToPath(new URL('./.e2e-data/csp-outbox', import.meta.url)),
+        PUBLIC_URL: `http://localhost:${cspWebPort}`,
+        ACCOUNT_APPROVAL: 'open',
+      },
+      url: `http://localhost:${cspApiPort}/health`,
+      reuseExistingServer: false,
+    },
+    {
+      // Built into its own folder, so a dev build in dist/ is left alone.
+      command: `pnpm exec vite build --outDir .e2e-data/csp-dist --emptyOutDir && pnpm exec vite preview --outDir .e2e-data/csp-dist --port ${cspWebPort} --strictPort`,
+      env: { API_URL: `http://localhost:${cspApiPort}` },
+      url: `http://localhost:${cspWebPort}`,
+      reuseExistingServer: false,
+      timeout: 120_000,
     },
   ],
 })

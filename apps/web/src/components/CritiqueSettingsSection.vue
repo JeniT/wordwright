@@ -6,10 +6,11 @@ import { api, errorMessage } from '../lib/api'
 import InfoTip from './InfoTip.vue'
 import SaveStatus from './SaveStatus.vue'
 import { useSavedValue } from '../lib/forms'
+import { queryKeys } from '../lib/queries'
 
 const queryClient = useQueryClient()
 const settings = useQuery({
-  queryKey: ['critique-settings'],
+  queryKey: queryKeys.critiqueSettings(),
   queryFn: () => api.getCritiqueSettings(),
 })
 // A valid default, so the form can never submit nothing before the setting arrives.
@@ -21,7 +22,7 @@ const choices = Array.from(
 const unsaved = computed(() => rounds.value !== settings.data.value?.rounds)
 const save = useMutation({
   mutationFn: () => api.saveCritiqueSettings(rounds.value),
-  onSuccess: (saved) => queryClient.setQueryData(['critique-settings'], saved),
+  onSuccess: (saved) => queryClient.setQueryData(queryKeys.critiqueSettings(), saved),
 })
 </script>
 
@@ -32,12 +33,16 @@ const save = useMutation({
         Critique limit
       </h2>
       <InfoTip label="Why critiques are limited"
-        >An AI editor can always find more to change, and each round can take a draft further from
-        your voice. When a draft's critiques are used up, the next step is to publish.</InfoTip
+        >Your AI will always find more to change and each critique can take a draft further from
+        your voice. You can always get other people to review your drafts as well.</InfoTip
       >
     </div>
     <p v-if="settings.isError.value" role="alert" class="mb-3 text-danger">
       {{ errorMessage(settings.error.value) }}
+    </p>
+    <p class="mb-3 text-sm text-ink-soft">
+      Your AI can critique your draft and give you comments on it. This is how many times you can
+      ask your AI for a critique.
     </p>
     <form @submit.prevent="save.mutate()">
       <div class="mb-4">
@@ -56,7 +61,7 @@ const save = useMutation({
           </option>
         </select>
         <p id="critique-rounds-hint" class="mt-1 text-sm text-ink-soft">
-          Also limits how many times you can ask for options for ways to rephrase parts of your
+          This also limits how many times you can ask for options for ways to rephrase parts of your
           drafts.
         </p>
       </div>

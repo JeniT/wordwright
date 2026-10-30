@@ -1,4 +1,4 @@
-import type { Email, Mailer } from './mailer'
+import type { Email, Mailer } from '@wordwright/core'
 
 /**
  * Sends an email after the HTTP response has already been decided. Waiting would make "this address

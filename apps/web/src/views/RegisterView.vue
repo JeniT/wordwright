@@ -19,6 +19,9 @@ const name = ref('')
 const handle = ref('')
 const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
 const password = ref('')
+// Set by the delete-account page, so the person is told it worked.
+const accountDeleted = route.query.deleted === '1'
+const linkQuery = { ...route.query, deleted: undefined }
 
 const register = useMutation({
   mutationFn: () =>
@@ -40,6 +43,20 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
 
 <template>
   <AuthCard title="Create your account">
+    <p v-if="accountDeleted" role="status" class="mb-4">Your old account has been deleted.</p>
+    <p class="mb-3">
+      Wordwright helps people who love writing to do more of it. It helps spark ideas, research
+      different perspectives, work out what to say, and improve your drafts, but it never writes
+      your words for you.
+    </p>
+    <p class="mb-4 text-sm text-ink-soft">
+      Wordwright is in
+      <RouterLink :to="{ name: 'help-terms', hash: '#t-alpha' }" class="link"
+        >private alpha</RouterLink
+      >. We approve accounts by hand and email you when yours is ready. If you have any questions or
+      comments please email
+      <a href="mailto:hello@wordwright.io" class="link">hello@wordwright.io</a>
+    </p>
     <form @submit.prevent="register.mutate()">
       <!-- "given-name" asks browsers to autofill just their first name, which is what we use. -->
       <TextField
@@ -71,6 +88,12 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
       <p v-if="register.isError.value" role="alert" class="mb-3 text-danger">
         {{ errorMessage(register.error.value) }}
       </p>
+      <p class="mb-3">
+        By creating an account you agree to the
+        <RouterLink :to="{ name: 'help-terms' }" class="link">terms of use</RouterLink>. The
+        <RouterLink :to="{ name: 'help-privacy-notice' }" class="link">privacy notice</RouterLink>
+        says what we keep.
+      </p>
       <button
         type="submit"
         class="btn btn-primary w-full"
@@ -78,10 +101,14 @@ const { hint: usernameHint, invalid: usernameInvalid } = useUsernameCheck(handle
       >
         Create account
       </button>
+      <p class="mt-3 text-sm text-ink-soft">
+        Wordwright is for writers of any age. The AI features need your own key from an AI provider,
+        and providers require adult account holders.
+      </p>
     </form>
     <p class="mt-4 text-sm">
       Already have an account?
-      <RouterLink :to="{ name: 'login', query: route.query }" class="text-accent underline"
+      <RouterLink :to="{ name: 'login', query: linkQuery }" class="text-accent underline"
         >Sign in</RouterLink
       >
     </p>

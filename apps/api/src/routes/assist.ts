@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { CritiqueRequestSchema, LLMAuthError, RephraseRequestSchema } from '@wordwright/core'
 import { CRITIQUE_PROMPT, OPTIONS_PROMPT } from '@wordwright/prompts'
 import type { AppEnv } from '../auth/middleware'
+import type { RateLimiter } from '../auth/rate-limit'
 import type { Store } from '../db/store'
 import type { LlmKeyService } from '../services/llm'
 import {
@@ -23,24 +24,33 @@ import { toLlmHttpError } from './llm'
 import { DomainError, fail } from '../errors'
 import { param } from './params'
 
-/** Every request runs on the *requesting user's* credentials, even inside a shared publication. */
-export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
+/**
+ * Every request runs on the *requesting user's* credentials, even inside a shared publication. The limiter is shared by
+ * both and counts only requests that would reach the AI, so a refused or invalid one costs nothing.
+ */
+export function assistRoutes(store: Store, llmKeys: LlmKeyService, limiter: RateLimiter) {
+  const throttle = (userId: string) => {
+    if (!limiter.allow(userId)) {
+      throw fail(429, 'You’re asking your AI very quickly. Wait a few minutes and try again.')
+    }
+  }
   return new Hono<AppEnv>()
     .post('/critique', validateJson(CritiqueRequestSchema), async (c) => {
       const draft = store.drafts.get(param(c, 'publicationId'), c.req.valid('json').draftId)
       if (!draft) return c.json({ error: 'Not found' }, 404)
-      // Before anything is counted or sent: only the editor spends their key and a look on the draft.
+      // Before anything is counted or sent: only the editor spends their key and a critique on the draft.
       requireEditor(draft, c.get('user').id)
 
-      // Rationed: the looks are spent on the draft whoever asks, and the limit is the one the person asking has chosen.
+      // Rationed: the critiques are spent on the draft whoever asks, and the limit is the one the person asking has chosen.
       const userId = c.get('user').id
       const allowed = critiqueAllowance(store, userId)
       if (store.critiques.count(draft.id) >= allowed) {
         throw fail(
           409,
-          `This draft has had its ${allowed} ${allowed === 1 ? 'look' : 'looks'}. The next step is to publish it. You can change how many looks a draft gets in your account settings.`,
+          `You have used your ${allowed} ${allowed === 1 ? 'critique' : 'critiques'} of this draft. The next step is to publish it. You can change how many critiques a draft gets in your account settings.`,
         )
       }
+      throttle(userId)
 
       let llm
       try {
@@ -88,6 +98,7 @@ export function assistRoutes(store: Store, llmKeys: LlmKeyService) {
       // Before anything is sent: only the editor spends their key on the draft, and only on what can be rephrased.
       requireEditor(draft, userId)
       checkRephrase(req, draft)
+      throttle(userId)
 
       let llm
       try {

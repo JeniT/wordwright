@@ -4,7 +4,8 @@ Read this before you commit, and when you plan a task's tests and docs.
 
 1. Behaviour covered by tests at the right level: unit/API tests for logic, component tests for UI states
    (loading / empty / error), contract tests for adapters, and an e2e test for any new user-facing flow.
-2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. No new console errors. UI changes follow
+2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. When a check fails on existing code, fix the code;
+   loosen the check's config only for something kept on purpose, with the reason beside the entry. No new console errors. UI changes follow
    [design](../design/README.md) and have been looked at in light **and** dark mode and at phone width (390px).
 3. Docs updated where behaviour changed (the matching doc: [README](../../README.md), [accounts](../accounts.md), [byok](../byok.md) or [ai-features](../ai-features.md); `.env.example`, `docs/adr/` for non-obvious choices (see [adr/README.md](../adr/README.md))).
    **The help area too:** a change to what people can do, or how, updates the matching help page under `/help`, or adds
@@ -16,4 +17,4 @@ Read this before you commit, and when you plan a task's tests and docs.
    follow-up work filed as new issues; the main checkout brought up to date with `origin/main`
    (see [landing.md](landing.md)).
 5. **Committed** with a message that says what and why. Commit after each feature; for large ones, commit at
-   each green checkpoint. End the session with everything committed.
+   each green checkpoint. The final commit carries `Closes #7` (item 4). End the session with everything committed.

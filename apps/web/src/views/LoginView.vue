@@ -6,6 +6,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthCard from '../components/AuthCard.vue'
 import TextField from '../components/TextField.vue'
 import { api, errorMessage } from '../lib/api'
+import { queryKeys } from '../lib/queries'
 import { useSessionStore } from '../stores/session'
 
 const route = useRoute()
@@ -17,7 +18,7 @@ const next = safeNextPath(route.query.next)
 const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
 const password = ref('')
 
-const config = useQuery({ queryKey: ['auth-config'], queryFn: () => api.authConfig() })
+const config = useQuery({ queryKey: queryKeys.authConfig(), queryFn: () => api.authConfig() })
 const login = useMutation({
   mutationFn: () => api.login({ email: email.value, password: password.value }),
   onSuccess: async (user) => {
@@ -37,6 +38,7 @@ const oauthError =
 
 <template>
   <AuthCard title="Sign in">
+    <p class="mb-4 text-ink-soft">Wordwright helps people who love writing to do more of it.</p>
     <p v-if="oauthError" role="alert" class="mb-4 text-danger">{{ oauthError }}</p>
 
     <div v-if="config.data.value?.providers.length" class="mb-4 space-y-2">

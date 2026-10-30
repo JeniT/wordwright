@@ -93,7 +93,7 @@ export function editComment(
   return store.comments.get(draft.id, commentId)!
 }
 
-/** Permanent. A critique look is not given back: the AI's reading was already done. */
+/** Permanent. A used critique is not given back: the AI's reading was already done. */
 export function deleteComment(
   store: Store,
   draft: Draft,

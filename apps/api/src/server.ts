@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server'
-import { FakePageInfoFetcher, type Providers } from '@wordwright/core'
+import { FakePageInfoFetcher, type Providers, type IdentityProvider } from '@wordwright/core'
 import { createApp } from './app'
-import { googleProvider, type IdentityProvider } from './auth/identity'
+import { googleProvider } from './auth/oidc'
 import { createScryptHasher } from './auth/password'
 import { loadConfig } from './config'
 import { DatabaseError } from './db/database'
@@ -16,7 +16,9 @@ import { createFeedFetcher } from './feeds/factory'
 import { createMailer } from './mail/factory'
 import { HttpPageInfoFetcher } from './pages/http-page-info'
 import { AccountService } from './services/accounts'
+import { seedAdminAccount } from './services/admin'
 import { backfillIconShapes } from './services/icon-backfill'
+import { FileDeletionJournal } from './services/deletion-journal'
 import { MaintenanceService, startMaintenance } from './services/maintenance'
 import { SmtpMailer } from './mail/smtp-mailer'
 
@@ -48,6 +50,13 @@ const store = (() => {
   }
 })()
 
+const seeded = seedAdminAccount(store, config.ADMIN_EMAILS)
+if (seeded === 'created') {
+  console.log('Admin: seeded the Admin account; set its password through "Forgot password"')
+} else if (seeded === 'handle-taken') {
+  console.error('Admin: not seeded, because the username "admin" is already taken')
+}
+
 const providers: Providers = { search: [] }
 
 const identityProviders: IdentityProvider[] = []
@@ -64,6 +73,8 @@ if (mailer instanceof SmtpMailer) {
       console.error(`Email: SMTP check failed, reset emails may not send. ${err.message}`),
   )
 }
+
+const deletionJournal = new FileDeletionJournal(config.DELETION_JOURNAL_PATH)
 
 const app = createApp({
   store,
@@ -83,12 +94,15 @@ const app = createApp({
   approvalRequired: config.ACCOUNT_APPROVAL === 'required',
   adminEmails: config.ADMIN_EMAILS,
   signupsPerHour: config.SIGNUPS_PER_HOUR,
+  trustProxy: config.TRUST_PROXY,
+  deletionJournal,
 })
 
 // Housekeeping every 6 hours: forget abandoned signups and expired sessions/links.
 const maintenance = new MaintenanceService({
   store,
   unconfirmedTtlDays: config.UNCONFIRMED_ACCOUNT_TTL_DAYS,
+  deletionJournal,
   // Only its email-sending is used here; the hasher is never called.
   reminders: new AccountService({
     store,

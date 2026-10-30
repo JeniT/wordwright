@@ -8,7 +8,8 @@ Read this when you add or change code in `apps/api`, `packages/core` or `prompts
   `prompts/`: the instructions given to the AI, as plain Markdown (`@wordwright/prompts`); edit prompts there, never
   inline in code, and see `prompts/README.md`.
 - **Schemas first.** New API shapes go in `packages/core/src/domain.ts` and are used by both sides.
-- **Database:** append a new entry to `MIGRATIONS` in `apps/api/src/db/database.ts`; applied entries stay as they are.
+- **Database:** append a new entry to `MIGRATIONS` in `apps/api/src/db/database.ts`; applied entries stay as they are (the
+  pre-launch fold into one schema, [#308](../adr/go-live-and-operations/migrations-collapsed-into-one-schema-before-launch.md), was the single exception).
   Deleting a user must still remove everything that belongs only to them (use `ON DELETE CASCADE`, and extend the
   account-deletion tests).
 - **API errors:** services and routes throw `fail(status, message)` (or `notFound()`) from `apps/api/src/errors.ts`;
@@ -24,5 +25,5 @@ Read this when you add or change code in `apps/api`, `packages/core` or `prompts
   request bodies, keys, tokens and reset links stay out of logs in production code paths.
 - **Per-user spending:** AI calls use the _requesting_ user's own key (`LlmKeyService.resolve`). There is no
   fallback to a shared key.
-- **New dependencies:** prefer the platform and what's already installed. Explain any new one in the commit.
+- **New dependencies:** prefer the platform and what's already installed. Explain any new one in the commit, and keep [dependencies.md](../dependencies.md) (licences, versions) true.
 - **LLM features** also need [responsible-ai.md](../responsible-ai.md) before you design or change them.

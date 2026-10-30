@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
-useMockServer({ warm: ['reviews', 'review', 'review-invite', 'start-writing'] })
+useMockServer({ warm: ['reviews', 'review', 'review-invite', 'start-writing', 'account-delete'] })
 
 const reviewer = { ...testUser, id: 'u9', name: 'Rae', handle: null, reviewerOnly: true }
 const summary = (over: object = {}) => ({
@@ -118,6 +118,30 @@ describe('a reviewer’s landing page', () => {
     fail = false
     await fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByText(/Nothing to review yet/)).toBeTruthy()
+  })
+
+  it('lets a reviewer-only account delete itself from their reviews page, with no download step', async () => {
+    let body: unknown
+    server.use(
+      signedInAs(reviewer),
+      http.get('*/api/reviews', () => HttpResponse.json([])),
+      http.delete('*/api/account', async ({ request }) => {
+        body = await request.json()
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    const { router } = await renderAt('/reviews')
+    await fireEvent.click(await screen.findByRole('link', { name: 'Delete your account' }))
+    expect(await screen.findByRole('heading', { name: 'Delete account' })).toBeTruthy()
+    expect(router.currentRoute.value.name).toBe('account-delete')
+    // Their account has no writing to download, and the server would answer 404.
+    expect(screen.queryByRole('link', { name: 'Download your writing' })).toBeNull()
+    await fireEvent.update(screen.getByLabelText('Password'), 'a-long-password')
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete account' }))
+    const dialog = await screen.findByRole('dialog')
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete account' }))
+    await waitFor(() => expect(router.currentRoute.value.path).toBe('/register'))
+    expect(body).toMatchObject({ password: 'a-long-password' })
   })
 
   it('sends a reviewer-only account away from every other page', async () => {
@@ -316,6 +340,21 @@ describe('reading one review', () => {
     expect(document.querySelector('.ProseMirror')).not.toBeNull()
     expect(screen.queryByRole('button', { name: 'Add comment' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'End review' })).toBeNull()
+  })
+
+  it('says why when the review could not be ended, and leaves it open', async () => {
+    open({ ...summary(), draft: { title: 'Meanders', body: 'x' }, comments: [] })
+    server.use(
+      http.post('*/api/reviews/r1/end', () =>
+        HttpResponse.json({ error: 'The editor has closed this review.' }, { status: 409 }),
+      ),
+    )
+    await renderAt('/reviews/r1')
+    const [underDraft] = await screen.findAllByRole('button', { name: 'End review' })
+    await fireEvent.click(underDraft!)
+    expect(await screen.findByRole('alert')).toHaveTextContent('The editor has closed this review.')
+    expect(screen.getAllByRole('button', { name: 'End review' })).toHaveLength(2)
+    expect(screen.queryByTestId('review-ended')).toBeNull()
   })
 
   it('keeps the draft and the comments when the editor has closed the review', async () => {

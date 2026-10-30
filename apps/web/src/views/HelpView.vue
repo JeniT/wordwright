@@ -11,7 +11,7 @@ const pages = [
   },
   {
     name: 'help-privacy',
-    title: 'Privacy and your writing',
+    title: 'Your AI provider and privacy',
     about: 'What is sent to Anthropic when you use the AI, and what to check.',
   },
   {
@@ -36,9 +36,39 @@ const pages = [
     about: 'The formatting buttons, their shortcuts, and editing the Markdown itself.',
   },
   {
+    name: 'help-drafting',
+    title: 'Drafting',
+    about: 'Critique, handing over editing, sending for review, and the panel beside your draft.',
+  },
+  {
+    name: 'help-account',
+    title: 'Account settings',
+    about: 'Your details, signing in, downloading your writing, and deleting your account.',
+  },
+  {
     name: 'help-waiting',
     title: 'Waiting for approval',
     about: 'Why a new account waits, and what happens when it is approved.',
+  },
+  {
+    name: 'help-privacy-notice',
+    title: 'Privacy notice',
+    about: 'What Wordwright keeps about you, who handles it, and your rights.',
+  },
+  {
+    name: 'help-terms',
+    title: 'Terms of use',
+    about: 'The rules for using Wordwright, including your AI key and the alpha.',
+  },
+  {
+    name: 'help-cookies',
+    title: 'Cookies',
+    about: 'The one cookie we set, and the settings kept on your device.',
+  },
+  {
+    name: 'help-accessibility',
+    title: 'Accessibility statement',
+    about: 'How we check that Wordwright works for everyone, and how to report a barrier.',
   },
   {
     name: 'help-tutorial-mode',

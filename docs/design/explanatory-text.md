@@ -41,6 +41,9 @@ A form that clears itself still owes the person some sign that it worked, but no
   pointer or focus leaves, so they can't be reached. If it needs a link, it is a help page.
 - **Keyboard and touch:** the icon is a real button with a name (`label`, “About tagging several at once”), reached by Tab. The
   tip shows on hover or focus, which a tap gives, and is the icon's description for screen readers.
+- **Placement:** the tip slides sideways, and narrows if it must, to stay inside the nearest clipping
+  ancestor (the side panel is one), so it is not cropped; the row holding an `Explain` wraps (`flex-wrap`) so the
+  written-out text goes under the button, not into a narrow column beside it.
 - **Dismissable, hoverable, persistent (WCAG 1.4.13):** Escape closes the tip without moving focus, and it shows again
   on the next hover or focus. The pointer can move from the icon onto the tip without it closing.
 - Never the only place for something the person needs to finish the task. That is what the test above catches.

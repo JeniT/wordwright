@@ -1,4 +1,4 @@
-import type { Email } from './mailer'
+import type { Email } from '@wordwright/core'
 
 const escapeHtml = (s: string) =>
   s.replace(
@@ -30,6 +30,11 @@ const quoted = (value: string, fallback: string) => (value.trim() ? `“${value.
 const plain = (value: string, fallback: string) => escapeHtml(value.trim() || fallback)
 const bold = (value: string, fallback: string) =>
   value.trim() ? `<strong>${escapeHtml(value.trim())}</strong>` : fallback
+
+/** From CONTEXT.md, “Describing Wordwright”: copy the words as they are. */
+const DESCRIPTION_SHORT = 'Wordwright helps people who love writing to do more of it.'
+const DESCRIPTION_LONGER =
+  'Wordwright helps spark ideas, research different perspectives, work out what to say, and improve your drafts, but it never writes your words for you.'
 
 /** Shared wrapper: simple, readable in any client, no remote images. */
 function layout(bodyHtml: string): string {
@@ -159,6 +164,8 @@ export function reviewInvitationEmail(input: {
     subject: `${inviterName} asked you to review a draft`,
     text: `${inviterName} would like your comments on ${quoted(draftTitle, UNTITLED)}, a draft in ${quoted(publicationName, NO_PUBLICATION)} on Wordwright.
 
+${DESCRIPTION_SHORT} ${DESCRIPTION_LONGER}
+
 You can read this draft and comment on it. You won’t see anything else, or anyone else’s comments. You’ll read the draft as it is now, so later edits won’t change what you read. You can stop reviewing whenever you like.
 
 Open it here (you’ll create a reviewer account or sign in with this email address; the link expires in ${ttlDays} days):
@@ -167,6 +174,7 @@ ${link}
 
 If you weren’t expecting this, ignore this email and nothing will happen. To decline, or to stop invitations from ${inviterName} or from everyone, use the same link.`,
     html: layout(`<p><strong>${escapeHtml(inviterName)}</strong> would like your comments on ${bold(draftTitle, UNTITLED)}, a draft in ${plain(publicationName, NO_PUBLICATION)} on Wordwright.</p>
+<p>${DESCRIPTION_SHORT} ${DESCRIPTION_LONGER}</p>
 <p>You can read this draft and comment on it. You won’t see anything else, or anyone else’s comments. You’ll read the draft as it is now, so later edits won’t change what you read. You can stop reviewing whenever you like.</p>
 <p><a href="${escapeHtml(link)}" style="${BUTTON_STYLE}">Review the draft</a></p>
 <p style="font-size:14px">You’ll create a reviewer account or sign in with this email address. The link expires in ${ttlDays} days. If the button doesn’t work, paste this into your browser:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>

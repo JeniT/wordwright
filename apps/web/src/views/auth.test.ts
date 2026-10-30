@@ -23,6 +23,35 @@ describe('route guards', () => {
   })
 })
 
+describe('what Wordwright is', () => {
+  it('says so on the sign-in page', async () => {
+    server.use(signedInAs(null), noProviders)
+    await renderAt('/login')
+    await screen.findByText('Wordwright helps people who love writing to do more of it.')
+  })
+
+  it('says so on the create-account page, with the alpha caveat and who to ask', async () => {
+    server.use(signedInAs(null), noProviders)
+    await renderAt('/register')
+    await screen.findByText(/Wordwright helps people who love writing to do more of it\./)
+    expect(screen.getByText(/it never writes\s+your words for you/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/We approve accounts by hand and email you when yours is ready/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'private alpha' })).toHaveAttribute(
+      'href',
+      '/help/terms#t-alpha',
+    )
+    expect(
+      screen.getByText(/If you have any questions or comments please email/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'hello@wordwright.io' })).toHaveAttribute(
+      'href',
+      'mailto:hello@wordwright.io',
+    )
+  })
+})
+
 describe('sign in', () => {
   it('shows server errors', async () => {
     server.use(
@@ -111,6 +140,24 @@ describe('registration', () => {
     expect(name).toHaveAttribute('autocomplete', 'given-name')
     expect(screen.queryByLabelText('Name')).toBeNull()
     expect(screen.getByLabelText('Username')).toHaveAttribute('autocomplete', 'off')
+  })
+
+  it('says the account is deleted only when sent here by the delete page', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/register?deleted=1')
+    expect(await screen.findByRole('status')).toHaveTextContent('Your old account has been deleted')
+    // The flag is not passed on to the sign-in link.
+    expect(screen.getByRole('link', { name: 'Sign in' })).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('deleted'),
+    )
+  })
+
+  it('has no deletion note on an ordinary visit', async () => {
+    server.use(signedInAs(null))
+    await renderAt('/register')
+    await screen.findByLabelText('What should we call you?')
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('sends the chosen username with the rest of the details', async () => {

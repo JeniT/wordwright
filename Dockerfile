@@ -6,12 +6,13 @@
 #
 # Build from the repository root:  docker build --target api -t wordwright-api .
 
-FROM node:24-slim AS base
+FROM node:26.12.1-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-# The pnpm version comes from "packageManager" in package.json.
-RUN corepack enable
 WORKDIR /app
+# The pnpm version comes from "packageManager" in package.json. Node 25 and later no longer bundle corepack (#416).
+COPY package.json ./
+RUN npm install -g --no-fund --no-audit "$(node -p 'require("./package.json").packageManager')"
 
 # Everything, for the web build.
 FROM base AS web-build
@@ -24,10 +25,12 @@ FROM base AS api-deps
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod --filter @wordwright/api...
 
-FROM node:24-slim AS api
+FROM node:26.12.1-slim AS api
 LABEL org.opencontainers.image.source="https://github.com/JeniT/wordwright"
+# TRUST_PROXY: the api is reached only through Caddy (deploy/compose.yaml), which writes the client's address.
 ENV NODE_ENV=production \
     PORT=8787 \
+    TRUST_PROXY=true \
     DATABASE_PATH=/data/wordwright.sqlite
 WORKDIR /app
 COPY --from=api-deps --chown=node:node /app /app

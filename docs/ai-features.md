@@ -36,23 +36,23 @@ pages: one fine, one with no readable title and one that doesn't exist; and the 
 
 - **Critique** returns a few ranked points, each about a numbered paragraph of the draft, and says when a draft is ready
   (the design is in [adr/review-and-comments/critique-points-are-anchored-to-paragraphs-by-id-outside.md](adr/review-and-comments/critique-points-are-anchored-to-paragraphs-by-id-outside.md)).
-  The latest critique is kept with the draft, and its points are comments (above), marked beside the paragraphs they are about. A draft
-  gets 3 critiques by default (each person can choose 1 to 5 on Your AI), counted per draft.
+  The latest critique is kept with the draft, and its points are comments (above), marked beside the paragraphs they are about. The Critique button is at the bottom of the Comments tab, after the comments (not under the draft), so a writer meets them before asking again, so on a phone it is where the empty Comments text points. A draft
+  gets 3 critiques by default (each person can choose 1 to 5 on Your AI), counted per draft. The reply is read for its last JSON object (`jsonObjectsIn`), so a model that corrects itself in the same reply still gives a critique. For a draft that discloses distress the prompt asks for no points and a short warm summary pointing to support.
 - **Rephrase** (`POST /api/publications/:id/assist/rephrase`, the draft's editor only) returns options for a selected passage
   or the title: `{draftId, kind: 'title'|'passage', wording, aim, earlier}` gives `{size, options}`. `earlier` holds the
   rounds already asked in this window, so the AI is told what it has offered and a later round needs a different aim.
   The server keeps nothing (the window holds the state; the record on use comes with #162). It refuses a selection that
   crosses paragraphs or is outside 5 to 150 words, an aim of fewer than 3 words, and a title for a draft under about 300
-  words, before spending anything. Short wording (a title, or up to 25 words) gets 5 to 10 options, longer gets 3 to 5, and the
+  words, before spending anything. Critique and Rephrase share one throttle of 30 requests per 10 minutes per person (abuse, not a quota). Short wording (a title, or up to 25 words) gets 5 to 10 options, longer gets 3 to 5, and the
   AI is told to make them differ in approach. Every number is in one place, `packages/core/src/rephrase.ts`. The prompt is
-  `prompts/options.md`. The round limit in a window is the critique-looks setting (Your AI page). Only the draft, wording,
+  `prompts/options.md`. The round limit in a window is the critique limit setting (Your AI page). Only the draft, wording,
   aim and publication description are sent: never notes, threads or comments.
   **The Rephrase window** (#162): in the draft editor, select words inside one paragraph and press **Rephrase**. A dialog
   shows the wording (editable), asks "What should it do?" (the Aim), and **Generate options** (saving the draft first, since
   the AI reads the saved draft) brings a list (short wording) or carousel (longer) with a **Replace wording** button on
   each; **Use this** replaces exactly the selected words, saves the draft and, if the words began as an option, records it
-  (`POST …/drafts/:id/option-insertions`, in `draft_insertions` with origin `option`, shown in the draft's "Where some of the
-  words came from" list). The record is the writer's own report of what was offered, because the server keeps nothing between
+  (`POST …/drafts/:id/option-insertions`, in `draft_insertions` with origin `option`; kept, though the draft page no longer
+  lists it: #341). The record is the writer's own report of what was offered, because the server keeps nothing between
   rounds. Words the writer wrote themselves leave no record. The fake LLM (`FAKE_LLM=true`) answers with numbered options.
   **Rephrase title** (#163): the button beside the title opens the same window with the title as the wording and no selection.
   It waits until the draft has at least `REPHRASE.titleMinBodyWords` (300) words and says so; **Use this** sets the title,

@@ -3,7 +3,7 @@ import type { PasswordHasher } from '../auth/password'
 import type { Store } from '../db/store'
 import type { UserRecord } from '../db/users'
 import { sendInBackground } from '../mail/background'
-import type { Mailer } from '../mail/mailer'
+import type { Mailer } from '@wordwright/core'
 import { changeEmailEmail, emailChangedEmail, passwordResetEmail } from '../mail/templates'
 import {
   AccountError,

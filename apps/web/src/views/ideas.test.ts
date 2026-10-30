@@ -138,7 +138,7 @@ describe('moving ideas to another publication', () => {
     return { moves }
   }
   const choose = async () => {
-    await renderAt('/p/ada-substack/ideas')
+    await renderAt('/p/ada-substack')
     await fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Select Why rivers meander' }),
     )
@@ -148,7 +148,7 @@ describe('moving ideas to another publication', () => {
 
   it('offers no way to move to someone with one publication', async () => {
     fake([publication])
-    await renderAt('/p/ada-substack/ideas')
+    await renderAt('/p/ada-substack')
     await fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Select Why rivers meander' }),
     )
@@ -163,7 +163,7 @@ describe('moving ideas to another publication', () => {
         HttpResponse.json(preview),
       ),
     )
-    await renderAt('/p/ada-substack/ideas')
+    await renderAt('/p/ada-substack')
     await fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Select Why rivers meander' }),
     )
@@ -190,7 +190,7 @@ describe('moving ideas to another publication', () => {
         HttpResponse.json({ ...preview, losingAccess: [] }),
       ),
     )
-    await renderAt('/p/ada-substack/ideas')
+    await renderAt('/p/ada-substack')
     await fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Tides' }))
     await fireEvent.click(screen.getByRole('button', { name: 'Move Why rivers meander' }))
     const dialog = screen.getByRole('dialog', { name: 'Move Why rivers meander' })
@@ -260,14 +260,6 @@ describe('moving ideas to another publication', () => {
     await choose()
     expect(await screen.findByRole('alert')).toHaveTextContent('Not found')
     expect(screen.getByRole('button', { name: 'Move 1 idea' })).toBeDisabled()
-  })
-})
-
-describe('the old new idea page', () => {
-  it('leads to the publication’s page, where Quick add starts ideas', async () => {
-    server.use(signedInAs(testUser), listPublications)
-    const { router } = await renderAt('/p/ada-substack/ideas/new')
-    await waitFor(() => expect(router.currentRoute.value.path).toBe('/p/ada-substack'))
   })
 })
 

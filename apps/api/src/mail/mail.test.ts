@@ -6,7 +6,9 @@ import { SMTPServer } from 'smtp-server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMailer } from './factory'
 import { FileMailer } from './file-mailer'
-import { ConsoleMailer, MailError, MemoryMailer, type Email, type Mailer } from './mailer'
+import { MailError, type Email } from '@wordwright/core'
+import { mailerContract } from '@wordwright/core/testing'
+import { ConsoleMailer } from './console-mailer'
 import { SmtpMailer } from './smtp-mailer'
 import { passwordResetEmail } from './templates'
 
@@ -17,29 +19,8 @@ const sample: Email = {
   html: '<p>HTML body</p>',
 }
 
-/** Behaviour every Mailer must have: accepts an email without throwing, and the content arrives intact. */
-function mailerContract(
-  name: string,
-  setup: () => Promise<{ mailer: Mailer; delivered: () => Promise<Email[]> }>,
-) {
-  describe(`Mailer contract: ${name}`, () => {
-    it('delivers the recipient, subject, text and html unchanged', async () => {
-      const { mailer, delivered } = await setup()
-      await mailer.send(sample)
-      const [email] = await delivered()
-      expect(email).toMatchObject({ to: sample.to, subject: sample.subject })
-      expect(email!.text.trim()).toBe(sample.text)
-      expect(email!.html?.trim()).toBe(sample.html)
-    })
-  })
-}
-
 // ---- adapters under the contract ---------------------------------------
-
-mailerContract('memory', async () => {
-  const mailer = new MemoryMailer()
-  return { mailer, delivered: async () => mailer.outbox }
-})
+// The memory fake runs it in packages/core. ConsoleMailer is not one: see its comment.
 
 const dirs: string[] = []
 afterEach(() => dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })))

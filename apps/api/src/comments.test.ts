@@ -153,7 +153,7 @@ describe('comments on a draft (#156)', () => {
       expect(JSON.stringify(await res.json())).not.toContain('Insert this instead.')
     })
 
-    it('has no cap, and does not use up the critique looks', async () => {
+    it('has no cap, and does not use up the critiques', async () => {
       for (let i = 0; i < 25; i++) expect((await say(bob, `Remark ${i}`)).status).toBe(201)
       expect(await list(bob)).toHaveLength(25)
       expect(await (await ada.get(`${base()}/critique`)).json()).toMatchObject({ used: 0 })
@@ -352,7 +352,7 @@ describe('comments on a draft (#156)', () => {
       expect((await bob.delete(there)).status).toBe(404)
     })
 
-    it('deletes for good, and a critique look is not given back', async () => {
+    it('deletes for good, and a used critique is not given back', async () => {
       await saveKey(ada)
       await ada.post(`/api/publications/${publication}/assist/critique`, { draftId: draft.id })
       const before = (await (await ada.get(`${base()}/critique`)).json()).used

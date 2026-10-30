@@ -7,9 +7,12 @@ and [style-guide.md](../style-guide.md) before writing or changing any of its wo
 calls the API, and it validates responses with the shared schemas. `src/theme/` is the design: the colour palette
 (`palette-ember.css`, the only place a colour is chosen) and the components built on it (`theme.css`).
 
+- **Looking at a change in a browser:** run `pnpm dev:private` (not `pnpm dev`, whose ports other sessions may hold). It
+  starts your own API and web on free ports with a fake LLM and open sign-up, and prints the address. Stop it with
+  Ctrl-C, or as in [testing.md](testing.md#stopping-a-server-you-started).
 - **Web queries:** query keys and the queries screens share (`useIdea`, `useIdeas`, `useIdeaNotes`, `useSources`,
-  `useDraft`) live in `apps/web/src/lib/queries.ts`. Take keys from there, never a key literal in a component; refresh
-  with `invalidateRoots` / `refreshNotesEverywhere`.
+  `useDraft`) live in `apps/web/src/lib/queries.ts`, and lint requires every `queryKey` to come from `queryKeys`
+  there. Refresh with `invalidateRoots` / `refreshNotesEverywhere`.
 - **Loading and errors:** wrap anything fetched with `useQuery` in `QueryState` (or `IdeaGate` / `PublicationGate`
   for a whole page), which supplies the loading and error text.
 - **Saving:** show a form's result with `SaveStatus`, and fill fields from saved values with `useSavedValue`

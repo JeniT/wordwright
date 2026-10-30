@@ -3,12 +3,13 @@ import { computed, type MaybeRefOrGetter, toValue, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '../stores/session'
 import { api } from './api'
+import { queryKeys } from './queries'
 
 /** The signed-in user's publications. Doesn't fire (and so doesn't log a 401) while signed out. */
 export function usePublications() {
   const session = useSessionStore()
   return useQuery({
-    queryKey: ['publications'],
+    queryKey: queryKeys.publications(),
     queryFn: () => api.listPublications(),
     // A reviewer-only account has no publications, and the server answers 404 to asking; an account that is not
     // approved has no app at all, and the server answers 403.
@@ -42,7 +43,7 @@ export function usePublicationAddressRedirect() {
     return typeof id === 'string' && list && !list.some((p) => p.id === id) ? id : ''
   })
   const moved = useQuery({
-    queryKey: ['publication-moved', unknownId],
+    queryKey: computed(() => queryKeys.publicationMoved(unknownId.value)),
     queryFn: () => api.getPublication(unknownId.value),
     enabled: computed(() => !!unknownId.value),
     retry: false, // a 404 just means it really doesn't exist; the page says so

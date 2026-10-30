@@ -16,11 +16,11 @@ import { fail } from '../errors'
 const MINUTE = 60_000
 
 /** A read is good for this long, however often the page is opened. */
-export const ITEMS_FRESH_MS = 3 * 60 * MINUTE
+const ITEMS_FRESH_MS = 3 * 60 * MINUTE
 /** After a failure, leave the feed alone this long before trying again. */
-export const ITEMS_RETRY_MS = 30 * MINUTE
+const ITEMS_RETRY_MS = 30 * MINUTE
 /** "Refresh" can't ask the same feed more often than this. */
-export const ITEMS_REFRESH_MIN_MS = 5 * MINUTE
+const ITEMS_REFRESH_MIN_MS = 5 * MINUTE
 const READ_TIMEOUT_MS = 20_000
 /** Feeds read at the same moment when building the combined list. */
 const RECENT_READS_AT_ONCE = 5

@@ -326,6 +326,18 @@
 .has-edge-bar-always {
   --bar-top: 3rem;
 }
+/* Where the phone's top bar shows (below md, or at every width on pages read beside another window), so does the
+   draft's toolbar pinned to the bottom of the screen (#380). `phone:` applies a class only there. */
+@custom-variant phone {
+  &:where(.has-edge-bar-always *) {
+    @slot;
+  }
+  @media (max-width: 47.99rem) {
+    &:where(.has-edge-bar *) {
+      @slot;
+    }
+  }
+}
 /* A square button holding only an icon (add `btn-sm` and `btn-ghost`). Its name comes from an aria-label. */
 @utility btn-icon {
   width: var(--ctl-h-sm);

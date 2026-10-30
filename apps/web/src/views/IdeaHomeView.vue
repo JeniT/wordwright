@@ -33,7 +33,7 @@ const showResearch = () =>
 <template>
   <IdeaGate :id="id" v-slot="{ idea }" :publication-id="publicationId">
     <div class="mb-2">
-      <p v-if="publication" class="meta mb-1 break-words">
+      <p v-if="publication" class="meta mb-1 break-words max-md:hidden">
         <RouterLink :to="{ name: 'publication', params: { publicationId } }" class="link">
           {{ publication.name }}
         </RouterLink>

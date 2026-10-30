@@ -38,7 +38,7 @@ function onKeydown(event: KeyboardEvent) {
       <button
         type="button"
         class="btn btn-sm btn-outline shrink-0"
-        :aria-label="`Replace the wording with option ${i + 1}: ${option}`"
+        :aria-label="`Replace wording with option ${i + 1}: ${option}`"
         @click="emit('pick', option)"
       >
         Replace wording
@@ -63,7 +63,7 @@ function onKeydown(event: KeyboardEvent) {
       <button
         type="button"
         class="btn btn-sm btn-outline"
-        :aria-label="`Replace the wording with option ${index + 1}`"
+        :aria-label="`Replace wording with option ${index + 1}`"
         @click="emit('pick', options[index]!)"
       >
         Replace wording
