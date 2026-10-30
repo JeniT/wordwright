@@ -37,6 +37,7 @@ One line per doc, worded as when to open it. Open the one that matches your task
 | Personal data may have been lost, leaked or seen by the wrong person                           | [breach-procedure.md](breach-procedure.md)     |
 | Something is wrong with the live service; monitoring, secrets, limits or the restore rehearsal | [runbook.md](runbook.md)                       |
 | Adding or upgrading a dependency, or asked what we ship and under what licence                 | [dependencies.md](dependencies.md)             |
+| Building or changing the public site `wordwright.io` (landing page, blog)                      | [landing-page.md](landing-page.md)             |
 
 ## Archive (read only when asked)
 

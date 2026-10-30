@@ -2,6 +2,16 @@
 
 A web app that supports a writer's journey from idea to published writing, with AI that helps them judge their own words and never writes them. This file is the glossary; rationale lives in `docs/adr/`.
 
+## Describing Wordwright
+
+How Wordwright is described to someone outside it: the public site, an email to a reviewer, the README. Use these words as they are, and copy them from here. The longer one is a sentence of its own, not a replacement for the short one.
+
+**Short:** “Wordwright helps people who love writing to do more of it.”
+
+**Slightly longer:** “Wordwright helps spark ideas, research different perspectives, work out what to say, and improve your drafts, but it never writes your words for you.”
+
+Anything longer is written feature by feature, on the page that needs it (see [docs/landing-page.md](docs/landing-page.md)).
+
 ## Language
 
 ### People and access
