@@ -2,7 +2,7 @@
 
 ## Decision
 
-`MIGRATIONS` in `apps/api/src/db/database.ts` held one folded schema and twenty appended steps. Just before the first
+`MIGRATIONS` in `apps/api/src/db/database.ts` held one folded schema and twenty appended steps (twenty-one in all). Just before the first
 production deploy they became **one entry**: the schema those twenty-one steps produced. This is the one place the
 "append-only" rule was set aside on purpose, and it happens once. From the first deploy on, every change is appended
 as a new entry and applied entries are never touched again.

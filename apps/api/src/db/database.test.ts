@@ -236,7 +236,7 @@ describe('the collapsed schema (#308)', () => {
         .all() as Entry[]
     ).map((e) => ({ ...e, sql: e.sql.replace(/\s+/g, ' ').trim() }))
 
-  it('is the schema the old chain of twenty migrations produced', () => {
+  it('is the schema the old chain of twenty-one migrations produced', () => {
     const before = (
       JSON.parse(
         readFileSync(join(__dirname, '__fixtures__/schema-before-collapse.json'), 'utf8'),
