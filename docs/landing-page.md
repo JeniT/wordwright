@@ -22,7 +22,7 @@ The header on every page of the site is the mark and the name, then **Blog** and
 - Line: “Wordwright helps people who love writing to do more of it.”
 - Below it: “Wordwright helps spark ideas, research different perspectives, work out what to say, and improve your drafts, but it never writes your words for you.”
 - Primary button: **Create an account**. Secondary link: **Sign in**. Both go to `app.wordwright.io`.
-- Under them: “Wordwright is in private alpha. We approve accounts by hand and email you when yours is ready.”
+- Under them: “Wordwright is in private alpha. We approve accounts by hand and will email you when yours is ready.”
 
 ### 2. What it helps with
 
@@ -44,7 +44,7 @@ The five principles, close to the blog's wording:
 - **Options, not suggestions.** “When rephrasing, you say what you want a passage to do then choose which option to use, and edit it.”
 - **Challenge, not flattery.** “Research looks for articles that disagree with you. A critique says what to strengthen; it doesn't tell you the writing is rubbish or perfect.”
 
-Then one line: “You could do all this with your own prompts. Wordwright makes it the default, so you don't have to hold the line yourself.”
+Then one line: “Wordwright makes these limits the default, so you don’t have to hold the line yourself.”
 
 ### 4. What you need
 
@@ -75,7 +75,7 @@ The site name and, once they exist (#321), links to the app's privacy notice, te
 
 1. All the work is on **`gh-pages-next`**, cut from `gh-pages`, in its own worktree. The live site stays the “Coming soon” page until launch.
 2. Before launch the owner reviews it locally.
-3. On launch day, merge `gh-pages-next` into `gh-pages`. The first post's filename and `date:` are set to that day in the merge commit. (Jekyll hides a post dated in the future, so a later date would also let a post appear by itself.)
+3. On launch day, merge `gh-pages-next` into `gh-pages`. The first post (dated 2026-10-30) went live with the first merge. (Jekyll hides a post dated in the future, so a later date would also let a post appear by itself.)
 4. Pages builds in legacy mode from `gh-pages`; HTTPS is enforced and the certificate is issued for `wordwright.io`.
 
 ## Not in the first version
