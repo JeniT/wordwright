@@ -6,7 +6,7 @@
 #
 # Build from the repository root:  docker build --target api -t wordwright-api .
 
-FROM node:26.12.1-slim AS base
+FROM node:26.13.0-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 WORKDIR /app
@@ -25,7 +25,7 @@ FROM base AS api-deps
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --prod --filter @wordwright/api...
 
-FROM node:26.12.1-slim AS api
+FROM node:26.13.0-slim AS api
 LABEL org.opencontainers.image.source="https://github.com/JeniT/wordwright"
 # TRUST_PROXY: the api is reached only through Caddy (deploy/compose.yaml), which writes the client's address.
 ENV NODE_ENV=production \
