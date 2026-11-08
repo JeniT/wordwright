@@ -437,6 +437,36 @@ describe('the publication’s articles', () => {
       expect(trigger).toHaveAttribute('aria-expanded', 'false')
     })
 
+    it('opens on the last item from the Up arrow, and a click opens it on the first', async () => {
+      fakePublication({ articles: [link('l1', 'A paper')] })
+      await renderAt('/p/ada-substack/read')
+      const trigger = await screen.findByRole('button', { name: 'Actions for A paper' })
+      await fireEvent.keyDown(trigger, { key: 'ArrowUp' })
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Remove' })).toHaveFocus())
+      await fireEvent.click(trigger) // closes
+      expect(screen.queryByRole('group', { name: /^Actions for/ })).toBeNull()
+      await fireEvent.click(trigger)
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toHaveFocus())
+    })
+
+    it('closes when focus moves on from it (Tab past an end)', async () => {
+      fakePublication({ articles: [link('l1', 'A paper')] })
+      await renderAt('/p/ada-substack/read')
+      const remove = await rowAction('A paper', 'Remove')
+      await fireEvent.focusOut(remove, { relatedTarget: document.body })
+      expect(screen.queryByRole('group', { name: /^Actions for/ })).toBeNull()
+    })
+
+    it('puts focus back on “…” when Escape closes the tag field', async () => {
+      fakePublication({ articles: [link('l1', 'A paper')] })
+      await renderAt('/p/ada-substack/read')
+      await fireEvent.click(await rowAction('A paper', 'Tag'))
+      await fireEvent.keyDown(screen.getByLabelText('Add a tag to A paper'), { key: 'Escape' })
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Actions for A paper' })).toHaveFocus(),
+      )
+    })
+
     it('closes when something else is pressed', async () => {
       fakePublication({ articles: [link('l1', 'A paper')] })
       await renderAt('/p/ada-substack/read')

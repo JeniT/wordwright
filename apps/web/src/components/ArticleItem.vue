@@ -32,6 +32,20 @@ function stopTagging() {
   tagging.value = false
   void nextTick(() => menu.value?.focus())
 }
+// What the “…” panel's buttons do. Each is given how to put the panel away: `release` when focus is going into a form
+// or field, `close` when it should come back to “…”.
+function edit(putAway: () => void) {
+  putAway()
+  void startEditing()
+}
+function tag(putAway: () => void) {
+  putAway()
+  tagging.value = true
+}
+function move(putAway: () => void) {
+  putAway()
+  emit('move')
+}
 const saveTags = (tags: string[]) => setTags.mutateAsync({ articleId: props.link.id, tags })
 
 /** What the link is called: its title, or failing that the address itself. */
@@ -158,25 +172,25 @@ function saveLink() {
           >
           <div class="shrink-0">
             <ActionMenu ref="menu" :label="label()">
-              <template #default="{ close }">
+              <template #default="{ close, release }">
                 <button
                   type="button"
                   class="btn btn-sm btn-ghost justify-start"
-                  @click="(close(false), startEditing())"
+                  @click="edit(release)"
                 >
                   <Icon name="edit" /> Edit
                 </button>
                 <button
                   type="button"
                   class="btn btn-sm btn-ghost justify-start"
-                  @click="(close(false), (tagging = true))"
+                  @click="tag(release)"
                 >
                   <Icon name="label" /> Tag
                 </button>
                 <button
                   type="button"
                   class="btn btn-sm btn-ghost justify-start"
-                  @click="(close(), emit('move'))"
+                  @click="move(close)"
                 >
                   <Icon name="move" /> Move to…
                 </button>

@@ -5,8 +5,10 @@ import { vTip } from '../lib/tip'
 
 /**
  * The "…" button of a list row: the row's actions (Edit, Tag, Move, Remove) folded behind one 32px button, so a long
- * title keeps the whole width of a phone. The actions are ordinary buttons in the default slot, which is given `close`
- * (call it when an item's job is done; a press-and-hold Remove stays open while it asks "Remove?").
+ * title keeps the whole width of a phone. The actions are ordinary buttons in the default slot, which is given two
+ * ways to put the menu away when an item's job is done: `close` (focus goes back to "…") and `release` (for an action
+ * that sends focus somewhere else, such as a field). A press-and-hold Remove calls neither: it stays open while it asks
+ * "Remove?" and goes with its row.
  *
  * It is a disclosure, not an ARIA `menu` (a `menu` may own only menu items, and a press-and-hold button carries a hint
  * and a live region of its own). The keyboard still works the way a menu does: Enter, Space or the Down arrow opens it
@@ -19,7 +21,6 @@ const props = defineProps<{
   /** What the actions are for, for the button's name: "Actions for A paper". */
   label: string
 }>()
-const emit = defineEmits<{ close: [] }>()
 
 const MARGIN_PX = 8
 const GAP_PX = 2
@@ -50,27 +51,28 @@ function place() {
   }
 }
 
-async function show(focus: 'first' | 'last' | null = 'first') {
+/** Opens the panel with focus on its first or last button. */
+async function show(start: 'first' | 'last' = 'first') {
   if (open.value) return
   open.value = true
   await nextTick()
   place()
   const list = items()
-  const target = focus === 'last' ? list[list.length - 1] : list[0]
-  if (focus) target?.focus()
+  list[start === 'last' ? list.length - 1 : 0]?.focus()
 }
 
-/** Puts the menu away. Focus goes back to the "…" button unless something else (a dialog, a field) is taking it. */
-function hide(returnFocus = true) {
-  if (!open.value) return
+function close() {
   open.value = false
-  emit('close')
-  if (returnFocus) void nextTick(() => trigger.value?.focus())
+  void nextTick(() => trigger.value?.focus())
+}
+/** Puts the menu away without moving focus: the action that was chosen is taking it elsewhere. */
+function release() {
+  open.value = false
 }
 
 function toggle() {
-  if (open.value) hide()
-  else void show(null).then(() => items()[0]?.focus())
+  if (open.value) close()
+  else void show()
 }
 
 function onTriggerKeydown(event: KeyboardEvent) {
@@ -97,44 +99,33 @@ function onPanelKeydown(event: KeyboardEvent) {
   else if (event.key === 'Escape') {
     event.preventDefault()
     event.stopPropagation()
-    hide()
+    close()
   }
 }
 /** Focus moved on from the panel (Tab past its last button, or Shift+Tab before its first): put it away. */
 function onFocusout(event: FocusEvent) {
   const to = event.relatedTarget as Node | null
-  if (to && !panel.value?.contains(to) && to !== trigger.value) hide(false)
+  if (to && !panel.value?.contains(to) && to !== trigger.value) release()
 }
 
 function onOutside(event: Event) {
   const target = event.target as Node
   if (panel.value?.contains(target) || trigger.value?.contains(target)) return
-  hide(false)
+  release()
 }
-/** The panel follows its button when the page scrolls or resizes, rather than floating away from its row. */
-function onMove() {
-  place()
+/** Listens while open: a press elsewhere puts the panel away; scrolling or resizing moves it with its button. */
+function listen(on: boolean) {
+  const change = on ? 'addEventListener' : 'removeEventListener'
+  document[change]('pointerdown', onOutside, true)
+  window[change]('scroll', place, true)
+  window[change]('resize', place)
 }
-watch(open, (isOpen) => {
-  if (isOpen) {
-    document.addEventListener('pointerdown', onOutside, true)
-    window.addEventListener('scroll', onMove, true)
-    window.addEventListener('resize', onMove)
-  } else {
-    document.removeEventListener('pointerdown', onOutside, true)
-    window.removeEventListener('scroll', onMove, true)
-    window.removeEventListener('resize', onMove)
-  }
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', onOutside, true)
-  window.removeEventListener('scroll', onMove, true)
-  window.removeEventListener('resize', onMove)
-})
+watch(open, listen)
+onBeforeUnmount(() => listen(false))
 
 defineExpose({
   focus: () => trigger.value?.focus(),
-  close: hide,
+  close,
   /** The "…" button, for code that gives focus back to it. */
   button: () => trigger.value,
 })
@@ -165,6 +156,6 @@ defineExpose({
     @keydown="onPanelKeydown"
     @focusout="onFocusout"
   >
-    <slot :close="hide" />
+    <slot :close="close" :release="release" />
   </div>
 </template>

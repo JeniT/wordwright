@@ -38,7 +38,7 @@ Which control for which job, so every list (lists of articles, notes, feeds, dra
   item), and for everything in a list's toolbar. (The editors' formatting toolbar is the exception: icon-only, since its buttons are
   the familiar formatting symbols; see the editors' toolbar below.)
 - **Icon only** (`btn btn-sm btn-icon btn-ghost` + `Icon`, no border) for actions that repeat on every row, are rare, and have a
-  universal icon: Edit (pencil), Tag (label), Move, Remove (bin). The tag icon sits with the others, with or without tags; the tags themselves show under the item. Always an `aria-label` that names the item ("Remove A paper") and
+  universal icon: Edit (pencil), Tag (label), Move, Remove (bin), as on a note's row (a reading-list item's are in its “…” panel, below). The tag icon sits with the others, with or without tags; the tags themselves show under the item. Always an `aria-label` that names the item ("Remove A paper") and
   a tooltip (`v-tip`, below); a 32px target.
 - **A single-use action on a page** may be icon-only too, when the icon is as universal and the action is quiet: the pencil
   beside an article's title (Edit title and authors). The same rules apply: an `aria-label` that says what it does,
@@ -48,17 +48,21 @@ Which control for which job, so every list (lists of articles, notes, feeds, dra
   pointer moves onto it, goes on Escape (focus stays), and is `aria-hidden`: the `aria-label` is the name, the tooltip a
   visible echo (or, for a hold-to-confirm button, the hint). A click or tap that focuses the button doesn't pop it up.
 - **A row's actions behind “…” (`ActionMenu`).** A reading-list item (`ArticleItem`) keeps its title and one 32px
-  **“…” button** (`btn btn-sm btn-icon btn-ghost`, named "Actions for {title}", `aria-haspopup="menu"`,
-  `aria-expanded`) on the first line, so a long title keeps the whole width of a phone; Edit, Tag, Move to… and Remove
-  are the menu's items (`role="menuitem"`, icon and text, `btn btn-sm btn-ghost`). It is the pattern for any row whose
-  actions would crowd its title; notes still show their icon buttons. The keyboard works as in any menu: Enter, Space
-  or Down opens it on the first item (Up on the last); Up, Down, Home and End move; Escape, Tab or a press outside
-  closes it and focus goes back to “…”. The panel is on `<body>` and `fixed`, so a list can't clip it, and follows
-  its button when the page scrolls. Remove is a `HoldButton` and keeps its ask-twice inside the open menu ("Remove?"). Edit and Tag
-  close the menu and take focus into their form or field (Tag's field has a tick, "Done tagging {title}", since the
-  button that opened it is folded away); Move to… opens its dialog. When any of them finishes, focus returns to “…”.
+  **“…” button** (`btn btn-sm btn-icon btn-ghost`, named "Actions for {title}", `aria-expanded`, `aria-controls`)
+  on the first line, so a long title keeps the whole width of a phone; Edit, Tag, Move to… and Remove are ordinary
+  buttons in a panel (`role="group"`, named the same, `btn btn-sm btn-ghost`, icon and text). The panel is a
+  disclosure, not an ARIA `menu`: a `menu` may own only menu items, and Remove's hint and live region would break
+  that. It is the pattern for any row whose actions would crowd its title; notes still show their icon buttons, and
+  a row whose actions fit beside its title keeps icons. The keyboard works as in a menu: a click (Enter or Space on
+  the button) or Down opens it on the first button, Up on the last; Up, Down, Home and End move (wrapping); Escape
+  closes it and focus goes back to “…”; Tab past either end, or a press outside, closes it and leaves focus where it
+  went. The panel sits right after the button, so it stays in the page's landmark, but is `fixed`, so the list
+  can't clip it, and follows its button when the page scrolls. Remove is a `HoldButton` and keeps its ask-twice
+  inside the open panel ("Remove?"; its hint is the usual tooltip). Edit and Tag close the panel and take focus into
+  their form or field (Tag's field has a tick, "Done tagging {title}", since the button that opened it is folded
+  away); Move to… opens its dialog. When Edit or Tag finishes, focus returns to “…”.
 - **Icon with text** where the icon backs up the words, as in a destructive confirmation.
-- At most one text button per row; the rest are icons.
+- At most one text button per row; the rest are icons (the buttons inside a “…” panel are the exception: there is no row to crowd).
 
 **Emphasis: what draws the eye**
 
@@ -117,8 +121,8 @@ and a single **undo** button ("Reconsider: {title}"). A decision made in either 
 and is announced in a polite live region. The list has no bulk actions, so it has no select rail or `ListToolbar`; the
 Scan page pages it with `usePaging`-style `PageNav` and the landing panel shows only the top five waiting.
 
-**Tags: one at a time (`TagEditor`, `TagEntry`).** Under each note and each reading-list link, beside its tags, a small
-label-icon button opens a text field: type a tag and press **Enter**, and it is saved at once and the field stays,
+**Tags: one at a time (`TagEditor`, `TagEntry`).** Under each note, beside its tags, a small
+label-icon button opens (on a reading-list link, **Tag** in its “…” panel does) a text field: type a tag and press **Enter**, and it is saved at once and the field stays,
 emptied and focused, for the next (a comma also separates tags). While it is open each tag shows a small **×**, and a
 small **tick** closes it. The tags already used on the list are offered as the person types. This is on every note,
 **quotations included**: tagging changes none of their words. Tags are never entered in an edit form.
