@@ -19,6 +19,8 @@ const props = defineProps<{
   suggestions?: readonly string[]
   save: (tags: string[]) => Promise<unknown>
   open: boolean
+  /** Shows a tick that closes the field, for an item whose own buttons are folded away (a "…" menu) and can't. */
+  showDone?: boolean
 }>()
 const emit = defineEmits<{ close: [] }>()
 
@@ -105,6 +107,15 @@ watch(
         @add="add"
         @escape="emit('close')"
       />
+      <button
+        v-if="open && showDone"
+        type="button"
+        class="btn btn-sm btn-icon btn-ghost"
+        :aria-label="`Done tagging ${label}`"
+        @click="emit('close')"
+      >
+        <Icon name="check" />
+      </button>
     </div>
     <p v-if="problem" role="alert" class="mt-1 text-xs text-danger">{{ problem }}</p>
   </div>

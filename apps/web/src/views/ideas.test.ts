@@ -11,6 +11,7 @@ import {
   useMockServer,
   expectOrigin,
   chooseTag,
+  rowAction,
   suggestedTags,
 } from '../test-utils'
 
@@ -814,7 +815,7 @@ describe('idea page', () => {
           })
         }),
       ])
-      await fireEvent.click(await screen.findByRole('button', { name: 'Add tags to A paper' }))
+      await fireEvent.click(await rowAction('A paper', 'Tag'))
       const field = screen.getByLabelText('Add a tag to A paper')
       await fireEvent.update(field, 'new one')
       await fireEvent.keyDown(field, { key: 'Enter' })
@@ -833,7 +834,7 @@ describe('idea page', () => {
 
     it('is not part of the edit form any more, which is for the address and title', async () => {
       await openTagged()
-      await fireEvent.click(await screen.findByRole('button', { name: 'Edit A paper' }))
+      await fireEvent.click(await rowAction('A paper', 'Edit'))
       expect(screen.queryByLabelText(/^Tags for/)).toBeNull()
       expect(screen.getByLabelText('Title of this item (optional)')).toBeInTheDocument()
     })
@@ -844,7 +845,7 @@ describe('idea page', () => {
           HttpResponse.json({ error: 'Use 10 tags or fewer on a note' }, { status: 400 }),
         ),
       ])
-      await fireEvent.click(await screen.findByRole('button', { name: 'Add tags to A paper' }))
+      await fireEvent.click(await rowAction('A paper', 'Tag'))
       const field = screen.getByLabelText('Add a tag to A paper')
       await fireEvent.update(field, 'a')
       await fireEvent.keyDown(field, { key: 'Enter' })
@@ -988,7 +989,7 @@ describe('idea page', () => {
 
   describe('editing a link', () => {
     const edit = async () => {
-      await fireEvent.click(await screen.findByRole('button', { name: 'Edit A paper' }))
+      await fireEvent.click(await rowAction('A paper', 'Edit'))
       return {
         address: screen.getByLabelText('Web address of this item'),
         title: screen.getByLabelText('Title of this item (optional)'),
@@ -1037,9 +1038,9 @@ describe('idea page', () => {
         'https://example.org/better',
       )
       expect(sent).toEqual({ url: 'example.org/better', title: 'Better title' })
-      // Back to reading the list, with focus returned to the Edit button.
+      // Back to reading the list, with focus returned to the “…” button.
       await waitFor(() =>
-        expect(screen.getByRole('button', { name: 'Edit Better title' })).toHaveFocus(),
+        expect(screen.getByRole('button', { name: 'Actions for Better title' })).toHaveFocus(),
       )
     })
 
@@ -1074,7 +1075,7 @@ describe('idea page', () => {
         '/p/ada-substack/ideas/i1/articles/l1',
       )
 
-      await fireEvent.click(screen.getByRole('button', { name: 'Edit A paper' }))
+      await fireEvent.click(await rowAction('A paper', 'Edit'))
       await fireEvent.keyDown(screen.getByLabelText('Web address of this item'), { key: 'Escape' })
       await waitFor(() => expect(screen.queryByRole('button', { name: 'Save item' })).toBeNull())
       expect(saved).toBe(false)
@@ -1090,7 +1091,8 @@ describe('idea page', () => {
       }),
     ])
     // Removing is held, like deleting anything that can't be got back; a screen reader's activation asks twice.
-    const remove = await screen.findByRole('button', { name: 'Remove A paper' })
+    await screen.findByRole('link', { name: 'A paper' })
+    const remove = await rowAction('A paper', 'Remove')
     await fireEvent.click(remove)
     expect(removed).toBe(false)
     await fireEvent.click(remove)

@@ -64,13 +64,21 @@ test('keeps a list of articles for the idea: adds, ticks off, edits and checks l
   await expect(page.getByRole('link', { name: /^https:\/\/example\.com\/untitled/ })).toBeVisible()
 
   // Links can be edited: a better title, then a different address, with the same checks as adding.
-  await page.getByRole('button', { name: /Edit https:\/\/example\.com\/untitled/ }).click()
+  await page.getByRole('button', { name: /Actions for https:\/\/example\.com\/untitled/ }).click()
+  await page
+    .getByRole('group', { name: /^Actions for / })
+    .getByRole('button', { name: 'Edit' })
+    .click()
   await page.getByLabel('Title of this item (optional)').fill('The untitled one')
   await noViolations(page, 'editing a link')
   await page.getByRole('button', { name: 'Save item' }).click()
   await expect(page.getByRole('link', { name: 'The untitled one', exact: true })).toBeVisible()
 
-  await page.getByRole('button', { name: 'Edit The untitled one' }).click()
+  await page.getByRole('button', { name: 'Actions for The untitled one' }).click()
+  await page
+    .getByRole('group', { name: /^Actions for / })
+    .getByRole('button', { name: 'Edit' })
+    .click()
   const editAddress = page.getByLabel('Web address of this item')
   await editAddress.fill('example.org/meanders') // already in the list
   await page.getByRole('button', { name: 'Save item' }).click()
@@ -189,7 +197,12 @@ test('tags articles, one or several at once, and filters the list by a tag', asy
   await expect(page.getByRole('button', { name: /^Filter/ })).toHaveCount(0) // no funnel yet
 
   // Tags go in one at a time under the link: type, Enter, type, Enter, then the tick.
-  await page.getByRole('button', { name: 'Add tags to Fake title for example.org' }).click()
+  await page.getByRole('button', { name: 'Actions for Fake title for example.org' }).click()
+  await noViolations(page, 'a reading item’s “…” menu')
+  await page
+    .getByRole('group', { name: /^Actions for / })
+    .getByRole('button', { name: 'Tag' })
+    .click()
   const tagField = page.getByLabel('Add a tag to Fake title for example.org')
   await tagField.fill('background')
   await tagField.press('Enter')

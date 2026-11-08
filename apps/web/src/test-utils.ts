@@ -199,3 +199,12 @@ export async function suggestedTags(box: HTMLElement) {
   await fireEvent.focus(box)
   return screen.queryAllByRole('option').map((o) => o.textContent?.trim())
 }
+
+/** Opens a list row's "…" menu (`ActionMenu`) and returns its button with this name: "Edit", "Tag", "Move to…", "Remove". */
+export async function rowAction(title: string, action: string) {
+  const trigger = await screen.findByRole('button', { name: `Actions for ${title}` })
+  if (trigger.getAttribute('aria-expanded') !== 'true') await fireEvent.click(trigger)
+  return within(screen.getByRole('group', { name: `Actions for ${title}` })).getByRole('button', {
+    name: action,
+  })
+}

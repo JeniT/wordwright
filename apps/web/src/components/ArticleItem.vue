@@ -7,12 +7,11 @@ import { errorMessage } from '../lib/api'
 import { articleRoute, useArticleActions } from '../lib/articles'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
-import TagButton from './TagButton.vue'
+import ActionMenu from './ActionMenu.vue'
 import TagEditor from './TagEditor.vue'
 import SwitchField from './SwitchField.vue'
 import TextField from './TextField.vue'
 import { useInlineEdit } from '../lib/inline-edit'
-import { vTip } from '../lib/tip'
 
 /** An item of an idea's articles, or (no `ideaId`) of the publication's own. */
 const props = defineProps<{
@@ -28,10 +27,10 @@ const emit = defineEmits<{ remove: []; select: [on: boolean]; move: [] }>()
 const owner = () => ({ publicationId: props.publicationId, ideaId: props.ideaId })
 const { setRead, setKept, setTags, update: save } = useArticleActions(owner)
 const tagging = ref(false)
-const tagButton = useTemplateRef<InstanceType<typeof TagButton>>('tagButton')
+const menu = useTemplateRef<InstanceType<typeof ActionMenu>>('menu')
 function stopTagging() {
   tagging.value = false
-  void nextTick(() => tagButton.value?.focus())
+  void nextTick(() => menu.value?.focus())
 }
 const saveTags = (tags: string[]) => setTags.mutateAsync({ articleId: props.link.id, tags })
 
@@ -41,14 +40,13 @@ const label = () => props.link.title || props.link.url
 const url = ref('')
 const title = ref('')
 const form = useTemplateRef<HTMLFormElement>('form')
-const editButton = useTemplateRef<HTMLButtonElement>('editButton')
 const {
   editing: editingKey,
   start,
   stop: stopEditing,
 } = useInlineEdit<'link'>({
   field: () => form.value?.querySelector('input'),
-  trigger: () => editButton.value,
+  trigger: () => menu.value?.button(),
 })
 const editing = computed(() => editingKey.value !== null)
 
@@ -158,41 +156,40 @@ function saveLink() {
             class="line-clamp-2 min-w-0 flex-1 break-words underline"
             >{{ label() }}</RouterLink
           >
-          <div class="flex shrink-0 items-center gap-2">
-            <button
-              ref="editButton"
-              v-tip="'Edit'"
-              type="button"
-              class="btn btn-sm btn-icon btn-ghost"
-              :aria-label="`Edit ${label()}`"
-              @click="startEditing"
-            >
-              <Icon name="edit" />
-            </button>
-            <TagButton
-              ref="tagButton"
-              :label="label()"
-              :open="tagging"
-              @toggle="tagging ? stopTagging() : (tagging = true)"
-            />
-            <button
-              v-tip="'Move'"
-              type="button"
-              class="btn btn-sm btn-icon btn-ghost"
-              :aria-label="`Move ${label()}`"
-              @click="emit('move')"
-            >
-              <Icon name="move" />
-            </button>
-            <HoldButton
-              :tip="removeHint()"
-              verb="Remove"
-              class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-              :aria-label="`Remove ${label()}`"
-              @confirm="emit('remove')"
-            >
-              <Icon name="remove" />
-            </HoldButton>
+          <div class="shrink-0">
+            <ActionMenu ref="menu" :label="label()">
+              <template #default="{ close }">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-ghost justify-start"
+                  @click="(close(false), startEditing())"
+                >
+                  <Icon name="edit" /> Edit
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-ghost justify-start"
+                  @click="(close(false), (tagging = true))"
+                >
+                  <Icon name="label" /> Tag
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-ghost justify-start"
+                  @click="(close(), emit('move'))"
+                >
+                  <Icon name="move" /> Move to…
+                </button>
+                <HoldButton
+                  :tip="removeHint()"
+                  verb="Remove"
+                  class="btn btn-sm btn-ghost btn-ghost-danger justify-start"
+                  @confirm="emit('remove')"
+                >
+                  <Icon name="remove" /> Remove
+                </HoldButton>
+              </template>
+            </ActionMenu>
           </div>
         </div>
         <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
@@ -233,6 +230,7 @@ function saveLink() {
           :suggestions="knownTags"
           :save="saveTags"
           :open="tagging"
+          show-done
           @close="stopTagging"
         />
         <!-- The highlighter marks what the AI, not the writer, put here (the list says so above). -->

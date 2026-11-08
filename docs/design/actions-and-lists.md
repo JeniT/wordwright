@@ -47,6 +47,16 @@ Which control for which job, so every list (lists of articles, notes, feeds, dra
   shows on hover only; `v-tip` also shows on keyboard focus, is appended to `<body>` so a menu or list can't clip it, stays while the
   pointer moves onto it, goes on Escape (focus stays), and is `aria-hidden`: the `aria-label` is the name, the tooltip a
   visible echo (or, for a hold-to-confirm button, the hint). A click or tap that focuses the button doesn't pop it up.
+- **A row's actions behind “…” (`ActionMenu`).** A reading-list item (`ArticleItem`) keeps its title and one 32px
+  **“…” button** (`btn btn-sm btn-icon btn-ghost`, named "Actions for {title}", `aria-haspopup="menu"`,
+  `aria-expanded`) on the first line, so a long title keeps the whole width of a phone; Edit, Tag, Move to… and Remove
+  are the menu's items (`role="menuitem"`, icon and text, `btn btn-sm btn-ghost`). It is the pattern for any row whose
+  actions would crowd its title; notes still show their icon buttons. The keyboard works as in any menu: Enter, Space
+  or Down opens it on the first item (Up on the last); Up, Down, Home and End move; Escape, Tab or a press outside
+  closes it and focus goes back to “…”. The panel is on `<body>` and `fixed`, so a list can't clip it, and follows
+  its button when the page scrolls. Remove is a `HoldButton` and keeps its ask-twice inside the open menu ("Remove?"). Edit and Tag
+  close the menu and take focus into their form or field (Tag's field has a tick, "Done tagging {title}", since the
+  button that opened it is folded away); Move to… opens its dialog. When any of them finishes, focus returns to “…”.
 - **Icon with text** where the icon backs up the words, as in a destructive confirmation.
 - At most one text button per row; the rest are icons.
 
@@ -87,7 +97,7 @@ keyboard and screen readers the hidden button is there too (with it focused, the
 are 28px (above the 24px WCAG 2.2 minimum), an exception to the 32px rule for small buttons because there are two to a
 row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
-lines; the actions stay top-right and wrap below on a phone. Notes are the exception: show them in full.
+lines; the actions stay top-right (a reading item's are behind “…”, above). Notes are the exception: show them in full.
 
 **A note's row (`NoteCard`, `NoteText`).** Notes are shown in full, so a row can be tall: the list is `align-top`, which
 puts the buttons at the top of the row, not centred. Where a note came from (“From” and the page's title as a link that opens in a new tab,

@@ -153,11 +153,19 @@ test('removes links and deletes an idea, which asks first', async ({ page }) => 
       }),
     ).toBeVisible()
   }
-  await holdToConfirm(page, page.getByRole('button', { name: 'Remove Fake title for example.org' }))
+  await page.getByRole('button', { name: 'Actions for Fake title for example.org' }).click()
+  await holdToConfirm(
+    page,
+    page.getByRole('group', { name: /^Actions for / }).getByRole('button', { name: 'Remove' }),
+  )
   await expect(
     page.getByRole('link', { name: 'Fake title for example.org', exact: true }),
   ).toHaveCount(0)
-  await holdToConfirm(page, page.getByRole('button', { name: 'Remove Fake title for example.net' }))
+  await page.getByRole('button', { name: 'Actions for Fake title for example.net' }).click()
+  await holdToConfirm(
+    page,
+    page.getByRole('group', { name: /^Actions for / }).getByRole('button', { name: 'Remove' }),
+  )
   await expect(page.getByText(/Nothing to read yet/)).toBeVisible()
   await page.getByRole('banner').getByRole('link', { name: 'Idea settings' }).click()
   await page.getByRole('button', { name: 'Delete idea' }).click()

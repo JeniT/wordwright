@@ -11,6 +11,7 @@ import {
   testUser,
   useMockServer,
   chooseTag,
+  rowAction,
 } from '../test-utils'
 
 useMockServer()
@@ -255,7 +256,7 @@ describe('the publication’s articles', () => {
     await waitFor(() => expect(state.articles[0]!.readAt).toBeNull())
 
     // Removing is held (a screen reader's activation asks twice), and says nothing is lost silently.
-    const remove = screen.getByRole('button', { name: 'Remove Another' })
+    const remove = await rowAction('Another', 'Remove')
     await fireEvent.click(remove)
     expect(state.articles).toHaveLength(2)
     await fireEvent.click(remove)
@@ -367,12 +368,14 @@ describe('the publication’s articles', () => {
     await waitFor(() => expect(box).not.toBeChecked())
   })
 
-  it('puts the title and the icon buttons on one row, and the host and the switches on the next', async () => {
+  it('puts the title and the “…” button on one row, and the host and the switches on the next', async () => {
     fakePublication({ articles: [link('l1', 'A paper')] })
     await renderAt('/p/ada-substack/read')
     const title = await screen.findByRole('link', { name: 'A paper' })
     const firstRow = title.parentElement!
-    expect(firstRow).toContainElement(screen.getByRole('button', { name: 'Edit A paper' }))
+    expect(firstRow).toContainElement(screen.getByRole('button', { name: 'Actions for A paper' }))
+    // The row's other actions are in the menu, so the title keeps the width of a phone.
+    expect(screen.queryByRole('button', { name: 'Edit A paper' })).toBeNull()
     expect(firstRow).not.toContainElement(screen.getByRole('switch', { name: 'Read: A paper' }))
     const secondRow = screen
       .getByRole('switch', { name: 'Read: A paper' })
@@ -390,26 +393,82 @@ describe('the publication’s articles', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toHaveClass('btn-ghost')
   })
 
-  it('keeps the tag icon with the other icon buttons, whether or not the item has tags', async () => {
+  it('keeps the row’s actions in a “…” menu, and the tag field closes with a tick', async () => {
     fakePublication({
       articles: [link('l1', 'A paper'), link('l2', 'Another', { tags: ['rivers'] })],
     })
     await renderAt('/p/ada-substack/read')
-    for (const name of ['A paper', 'Another']) {
-      const tag = await screen.findByRole('button', { name: `Add tags to ${name}` })
-      const edit = screen.getByRole('button', { name: `Edit ${name}` })
-      expect(tag.parentElement).toBe(edit.parentElement)
-    }
-    // An untagged item takes no room for tags until the icon is pressed.
+    await screen.findByRole('link', { name: 'A paper' })
+    // An untagged item takes no room for tags until Tag is chosen.
     const first = screen.getByRole('link', { name: 'A paper' }).closest('li')!
     expect(within(first).queryByRole('list', { name: 'Tags' })).toBeNull()
     const second = screen.getByRole('link', { name: 'Another' }).closest('li')!
     expect(within(second).getByRole('list', { name: 'Tags' })).toHaveTextContent('rivers')
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Add tags to A paper' }))
+    await fireEvent.click(await rowAction('A paper', 'Tag'))
+    expect(screen.queryByRole('group', { name: /^Actions for/ })).toBeNull()
     expect(screen.getByLabelText('Add a tag to A paper')).toHaveFocus()
     await fireEvent.click(screen.getByRole('button', { name: 'Done tagging A paper' }))
-    expect(screen.getByRole('button', { name: 'Add tags to A paper' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Actions for A paper' })).toHaveFocus()
+  })
+
+  describe('the “…” menu of an item', () => {
+    it('opens on the first item, moves with the arrow keys, and Escape gives focus back', async () => {
+      fakePublication({ articles: [link('l1', 'A paper')] })
+      await renderAt('/p/ada-substack/read')
+      const trigger = await screen.findByRole('button', { name: 'Actions for A paper' })
+      expect(trigger).toHaveAttribute('aria-expanded', 'false')
+      await fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+      const items = within(screen.getByRole('group', { name: 'Actions for A paper' })).getAllByRole(
+        'button',
+      )
+      expect(items.map((i) => i.textContent?.trim())).toEqual(['Edit', 'Tag', 'Move to…', 'Remove'])
+      await waitFor(() => expect(items[0]).toHaveFocus())
+      expect(trigger).toHaveAttribute('aria-expanded', 'true')
+      await fireEvent.keyDown(items[0]!, { key: 'ArrowDown' })
+      expect(items[1]).toHaveFocus()
+      await fireEvent.keyDown(items[1]!, { key: 'End' })
+      expect(items[3]).toHaveFocus()
+      await fireEvent.keyDown(items[3]!, { key: 'ArrowDown' })
+      expect(items[0]).toHaveFocus()
+      await fireEvent.keyDown(items[0]!, { key: 'Escape' })
+      expect(screen.queryByRole('group', { name: /^Actions for/ })).toBeNull()
+      await waitFor(() => expect(trigger).toHaveFocus())
+      expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('closes when something else is pressed', async () => {
+      fakePublication({ articles: [link('l1', 'A paper')] })
+      await renderAt('/p/ada-substack/read')
+      await rowAction('A paper', 'Edit')
+      await fireEvent.pointerDown(document.body)
+      expect(screen.queryByRole('group', { name: /^Actions for/ })).toBeNull()
+    })
+
+    it('opens the edit form from Edit, with focus in its first field and back on “…” after', async () => {
+      fakePublication({ articles: [link('l1', 'A paper')] })
+      await renderAt('/p/ada-substack/read')
+      await screen.findByRole('link', { name: 'A paper' })
+      await fireEvent.click(await rowAction('A paper', 'Edit'))
+      expect(screen.queryByRole('group', { name: /^Actions for/ })).toBeNull()
+      const field = await screen.findByLabelText('Web address of this item')
+      await waitFor(() => expect(field).toHaveFocus())
+      await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Actions for A paper' })).toHaveFocus(),
+      )
+    })
+
+    it('keeps Remove’s ask-twice inside the menu', async () => {
+      const state = fakePublication({ articles: [link('l1', 'A paper')] })
+      await renderAt('/p/ada-substack/read')
+      await screen.findByRole('link', { name: 'A paper' })
+      const remove = await rowAction('A paper', 'Remove')
+      await fireEvent.click(remove)
+      expect(screen.getByRole('group', { name: /^Actions for/ })).toBeInTheDocument()
+      expect(remove).toHaveTextContent('Remove?')
+      expect(state.articles).toHaveLength(1)
+    })
   })
 
   it('highlights the AI’s reason and says what the highlight is, with no badge for where an item came from', async () => {
@@ -505,7 +564,7 @@ describe('moving articles', () => {
     const f = fake()
     await open()
     await tick('Another')
-    await fireEvent.click(screen.getByRole('button', { name: 'Move A paper' }))
+    await fireEvent.click(await rowAction('A paper', 'Move to…'))
     const dialog = screen.getByRole('dialog', { name: 'Move A paper' })
     expect(within(dialog).getByRole('button', { name: 'Move item' })).toBeDisabled() // no place yet
     // The title names the item, so the label stays plain.
