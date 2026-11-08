@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, test, createIdea } from './fixtures'
+import { expect, goTo, rowAction, test, createIdea } from './fixtures'
 
 /** Signs up, optionally connects an AI key (any key works with the fake AI), and creates an idea to talk about. */
 async function setUp(page: Page, { withKey = true } = {}) {
@@ -145,7 +145,7 @@ test('the points made in the chat are suggested as notes, and added, edited or i
   await expect(notes.getByRole('listitem').nth(1).getByText('Pru', { exact: true })).toBeVisible()
 
   // Hold the Delete button from the keyboard, which works the same way.
-  await notes.getByRole('button', { name: /^Delete note “Oxbow lakes/ }).focus()
+  await (await rowAction(notes, /^Actions for note “Oxbow lakes/, 'Delete')).focus()
   await page.keyboard.down('Enter')
   await expect(notes.getByText(/Oxbow lakes are meander loops/)).toHaveCount(0, { timeout: 4000 })
   await page.keyboard.up('Enter')

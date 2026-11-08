@@ -1324,7 +1324,7 @@ describe('moving notes', () => {
     await screen.findByText('Only one')
     expect(screen.queryByRole('checkbox', { name: /^Select note/ })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Move to…' })).toBeNull()
-    await fireEvent.click(screen.getByRole('button', { name: /^Move note “Only one/ }))
+    await fireEvent.click(await rowAction(/^Actions for note “Only one/, 'Move to…'))
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByRole('button', { name: 'Move 1 note' })).toBeDisabled() // no place yet
     await fireEvent.update(await within(dialog).findByLabelText(/^Move( .*)? to$/), 'i1')
@@ -1339,7 +1339,7 @@ describe('moving notes', () => {
     const f = fake()
     await open()
     await tick('Typed thought')
-    await fireEvent.click(screen.getByRole('button', { name: /^Move note “From the paper/ }))
+    await fireEvent.click(await rowAction(/^Actions for note “From the paper/, 'Move to…'))
     const dialog = screen.getByRole('dialog')
     await fireEvent.update(await within(dialog).findByLabelText(/^Move( .*)? to$/), 'i1')
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Move 1 note' }))
@@ -1350,7 +1350,7 @@ describe('moving notes', () => {
   it('leaves the note where it is when the dialog is cancelled', async () => {
     const f = fake([note('n1', 'Only one')])
     await renderAt('/p/ada-substack/notes')
-    await fireEvent.click(await screen.findByRole('button', { name: /^Move note “Only one/ }))
+    await fireEvent.click(await rowAction(/^Actions for note “Only one/, 'Move to…'))
     await fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }),
     )
@@ -1383,14 +1383,15 @@ describe('deleting selected notes', () => {
     expect(screen.queryByText('0 selected')).toBeNull()
   })
 
-  it('shows a note’s own actions as icons, with Edit and a held Delete', async () => {
+  it('keeps a note’s own actions in a “…” panel, with Edit and a held Delete', async () => {
     fakePublication({ notes: [note('n1', 'One')] })
     await renderAt('/p/ada-substack/notes')
     await screen.findByText('One')
-    const edit = screen.getByRole('button', { name: /^Edit note “One/ })
-    expect(edit).toHaveClass('btn-icon')
-    expect(edit).toHaveTextContent('') // an icon, named by its label
-    screen.getByRole('button', { name: /^Delete note “One/ }).focus()
+    expect(screen.queryByRole('button', { name: /^Edit note/ })).toBeNull()
+    const edit = await rowAction(/^Actions for note “One/, 'Edit')
+    expect(edit).toHaveTextContent('Edit')
+    const del = await rowAction(/^Actions for note “One/, 'Delete')
+    del.focus()
     expect(document.querySelector('[data-tip]')).toHaveTextContent(
       'Press and hold, or tap twice, to delete this note',
     )
@@ -1423,7 +1424,7 @@ describe('the publication’s notes', () => {
   it('puts the origin line and name in the column under the row’s buttons', async () => {
     fakePublication({ articles: [link('l1', 'A paper')], notes: [note('n1', 'From it', 'l1')] })
     await renderAt('/p/ada-substack/notes')
-    const edit = await screen.findByRole('button', { name: /^Edit note “From it/ })
+    const edit = await rowAction(/^Actions for note “From it/, 'Edit')
     const column = edit.parentElement!.parentElement!
     expectOrigin(column, 'From A paper', 'Ada')
   })
@@ -1490,7 +1491,7 @@ describe('the publication’s notes', () => {
     await fireEvent.click(screen.getByRole('button', { name: /Move note “Two” up/ }))
     await waitFor(() => expect(state.orders).toEqual([['n2', 'n1']]))
 
-    const del = screen.getByRole('button', { name: /^Delete note “One”/ })
+    const del = await rowAction(/^Actions for note “One”/, 'Delete')
     await fireEvent.click(del)
     await fireEvent.click(del)
     await waitFor(() => expect(screen.queryByText('One')).not.toBeInTheDocument())

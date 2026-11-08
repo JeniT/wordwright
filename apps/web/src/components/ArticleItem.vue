@@ -244,7 +244,6 @@ function saveLink() {
           :suggestions="knownTags"
           :save="saveTags"
           :open="tagging"
-          show-done
           @close="stopTagging"
         />
         <!-- The highlighter marks what the AI, not the writer, put here (the list says so above). -->

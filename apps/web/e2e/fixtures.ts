@@ -157,6 +157,20 @@ export async function openSettingsPage(page: Page, name: string) {
 }
 
 /** Presses and holds a hold-to-confirm button (deleting or removing something) until it fires, with the mouse. */
+/**
+ * Opens a list row's “…” panel and returns its button with this name ("Edit", "Tag", "Move to…", "Remove", "Delete").
+ * `title` is what the actions are for ("A paper"), or a pattern for the “…” button's whole name ("Actions for note “Oxbow").
+ */
+export async function rowAction(scope: Page | Locator, title: string | RegExp, action: string) {
+  const page = 'page' in scope && typeof scope.page === 'function' ? scope.page() : (scope as Page)
+  const trigger = scope.getByRole('button', {
+    name: typeof title === 'string' ? `Actions for ${title}` : title,
+  })
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click()
+  const panel = page.locator(`[id="${await trigger.getAttribute('aria-controls')}"]`)
+  return panel.getByRole('button', { name: action, exact: true })
+}
+
 export async function holdToConfirm(page: Page, button: ReturnType<Page['locator']>) {
   await button.hover()
   await page.mouse.down()

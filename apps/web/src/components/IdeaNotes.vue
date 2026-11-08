@@ -9,6 +9,7 @@ import { useSessionStore } from '../stores/session'
 import { useIdeaNotes } from '../lib/queries'
 import { orderWithHidden, tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
+import ActionMenu from './ActionMenu.vue'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import HoldButton from './HoldButton.vue'
@@ -19,13 +20,11 @@ import MoveNotesDetails from './MoveNotesDetails.vue'
 import NoteCard from './NoteCard.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import ReorderableList from './ReorderableList.vue'
-import TagButton from './TagButton.vue'
 import TagEditor from './TagEditor.vue'
 import TagFilter from './TagFilter.vue'
 import TextAreaField from './TextAreaField.vue'
 import QueryState from './QueryState.vue'
 import { useInlineEdit } from '../lib/inline-edit'
-import { vTip } from '../lib/tip'
 
 /** An idea's notes, or (no `ideaId`) the publication's own, gathered before there is an idea. */
 const session = useSessionStore()
@@ -70,6 +69,13 @@ const add = useMutation({
   },
 })
 
+// ---- each note's “…” button, to give focus back to when its edit form or tag field closes
+const menus = new Map<string, InstanceType<typeof ActionMenu>>()
+function setMenu(id: string, el: unknown) {
+  if (el) menus.set(id, el as InstanceType<typeof ActionMenu>)
+  else menus.delete(id)
+}
+
 // ---- editing one note at a time
 const editText = ref('')
 const list = ref<HTMLElement>()
@@ -79,7 +85,7 @@ const {
   stop: stopEditing,
 } = useInlineEdit<string>({
   field: (id) => list.value?.querySelector(`[data-edit-note="${id}"] textarea`),
-  trigger: (id) => list.value?.querySelector(`[data-edit-button="${id}"]`),
+  trigger: (id) => menus.get(id)?.button(),
 })
 
 function startEditing(note: IdeaNote) {
@@ -100,16 +106,11 @@ const save = useMutation({
   },
 })
 
-// ---- the tag field of one note at a time; closing it puts focus back on its icon
+// ---- the tag field of one note at a time; closing it puts focus back on its “…” button
 const taggingId = ref<string | null>(null)
-const tagButtons = new Map<string, { focus: () => void }>()
-function setTagButton(id: string, el: unknown) {
-  if (el) tagButtons.set(id, el as { focus: () => void })
-  else tagButtons.delete(id)
-}
 function stopTagging(id: string) {
   taggingId.value = null
-  void nextTick(() => tagButtons.get(id)?.focus())
+  void nextTick(() => menus.get(id)?.focus())
 }
 /** Gives a note exactly these tags (one more or one fewer than before, each time the person presses Enter). */
 async function saveTags(note: IdeaNote, tags: string[]) {
@@ -385,6 +386,20 @@ async function saveOrder(ids: string[]) {
 }
 
 /** A short name for a note, for button labels and announcements. */
+// What the “…” panel's buttons do. Each is given how to put the panel away: `release` when focus is going into a form
+// or field, `close` when it should come back to “…”.
+function editNote(note: IdeaNote, putAway: () => void) {
+  putAway()
+  void startEditing(note)
+}
+function tagNote(note: IdeaNote, putAway: () => void) {
+  putAway()
+  taggingId.value = note.id
+}
+function moveNote(note: IdeaNote, putAway: () => void) {
+  putAway()
+  startMovingOne(note)
+}
 const label = (note: IdeaNote) => {
   const first = note.text.split('\n', 1)[0]!
   return `note “${first.length > 40 ? `${first.slice(0, 40)}…` : first}”`
@@ -610,45 +625,42 @@ const label = (note: IdeaNote) => {
           </template>
           <template #actions="{ item: note }">
             <div class="flex max-w-full flex-col items-end gap-1 sm:max-w-[16rem]">
-              <div class="flex flex-wrap items-center justify-end gap-1">
-                <button
-                  v-if="!note.quote"
-                  v-tip="'Edit'"
-                  type="button"
-                  class="btn btn-sm btn-icon btn-ghost"
-                  :data-edit-button="note.id"
-                  :disabled="editingId === note.id"
-                  :aria-label="`Edit ${label(note)}`"
-                  @click="startEditing(note)"
-                >
-                  <Icon name="edit" />
-                </button>
-                <TagButton
-                  :ref="(el) => setTagButton(note.id, el)"
-                  :label="label(note)"
-                  :open="taggingId === note.id"
-                  @toggle="taggingId === note.id ? stopTagging(note.id) : (taggingId = note.id)"
-                />
-                <button
-                  v-tip="'Move'"
-                  type="button"
-                  class="btn btn-sm btn-icon btn-ghost"
-                  :aria-label="`Move ${label(note)}`"
-                  @click="startMovingOne(note)"
-                >
-                  <Icon name="move" />
-                </button>
-                <HoldButton
-                  tip="Press and hold, or tap twice, to delete this note"
-                  verb="Delete"
-                  class="btn btn-sm btn-icon btn-ghost btn-ghost-danger"
-                  :disabled="remove.isPending.value"
-                  :aria-label="`Delete ${label(note)}`"
-                  @confirm="remove.mutate(note.id)"
-                >
-                  <Icon name="remove" />
-                </HoldButton>
-              </div>
+              <ActionMenu :ref="(el) => setMenu(note.id, el)" :label="label(note)">
+                <template #default="{ close, release }">
+                  <button
+                    v-if="!note.quote"
+                    type="button"
+                    class="btn btn-sm btn-ghost justify-start"
+                    :disabled="editingId === note.id"
+                    @click="editNote(note, release)"
+                  >
+                    <Icon name="edit" /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-ghost justify-start"
+                    @click="tagNote(note, release)"
+                  >
+                    <Icon name="label" /> Tag
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-ghost justify-start"
+                    @click="moveNote(note, close)"
+                  >
+                    <Icon name="move" /> Move to…
+                  </button>
+                  <HoldButton
+                    tip="Press and hold, or tap twice, to delete this note"
+                    verb="Delete"
+                    class="btn btn-sm btn-ghost btn-ghost-danger justify-start"
+                    :disabled="remove.isPending.value"
+                    @confirm="remove.mutate(note.id)"
+                  >
+                    <Icon name="remove" /> Delete
+                  </HoldButton>
+                </template>
+              </ActionMenu>
               <p v-if="editingId !== note.id" class="meta sm:text-right">
                 <NoteOrigin
                   v-bind="noteOrigin(note, articleList, session.user?.id ?? null, refineTo)"

@@ -1,6 +1,7 @@
 import {
   expect,
   goTo,
+  rowAction,
   test,
   createIdea,
   noViolations,
@@ -157,8 +158,10 @@ test('a quotation cannot be edited, and goes into a draft as a blockquote with i
   await goTo(page, 'Note')
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.locator('blockquote')).toBeVisible()
-  await expect(notes.getByRole('button', { name: /^Edit note “Meanders/ })).toHaveCount(0)
-  await expect(notes.getByRole('button', { name: /^Edit note “Erosion/ })).toBeVisible()
+  const quoteActions = await rowAction(notes, /^Actions for note “Meanders/, 'Delete')
+  await expect(quoteActions).toBeVisible()
+  await expect(quoteActions.locator('..').getByRole('button', { name: 'Edit' })).toHaveCount(0)
+  await expect(await rowAction(notes, /^Actions for note “Erosion/, 'Edit')).toBeVisible()
   await noViolations(page, 'notes with a quotation')
 
   // In the draft it is a blockquote that names its source, and the record says where it came from.

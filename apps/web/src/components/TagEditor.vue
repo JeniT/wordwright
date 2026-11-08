@@ -6,9 +6,9 @@ import Icon from './Icon.vue'
 import TagEntry from './TagEntry.vue'
 
 /**
- * The tags of one note or link, shown under it. Pressing its `TagButton` (among the item's icon buttons) opens a
+ * The tags of one note or link, shown under it. Choosing Tag in its row's “…” panel opens a
  * field: type a tag and press Enter, again and again (each is saved at once, and the field stays), then press the
- * button again, or Escape, when done. While the field is open each tag has a small × to take it off. `save` stores
+ * tick, or Escape, when done. While the field is open each tag has a small × to take it off. `save` stores
  * the complete set of tags and rejects with what went wrong. Used on quotations as well: tagging changes none of
  * their words.
  */
@@ -19,8 +19,6 @@ const props = defineProps<{
   suggestions?: readonly string[]
   save: (tags: string[]) => Promise<unknown>
   open: boolean
-  /** Shows a tick that closes the field, for an item whose own buttons are folded away (a "…" menu) and can't. */
-  showDone?: boolean
 }>()
 const emit = defineEmits<{ close: [] }>()
 
@@ -108,7 +106,7 @@ watch(
         @escape="emit('close')"
       />
       <button
-        v-if="open && showDone"
+        v-if="open"
         type="button"
         class="btn btn-sm btn-icon btn-ghost"
         :aria-label="`Done tagging ${label}`"

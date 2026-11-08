@@ -5,6 +5,7 @@ import {
   goTo,
   openFilters,
   holdToConfirm,
+  rowAction,
   showArrowsFor,
   test,
   createIdea,
@@ -109,7 +110,7 @@ test('notes on an idea can be added, ordered, edited and deleted, and it is all 
   await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*down/ }).click()
   await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*down/ }).click()
   await expect(notes.getByRole('listitem').nth(2)).toContainText('Oxbow lakes')
-  await notes.getByRole('button', { name: /^Edit note “Erosion on the outside/ }).click()
+  await (await rowAction(notes, /^Actions for note “Erosion on the outside/, 'Edit')).click()
   await notes
     .getByLabel(/^Text of note/)
     .fill('Erosion on the outside of each bend, deposition inside.')
@@ -118,7 +119,7 @@ test('notes on an idea can be added, ordered, edited and deleted, and it is all 
     notes.getByText('Erosion on the outside of each bend, deposition inside.'),
   ).toBeVisible()
   // Deleting takes a deliberate hold: a click or a short press does nothing; holding for a second does it.
-  const remove = notes.getByRole('button', { name: /^Delete note “Deposition on the inside/ })
+  const remove = await rowAction(notes, /^Actions for note “Deposition on the inside/, 'Delete')
   await remove.hover()
   await page.mouse.down()
   await expect(page.getByTestId('hold-ring')).toBeVisible()
@@ -292,7 +293,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
 
   // One at a time under each note: type a tag, Enter, the next, then the tick.
   const tag = async (noteStart: string, tags: string[]) => {
-    await notes.getByRole('button', { name: new RegExp(`^Add tags to note “${noteStart}`) }).click()
+    await (await rowAction(notes, new RegExp(`^Actions for note “${noteStart}`), 'Tag')).click()
     const field = notes.getByLabel(new RegExp(`^Add a tag to note “${noteStart}`))
     for (const t of tags) {
       await field.fill(t)
@@ -359,7 +360,7 @@ test('notes can be merged into one, and one note cut in two', async ({ page }) =
   await expect(cards.nth(1)).toContainText('Deposition on the inside.')
 
   // Split: put the cursor between the two paragraphs, and the note becomes two again.
-  await notes.getByRole('button', { name: /^Edit note “Oxbow/ }).click()
+  await (await rowAction(notes, /^Actions for note “Oxbow/, 'Edit')).click()
   const box = notes.getByLabel(/^Text of note “Oxbow/)
   await box.fill('Oxbow lakes form when a loop is cut off. Erosion on the outside of each bend.')
   await box.evaluate((el: HTMLTextAreaElement) => {

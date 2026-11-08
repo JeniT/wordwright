@@ -1,6 +1,15 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, goTo, goToIdeas, leaveSettings, openFeeds, showReadItems, test } from './fixtures'
+import {
+  expect,
+  goTo,
+  goToIdeas,
+  leaveSettings,
+  openFeeds,
+  rowAction,
+  showReadItems,
+  test,
+} from './fixtures'
 
 async function signUpWithPublication(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -443,7 +452,7 @@ test('moves a note into another of the writer’s publications, and puts it back
   const second = idOf()
 
   await page.goto(`/p/${first}/notes`)
-  await page.getByRole('button', { name: /^Move note “Belongs elsewhere/ }).click()
+  await (await rowAction(page, /^Actions for note “Belongs elsewhere/, 'Move to…')).click()
   await page.getByLabel(/^Move( .*)? to$/).selectOption({ label: 'Another publication…' })
   await page.getByLabel('Which publication').selectOption({ label: 'Elsewhere' })
   await page.getByLabel('Move into').selectOption({ label: '“Elsewhere”’s notes' })
@@ -458,7 +467,7 @@ test('moves a note into another of the writer’s publications, and puts it back
   await expect(page.getByText('Belongs elsewhere')).toBeVisible()
 
   // Moved again, it is there.
-  await page.getByRole('button', { name: /^Move note “Belongs elsewhere/ }).click()
+  await (await rowAction(page, /^Actions for note “Belongs elsewhere/, 'Move to…')).click()
   await page.getByLabel(/^Move( .*)? to$/).selectOption({ label: 'Another publication…' })
   await page.getByLabel('Which publication').selectOption({ label: 'Elsewhere' })
   await page.getByLabel('Move into').selectOption({ label: '“Elsewhere”’s notes' })

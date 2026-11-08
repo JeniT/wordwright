@@ -200,11 +200,16 @@ export async function suggestedTags(box: HTMLElement) {
   return screen.queryAllByRole('option').map((o) => o.textContent?.trim())
 }
 
-/** Opens a list row's "…" menu (`ActionMenu`) and returns its button with this name: "Edit", "Tag", "Move to…", "Remove". */
-export async function rowAction(title: string, action: string) {
-  const trigger = await screen.findByRole('button', { name: `Actions for ${title}` })
-  if (trigger.getAttribute('aria-expanded') !== 'true') await fireEvent.click(trigger)
-  return within(screen.getByRole('group', { name: `Actions for ${title}` })).getByRole('button', {
-    name: action,
+/**
+ * Opens a list row's “…” panel (`ActionMenu`) and returns its button with this name: "Edit", "Tag", "Move to…",
+ * "Remove" or "Delete". `title` is what the actions are for ("A paper"), or a pattern for the whole name of the “…”
+ * button when only the start of the title is known.
+ */
+export async function rowAction(title: string | RegExp, action: string) {
+  const trigger = await screen.findByRole('button', {
+    name: typeof title === 'string' ? `Actions for ${title}` : title,
   })
+  if (trigger.getAttribute('aria-expanded') !== 'true') await fireEvent.click(trigger)
+  const panel = document.getElementById(trigger.getAttribute('aria-controls')!)!
+  return within(panel).getByRole('button', { name: action })
 }

@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test, createIdea } from './fixtures'
+import { expect, rowAction, test, createIdea } from './fixtures'
 
 test('the Move dialog keeps its picker inside it, however long an idea’s name is', async ({
   page,
@@ -27,7 +27,7 @@ test('the Move dialog keeps its picker inside it, however long an idea’s name 
 
   for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 800 })
-    await page.getByRole('button', { name: /^Move note “A first/ }).click()
+    await (await rowAction(page, /^Actions for note “A first/, 'Move to…')).click()
     const dialog = page.getByRole('dialog')
     await dialog.getByLabel('Move to').selectOption({ index: 1 })
     const inside = await dialog.evaluate((el) => {

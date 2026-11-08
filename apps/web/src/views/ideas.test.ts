@@ -1303,14 +1303,15 @@ describe('idea page', () => {
       ])
       await open()
       await screen.findByText('Erosion loops.')
-      expect(within(region()).getAllByRole('button', { name: /^Edit note/ })).toHaveLength(1)
-      expect(within(region()).getByRole('button', { name: /^Edit note “Erosion/ })).toBeVisible()
-      expect(within(region()).queryByRole('button', { name: /^Edit note “Exact/ })).toBeNull()
+      await rowAction(/^Actions for note “Erosion/, 'Edit') // an ordinary note has Edit
+      await fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+      const quoteActions = await rowAction(/^Actions for note “Exact/, 'Delete')
+      expect(within(quoteActions.parentElement!).queryByRole('button', { name: 'Edit' })).toBeNull()
       expect(within(region()).getByText('Exact words.').closest('blockquote')).not.toBeNull()
       expect(within(region()).getByText('Erosion loops.').closest('blockquote')).toBeNull()
       const items = within(region()).getAllByRole('listitem')
       expectOrigin(items[1]!, 'From A paper', 'Ada')
-      expect(within(region()).getByRole('button', { name: /^Delete note “Exact/ })).toBeVisible()
+      expect(quoteActions).toBeVisible()
     })
 
     it('names the article a note was taken from, or just says reading if it is gone', async () => {
@@ -1450,9 +1451,7 @@ describe('idea page', () => {
 
     describe('editing', () => {
       const edit = async () => {
-        await fireEvent.click(
-          await screen.findByRole('button', { name: /^Edit note “Erosion loops\.”/ }),
-        )
+        await fireEvent.click(await rowAction(/^Actions for note “Erosion loops\.”/, 'Edit'))
         return screen.getByLabelText(/^Text of note “Erosion loops\.”/)
       }
 
@@ -1469,7 +1468,7 @@ describe('idea page', () => {
         expect(state.sent).toEqual([{ text: 'Erosion makes loops.' }])
         await waitFor(() =>
           expect(
-            screen.getByRole('button', { name: /^Edit note “Erosion makes loops\.”/ }),
+            screen.getByRole('button', { name: /^Actions for note “Erosion makes loops\.”/ }),
           ).toHaveFocus(),
         )
       })
@@ -1509,7 +1508,7 @@ describe('idea page', () => {
     it('deletes a note only once it is confirmed, never on a single click', async () => {
       fakeNotes()
       await open()
-      const button = await screen.findByRole('button', { name: /^Delete note “Erosion loops\.”/ })
+      const button = await rowAction(/^Actions for note “Erosion loops\.”/, 'Delete')
       expect(button).toHaveAccessibleDescription(/Press and hold to confirm/)
       await fireEvent.click(button) // no hold: it only asks to be pressed again
       expect(await screen.findByText('Delete?')).toBeInTheDocument()
@@ -1609,9 +1608,7 @@ describe('idea page', () => {
         await openFilters()
         await chooseTag(within(region()).getByRole('combobox', { name: 'Filter by tag' }), 'solo')
         expect(texts()).toEqual(['Only one.'])
-        await fireEvent.click(
-          screen.getByRole('button', { name: /^Add tags to note “Only one\.”/ }),
-        )
+        await fireEvent.click(await rowAction(/^Actions for note “Only one\.”/, 'Tag'))
         await fireEvent.click(
           screen.getByRole('button', { name: /^Remove the tag solo from note “Only one\.”/ }),
         )
@@ -1622,7 +1619,7 @@ describe('idea page', () => {
       it('are added one at a time under the note: Enter saves a tag and keeps the field, the tick closes it', async () => {
         const api = fakeNotes(tagged())
         await open()
-        const opener = await screen.findByRole('button', { name: /^Add tags to note “Deposition/ })
+        const opener = await rowAction(/^Actions for note “Deposition/, 'Tag')
         await fireEvent.click(opener)
         const field = screen.getByLabelText(/^Add a tag to note “Deposition/)
         await waitFor(() => expect(field).toHaveFocus())
@@ -1647,18 +1644,14 @@ describe('idea page', () => {
           screen.getByRole('button', { name: /^Done tagging note “Deposition/ }),
         )
         expect(screen.queryByLabelText(/^Add a tag to note/)).toBeNull()
-        expect(
-          await screen.findByRole('button', { name: /^Add tags to note “Deposition/ }),
-        ).toHaveFocus()
+        expect(screen.getByRole('button', { name: /^Actions for note “Deposition/ })).toHaveFocus()
         expect(api.sent).toEqual([]) // no text was sent
       })
 
       it('can be taken off again while the field is open', async () => {
         const api = fakeNotes(tagged())
         await open()
-        await fireEvent.click(
-          await screen.findByRole('button', { name: /^Add tags to note “Deposition/ }),
-        )
+        await fireEvent.click(await rowAction(/^Actions for note “Deposition/, 'Tag'))
         await fireEvent.click(
           screen.getByRole('button', { name: /^Remove the tag draft 2 from note “Deposition/ }),
         )
@@ -1670,9 +1663,7 @@ describe('idea page', () => {
         await open()
         await screen.findByText('Exact words.')
         expect(screen.queryByRole('button', { name: /^Edit note/ })).toBeNull()
-        await fireEvent.click(
-          screen.getByRole('button', { name: /^Add tags to note “Exact words/ }),
-        )
+        await fireEvent.click(await rowAction(/^Actions for note “Exact words/, 'Tag'))
         const field = screen.getByLabelText(/^Add a tag to note “Exact words/)
         await fireEvent.update(field, 'cited')
         await fireEvent.keyDown(field, { key: 'Enter' })
@@ -1682,9 +1673,7 @@ describe('idea page', () => {
       it('offer the tags already used as the person types', async () => {
         fakeNotes(tagged())
         await open()
-        await fireEvent.click(
-          await screen.findByRole('button', { name: /^Add tags to note “Untagged/ }),
-        )
+        await fireEvent.click(await rowAction(/^Actions for note “Untagged/, 'Tag'))
         const options = [...document.querySelectorAll('datalist option')].map((o) =>
           o.getAttribute('value'),
         )
@@ -1699,9 +1688,7 @@ describe('idea page', () => {
           ),
         )
         await open()
-        await fireEvent.click(
-          await screen.findByRole('button', { name: /^Add tags to note “Untagged/ }),
-        )
+        await fireEvent.click(await rowAction(/^Actions for note “Untagged/, 'Tag'))
         const field = screen.getByLabelText(/^Add a tag to note “Untagged/)
         await fireEvent.update(field, 'a')
         await fireEvent.keyDown(field, { key: 'Enter' })
@@ -1717,9 +1704,7 @@ describe('idea page', () => {
         const full = Array.from({ length: 10 }, (_, i) => `t${i}`)
         const api = fakeNotes([{ ...note('n1', 'Full.'), tags: full }])
         await open()
-        await fireEvent.click(
-          await screen.findByRole('button', { name: /^Add tags to note “Full/ }),
-        )
+        await fireEvent.click(await rowAction(/^Actions for note “Full/, 'Tag'))
         const field = screen.getByLabelText(/^Add a tag to note “Full/)
         await fireEvent.update(field, 'eleven')
         await fireEvent.keyDown(field, { key: 'Enter' })
@@ -1934,7 +1919,7 @@ describe('idea page', () => {
 
       describe('splitting', () => {
         const edit = async () => {
-          await fireEvent.click(await screen.findByRole('button', { name: /^Edit note “Erosion/ }))
+          await fireEvent.click(await rowAction(/^Actions for note “Erosion/, 'Edit'))
           return screen.getByLabelText(/^Text of note “Erosion/) as HTMLTextAreaElement
         }
 
