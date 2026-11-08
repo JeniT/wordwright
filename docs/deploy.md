@@ -56,6 +56,7 @@ see exactly what runs as root.
 | `deploy/compose.yaml`           | The two services, the volumes, the health check, and a cap on log size (the disk is small).                                        |
 | `deploy/Caddyfile`              | HTTPS, security headers (with the Content-Security-Policy), the web app with its fallback page, `/api/*` and `/health` to the API. |
 | `deploy/production.env.example` | Every setting production needs. Copy to `deploy/.env` on the server; `.env` is never committed.                                    |
+| `deploy/ship.sh`                | On your computer: builds the images, then deploys them to the server in one go (below).                                            |
 | `deploy/deploy.sh`              | Backs up (`backup.sh`), pulls, restarts, waits until ready.                                                                        |
 | `deploy/setup-wizard.sh`        | Walks you through setting up a new server (below).                                                                                 |
 | `deploy/server-setup.sh`        | What runs as root on the server: `base`, `harden`, `timer`.                                                                        |
@@ -88,6 +89,23 @@ docker compose down -v             # -v also deletes the trial database
 ```
 
 ## Shipping a build
+
+On your own computer, from this repository:
+
+```bash
+deploy/ship.sh                       # build the newest origin/main, then deploy it
+deploy/ship.sh --tag <commit hash>   # deploy images already built (no build); the full 40-character hash
+deploy/ship.sh --ref <branch>        # build another branch
+```
+
+It says whether CI passed on the commit (and asks before going on if not), runs the Images workflow (or reuses a
+successful run for the same commit), shows the build that is live and the one it will deploy, and waits for you to type
+`deploy`. Then it copies the deploy files from that commit to the server (`compose.yaml` and the scripts, so a changed
+`compose.yaml` arrives with the build that needs it), sets `WORDWRIGHT_TAG` in `.env`, runs `./deploy.sh` there and
+checks `/health`. `-y` skips the questions; naming a server (`deploy/ship.sh wordwright`) overrides the one from the
+wizard's answers. Only what is pushed is shipped. To go back, use `rollback.sh` ([below](#rolling-back)).
+
+By hand, the same two steps:
 
 1. On GitHub: **Actions → Images → Run workflow**, on the commit you want (normally `main` once CI is green). It
    pushes `ghcr.io/jenit/wordwright-api` and `-web`, tagged with the commit hash and `latest`.
