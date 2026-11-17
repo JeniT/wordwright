@@ -73,8 +73,7 @@ watch(
     <template v-else-if="preview.data.value">
       <p>
         <strong>{{ preview.data.value.inviterName }}</strong> has invited you to write together on
-        <strong>{{ preview.data.value.publicationName }}</strong
-        >.
+        <strong>{{ preview.data.value.publicationName }}</strong>.
       </p>
 
       <!-- Signed out: sign in or sign up with the invited address -->
@@ -101,9 +100,8 @@ watch(
 
       <!-- Signed in as someone else -->
       <p v-else-if="wrongAccount" role="alert" class="mt-3 text-sm text-danger">
-        This invitation was sent to <strong>{{ invitedEmail }}</strong
-        >, but you're signed in as {{ session.user.email }}. Sign out, then sign in or sign up with
-        the invited address.
+        This invitation was sent to <strong>{{ invitedEmail }}</strong>, but you're signed in as
+        {{ session.user.email }}. Sign out, then sign in or sign up with the invited address.
       </p>
 
       <!-- Signed in as the invitee -->

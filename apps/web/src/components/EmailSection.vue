@@ -46,8 +46,7 @@ const change = useMutation({
         required
       />
       <SaveStatus :mutation="change" :unsaved="!!newEmail || !!password" class="mb-3">
-        Link sent to <strong>{{ sentTo }}</strong
-        >. Open it within 24 hours.
+        Link sent to <strong>{{ sentTo }}</strong>. Open it within 24 hours.
       </SaveStatus>
       <button
         type="submit"

@@ -15,8 +15,7 @@ const resend = useMutation({ mutationFn: () => api.resendVerification() })
   >
     <p>
       Please confirm your email address. We sent a link to
-      <strong>{{ session.user.email }}</strong
-      >.
+      <strong>{{ session.user.email }}</strong>.
     </p>
     <div class="mt-2 flex flex-wrap items-center gap-3">
       <button
