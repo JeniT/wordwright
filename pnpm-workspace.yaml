@@ -9,3 +9,7 @@ allowBuilds:
   esbuild: true
   vue-demi: false
   msw: false
+# Accepted on purpose, see "Accepted advisory" in docs/dependencies.md: no patched picomatch exists and it is only in build tooling.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-fc5q-39xc-vjpf

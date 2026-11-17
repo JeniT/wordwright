@@ -54,6 +54,14 @@ The same pass moved `undici` (a dependency of the evals' test tooling), `mailpar
 Run `pnpm audit` before a release. A new high or critical advisory blocks the release until the dependency is updated or
 removed.
 
+### Accepted advisory
+
+`GHSA-fc5q-39xc-vjpf` (`picomatch` <= 4.0.7, ReDoS through repeated extglobs; high) is ignored in CI
+(`auditConfig.ignoreGhsas` in `pnpm-workspace.yaml`) since 2026-11-17. No patched version exists. It is reached
+only through the web app's build tooling (`vue-router` > `unplugin`), which handles our own source paths at build time:
+nothing of it is in the built bundle or the API. **Remove the ignore as soon as a patched `picomatch` is released**
+(then update the lockfile); deleting the entry and running `pnpm audit --prod` shows when that is.
+
 ## Licences
 
 `scripts/check-licences.mjs` is the source of truth for this list. `pnpm check` runs it, and it fails when anything shipped (`pnpm licenses list --prod`)
