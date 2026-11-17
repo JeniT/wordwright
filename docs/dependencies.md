@@ -7,7 +7,7 @@ what terms.
 
 | What    | Version                            | Where it is pinned                                                                                 |
 | ------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Node    | 26.12.1 (the 26 line, Active LTS)  | `.nvmrc` (CI) and `FROM node:26.12.1-slim` twice in `Dockerfile` (the api image)                   |
+| Node    | 26.13.1 (the 26 line, Active LTS)  | `.nvmrc` (CI) and `FROM node:26.13.1-slim` twice in `Dockerfile` (the api image)                   |
 | pnpm    | 12.10.1                            | `packageManager` in `package.json`; CI (`pnpm/action-setup`) and the Dockerfile (Corepack) read it |
 | Caddy   | the 2 line (`caddy:2-alpine`)      | `Dockerfile`, `web` target; serves static files only                                               |
 | Package | exact versions in `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` everywhere, so a build never picks a newer release                |
