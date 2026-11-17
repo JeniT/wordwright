@@ -48,7 +48,7 @@ export function useModal(options: {
         options.initialFocus()?.focus()
       } else {
         document.removeEventListener('keydown', onKeydown)
-        if (opener instanceof HTMLElement) opener.focus()
+        if (opener instanceof HTMLElement) opener.focus({ preventScroll: true })
         opener = null
       }
     },

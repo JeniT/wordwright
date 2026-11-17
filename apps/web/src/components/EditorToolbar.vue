@@ -164,6 +164,8 @@ function press(name: ToolName) {
 }
 
 // ---- links
+/** Where the writer already is stays on screen: refocusing the text must not scroll the page. */
+const STAY = { scrollIntoView: false }
 const linking = ref(false)
 const address = ref('')
 function openLink() {
@@ -174,7 +176,7 @@ function closeLink() {
   linking.value = false
   // The button that opened the dialog may have been in the More menu, which has closed: keep the writer in the text.
   nextTick(() => {
-    if (document.activeElement === document.body) props.editor?.commands.focus()
+    if (document.activeElement === document.body) props.editor?.commands.focus(null, STAY)
   })
 }
 // Ctrl or ⌘ and K, from the text. (In the Markdown box there is no link dialog to open.)
@@ -197,17 +199,17 @@ function applyLink(href: string) {
   // With words selected (or the cursor in a link) they become the link; with neither, the address is the text.
   if (e.state.selection.empty && !e.isActive('link')) {
     e.chain()
-      .focus()
+      .focus(null, STAY)
       .insertContent({ type: 'text', text: href, marks: [{ type: 'link', attrs: { href } }] })
       .run()
   } else {
-    e.chain().focus().extendMarkRange('link').setLink({ href }).run()
+    e.chain().focus(null, STAY).extendMarkRange('link').setLink({ href }).run()
   }
   closeLink()
 }
 function removeLink() {
   // As the toolbar button does: just the selected words if some are selected, else the whole link.
-  props.editor?.chain().focus().unsetLink().run()
+  props.editor?.chain().focus(null, STAY).unsetLink().run()
   closeLink()
 }
 </script>

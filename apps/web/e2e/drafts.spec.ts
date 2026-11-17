@@ -692,3 +692,44 @@ test('a draft opened by its address says it is loading, then shows the draft (#4
   await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Why rivers meander')
   await expect(page.getByText('Loading…')).toHaveCount(0)
 })
+
+for (const how of ['⌘K', 'the Link button'] as const) {
+  test(`adding a link with ${how} leaves the page where it was (#450)`, async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 700 })
+    await registerUser(page)
+    await openFirstPublication(page)
+    await createIdea(page, 'Why rivers meander')
+    await goTo(page, 'Draft')
+    await page.getByRole('button', { name: 'New draft' }).click()
+    const body = page.getByRole('textbox', { name: 'Draft body' })
+    await body.click()
+    const paragraphs = Array.from({ length: 40 }, (_, i) => `Paragraph ${i + 1}.`)
+    await page.keyboard.type(paragraphs.join('\n\n'))
+
+    // The last paragraph at the top of the window, its words selected.
+    const last = body.locator('p').last()
+    await last.evaluate((el) =>
+      window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 16),
+    )
+    await last.click({ clickCount: 3 })
+    let before = await page.evaluate(() => window.scrollY)
+    expect(before, 'the page starts scrolled down').toBeGreaterThan(500)
+
+    if (how === '⌘K') await page.keyboard.press('ControlOrMeta+K')
+    else await page.getByRole('button', { name: 'Link', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Add a link' })
+    // (Playwright may scroll the toolbar button into view to click it; what counts is what happens after.)
+    await expect(dialog.getByLabel('Link address')).toBeFocused()
+    before = await page.evaluate(() => window.scrollY)
+    await dialog.getByLabel('Link address').fill('example.com/rivers')
+    await page.keyboard.press('Enter')
+    await expect(dialog).toHaveCount(0)
+    await expect(body.locator('a')).toHaveAttribute('href', 'https://example.com/rivers')
+
+    await page.waitForTimeout(300) // any smooth scrolling has settled
+    expect(await page.evaluate(() => window.scrollY), 'the page has not moved').toBeCloseTo(
+      before,
+      -1,
+    )
+  })
+}
