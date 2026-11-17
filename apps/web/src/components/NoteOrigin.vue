@@ -27,8 +27,7 @@ defineProps<{
       >{{ phrase }}
       <NewTabLink v-if="source" :href="source.url" class="link">{{
         source.title || source.url
-      }}</NewTabLink
-      ><template v-if="conversation"
+      }}</NewTabLink><template v-if="conversation"
         ><RouterLink v-if="conversationTo" :to="conversationTo" class="link">{{
           conversation
         }}</RouterLink

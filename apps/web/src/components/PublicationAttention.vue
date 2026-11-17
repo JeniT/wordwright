@@ -52,8 +52,8 @@ const any = computed(() => {
         <RouterLink
           :to="{ name: 'draft', params: { publicationId, id: o.draftId } }"
           class="link"
-          >{{ o.title || 'Untitled draft' }}</RouterLink
-        >. If you accept, you become its editor, the only person who can change its words.
+          >{{ o.title || 'Untitled draft' }}</RouterLink>. If you accept, you become its editor, the
+        only person who can change its words.
       </p>
       <div class="flex flex-wrap gap-2">
         <button
@@ -87,8 +87,7 @@ const any = computed(() => {
         <RouterLink
           :to="{ name: 'draft', params: { publicationId, id: w.draftId } }"
           class="link"
-          >{{ w.title || 'Untitled draft' }}</RouterLink
-        >. You stay its editor until they accept.
+          >{{ w.title || 'Untitled draft' }}</RouterLink>. You stay its editor until they accept.
       </p>
       <button
         type="button"

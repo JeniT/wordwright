@@ -113,8 +113,7 @@ const decline = useMutation({
       <template v-if="!session.user">
         <form class="mt-4" @submit.prevent="create.mutate()">
           <p class="mb-3 text-sm">
-            Use the address this was sent to: <strong>{{ invitedEmail }}</strong
-            >.
+            Use the address this was sent to: <strong>{{ invitedEmail }}</strong>.
           </p>
           <TextField
             v-model="name"
@@ -148,9 +147,9 @@ const decline = useMutation({
       </template>
 
       <p v-else-if="wrongAccount" role="alert" class="mt-3 text-sm text-danger">
-        This invitation was sent to <strong>{{ invitedEmail }}</strong
-        >, but you're signed in as {{ session.user.email }}. Sign out, then sign in or create an
-        account with the invited address.
+        This invitation was sent to <strong>{{ invitedEmail }}</strong>, but you're signed in as
+        {{ session.user.email }}. Sign out, then sign in or create an account with the invited
+        address.
       </p>
 
       <template v-else>

@@ -72,8 +72,8 @@ function submit() {
     <form v-else-if="preview.data.value" @submit.prevent="submit">
       <p>
         <strong>{{ preview.data.value.inviterName }}</strong> invited you to write together on
-        <strong>{{ preview.data.value.publicationName }}</strong
-        >. They won't be told that you declined.
+        <strong>{{ preview.data.value.publicationName }}</strong>. They won't be told that you
+        declined.
       </p>
       <fieldset class="mt-4">
         <legend class="mb-2 text-sm font-medium">After declining</legend>

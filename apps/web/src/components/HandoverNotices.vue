@@ -83,8 +83,8 @@ const actions = useHandoverActions(
       </section>
       <section v-if="handover.data.value.offer" class="notice notice-info" aria-label="Offer made">
         <p>
-          You have offered this draft to <strong>{{ handover.data.value.offer.toName }}</strong
-          >. You stay its editor until they accept.
+          You have offered this draft to <strong>{{ handover.data.value.offer.toName }}</strong>.
+          You stay its editor until they accept.
         </p>
         <div class="mt-2">
           <button

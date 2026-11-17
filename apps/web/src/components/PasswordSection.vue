@@ -66,8 +66,7 @@ const setup = useMutation({
     <div v-else>
       <p class="mb-3 text-sm text-ink-soft">
         Add a password to sign in with email too. We'll email a link to
-        <strong>{{ session.user.email }}</strong
-        >.
+        <strong>{{ session.user.email }}</strong>.
       </p>
       <SaveStatus
         :mutation="setup"

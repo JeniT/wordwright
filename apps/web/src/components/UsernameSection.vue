@@ -48,8 +48,8 @@ const save = useMutation({
         Choose your username
       </h2>
       <p class="mb-3 text-sm text-ink-soft">
-        We gave you <strong>{{ session.user.handle }}</strong
-        >. It starts the address of each publication you create, for example
+        We gave you <strong>{{ session.user.handle }}</strong>. It starts the address of each
+        publication you create, for example
         <code class="rounded-ctl bg-sunken px-1">{{ session.user.handle }}-substack</code>. Pick
         your own, or keep this one.
       </p>

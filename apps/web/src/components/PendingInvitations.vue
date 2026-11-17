@@ -65,8 +65,7 @@ function startDeclining(id: string) {
       <template #default="{ item }">
         <p class="min-w-0 flex-1">
           <strong>{{ item.inviterName }}</strong> invited you to write together on
-          <strong>{{ item.publicationName }}</strong
-          >.
+          <strong>{{ item.publicationName }}</strong>.
         </p>
       </template>
       <template #actions="{ item }">
