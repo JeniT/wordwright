@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-18T20:01:15.836Z",
+  "title": "Design System: Wordwright",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Ember",
+        "canonical": "#b0440c",
+        "tonalRamp": [
+          "#3a1503",
+          "#5c2205",
+          "#8a3207",
+          "#b0440c",
+          "#d9672a",
+          "#f08a4b",
+          "#f7c09c",
+          "#fbe6d6"
+        ]
+      },
+      "accent-wash": {
+        "role": "primary",
+        "displayName": "Ember Wash",
+        "canonical": "#fbe6d6"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "canonical": "#f8f5f1",
+        "tonalRamp": [
+          "#1a1512",
+          "#2a2420",
+          "#594f47",
+          "#85786b",
+          "#b8aa9d",
+          "#e0d8ce",
+          "#eee8e0",
+          "#f8f5f1"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface White",
+        "canonical": "#ffffff"
+      },
+      "sunken": {
+        "role": "neutral",
+        "displayName": "Stone Tray",
+        "canonical": "#eee8e0"
+      },
+      "hover-wash": {
+        "role": "neutral",
+        "displayName": "Hover Wash",
+        "canonical": "#eee8e0"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Inkwell",
+        "canonical": "#2a2420"
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "#594f47"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e0d8ce"
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Pencil Line",
+        "canonical": "#85786b"
+      },
+      "mark": {
+        "role": "tertiary",
+        "displayName": "Blue Pencil",
+        "canonical": "#cfe6f2",
+        "tonalRamp": [
+          "#13222c",
+          "#1f3542",
+          "#2f4a5c",
+          "#4f7590",
+          "#7fa6c0",
+          "#a9cbe0",
+          "#cfe6f2",
+          "#ebf5fa"
+        ]
+      },
+      "danger": {
+        "role": "error",
+        "displayName": "Raspberry",
+        "canonical": "#a8123f",
+        "tonalRamp": [
+          "#2a0510",
+          "#4e0b20",
+          "#7a0e30",
+          "#a8123f",
+          "#d44470",
+          "#ff8fae",
+          "#f7c3d2",
+          "#fbe6ec"
+        ]
+      },
+      "ok": {
+        "role": "success",
+        "displayName": "Leaf",
+        "canonical": "#1f6b3d",
+        "tonalRamp": [
+          "#0c2416",
+          "#1c3324",
+          "#1f6b3d",
+          "#2f8a52",
+          "#5bb07a",
+          "#8fd19e",
+          "#c4e9cf",
+          "#e1f3e7"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page title",
+        "purpose": "h1, once per page (StepHeading on a step)."
+      },
+      "title": {
+        "displayName": "Section heading",
+        "purpose": "h2."
+      },
+      "title-sm": {
+        "displayName": "Subsection heading",
+        "purpose": "h3 and card headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Text, labels and field contents; 16px in fields stops iOS zoom."
+      },
+      "draft": {
+        "displayName": "Draft",
+        "purpose": "The editor and the AI replies."
+      },
+      "pane": {
+        "displayName": "Pane",
+        "purpose": "Notes, articles and comments beside the draft."
+      },
+      "label": {
+        "displayName": "Button label",
+        "purpose": "Buttons; 13px on small buttons and chips."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Dates, hosts and counts in Soft Ink with tabular figures."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "drawer-in",
+        "value": "transform 0.15s ease-out",
+        "purpose": "The side menu sliding in as a drawer on phones; off under reduced motion."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "All animation and transition durations under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "40rem"
+      },
+      {
+        "name": "md",
+        "value": "48rem",
+        "purpose": "Side menu replaces the phone top bar."
+      },
+      {
+        "name": "phone-check",
+        "value": "390px",
+        "purpose": "Every screen is checked at this width."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action in an area.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Add idea</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:2.25rem;padding:.3rem .9rem;border:1px solid transparent;border-radius:6px;font-family:\"IBM Plex Sans\",system-ui,sans-serif;font-size:.875rem;font-weight:600;line-height:1.2;cursor:pointer}.ds-btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}.ds-btn-primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.ds-btn-primary:hover{background:var(--accent-strong);border-color:var(--accent-strong)}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "A second action that still matters.",
+      "html": "<button class=\"ds-btn ds-btn-outline\">Send for review</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:2.25rem;padding:.3rem .9rem;border:1px solid transparent;border-radius:6px;font-family:\"IBM Plex Sans\",system-ui,sans-serif;font-size:.875rem;font-weight:600;line-height:1.2;cursor:pointer}.ds-btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}.ds-btn-outline{background:var(--surface);border-color:var(--accent);color:var(--accent)}.ds-btn-outline:hover{background:var(--accent-wash)}"
+    },
+    {
+      "name": "Neutral Button",
+      "kind": "button",
+      "refersTo": "button-neutral",
+      "description": "Everyday secondary actions such as Cancel.",
+      "html": "<button class=\"ds-btn ds-btn-neutral\">Cancel</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:2.25rem;padding:.3rem .9rem;border:1px solid transparent;border-radius:6px;font-family:\"IBM Plex Sans\",system-ui,sans-serif;font-size:.875rem;font-weight:600;line-height:1.2;cursor:pointer}.ds-btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}.ds-btn-neutral{background:var(--surface);border-color:var(--line-strong);color:var(--ink)}.ds-btn-neutral:hover{background:var(--sunken);border-color:var(--ink)}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive actions; the final confirm is solid.",
+      "html": "<button class=\"ds-btn ds-btn-danger\">Delete draft</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:2.25rem;padding:.3rem .9rem;border:1px solid transparent;border-radius:6px;font-family:\"IBM Plex Sans\",system-ui,sans-serif;font-size:.875rem;font-weight:600;line-height:1.2;cursor:pointer}.ds-btn:focus-visible{outline:3px solid var(--focus);outline-offset:2px}.ds-btn-danger{background:var(--surface);border-color:var(--danger);color:var(--danger)}.ds-btn-danger:hover{background:var(--danger-wash)}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Text input with a visible label.",
+      "html": "<label class=\"ds-label\">Your idea<input class=\"ds-field\" placeholder=\"One sentence, in your words\"></label>",
+      "css": ".ds-label{display:grid;gap:.35rem;font-family:\"IBM Plex Sans\",system-ui,sans-serif;font-size:.875rem;font-weight:600;color:var(--ink)}.ds-field{min-height:2.75rem;padding:.5rem .75rem;background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);border-radius:6px;font:inherit;font-size:1rem;font-weight:400}.ds-field::placeholder{color:var(--ink-soft)}.ds-field:focus-visible{outline:3px solid var(--focus);outline-offset:2px}"
+    },
+    {
+      "name": "Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Status, tags and the AI label.",
+      "html": "<span class=\"ds-chip\">Draft</span> <span class=\"ds-chip ds-chip-accent\">2 of 3 critiques used</span> <span class=\"ds-chip ds-chip-ai\">From your AI</span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;padding:.05rem .55rem;border:1px solid var(--line-strong);border-radius:999px;font-family:\"IBM Plex Sans\",system-ui,sans-serif;font-size:.8125rem;font-weight:600;color:var(--ink)}.ds-chip-accent{background:var(--accent-wash);border-color:var(--accent)}.ds-chip-ai{background:var(--mark);border-color:var(--mark)}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A linked item, such as an idea on a publication.",
+      "html": "<a class=\"ds-card\" href=\"#\"><strong>Why local news still matters</strong><span>3 notes · 1 draft</span></a>",
+      "css": ".ds-card{display:grid;gap:.25rem;padding:1rem;background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;color:var(--ink);text-decoration:none;font-family:\"IBM Plex Sans\",system-ui,sans-serif}.ds-card span{font-size:.875rem;color:var(--ink-soft)}.ds-card:hover{background:var(--accent-wash);border-color:var(--accent)}.ds-card:focus-visible{outline:3px solid var(--focus);outline-offset:2px}"
+    },
+    {
+      "name": "Callout",
+      "kind": "custom",
+      "refersTo": "callout",
+      "description": "Information the writer should notice; not an action.",
+      "html": "<div class=\"ds-callout\">You have used your critiques. The next step is to publish.</div>",
+      "css": ".ds-callout{padding:.85rem 1rem;border:1px solid var(--accent);border-radius:6px;background:var(--accent-wash);color:var(--ink);font-family:\"IBM Plex Sans\",system-ui,sans-serif;font-size:.9375rem}"
+    },
+    {
+      "name": "Side menu item",
+      "kind": "nav",
+      "refersTo": "step-num-current",
+      "description": "A numbered step in the side menu; current has aria-current.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\"><span class=\"ds-step\">01</span>Notes</a><a href=\"#\" aria-current=\"page\"><span class=\"ds-step\">02</span>Refine</a><a href=\"#\"><span class=\"ds-step\">03</span>Drafts</a></nav>",
+      "css": ".ds-nav{display:grid;gap:.25rem;width:16rem;padding:.5rem;background:var(--surface);border:1px solid var(--line);font-family:\"IBM Plex Sans\",system-ui,sans-serif}.ds-nav a{display:flex;align-items:center;gap:.6rem;min-height:3rem;padding:.375rem .75rem;border-radius:6px;color:var(--ink);text-decoration:none;font-size:.9375rem}.ds-nav a:hover{background:var(--sunken)}.ds-nav a:focus-visible{outline:3px solid var(--focus);outline-offset:2px}.ds-step{display:inline-flex;min-width:1.75rem;justify-content:center;padding:0 .35rem;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);color:var(--ink-soft);font-size:.8125rem;font-weight:600}.ds-nav a[aria-current]{background:var(--accent-wash);box-shadow:inset 3px 0 0 var(--accent)}.ds-nav a[aria-current] .ds-step{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Writing Desk",
+    "overview": "A well-kept desk by a window: warm paper, one good pen, everything within reach and nothing on show. Ember is a calm,\nclear tool for writing. The writer's words are the work on the desk; the interface is the furniture around it,\nquiet enough to forget and plain enough that it is always obvious what can be picked up. Space is generous, colour is\nrare, and nothing is decorative.\n\nDepth comes from tone and a hairline, never from shadow: paper, a white surface laid on it, a recessed tray. One\nwarm accent, Ember, marks where you can act and where you are. A pale blue highlighter is kept in a drawer for one\njob only: showing what the AI suggested, so the writer's own words always look like theirs. One typeface does\neverything, from the menu to the draft to the AI's replies, only larger and looser where reading matters.\n\nDark mode is a lamplit version of the same desk, designed rather than inverted: lighter, warmer accent, dark text on\nbuttons, deep tinted washes.",
+    "keyCharacteristics": [
+      "Warm stone neutrals with a single burnt-orange accent.",
+      "IBM Plex Sans for everything, tabular figures by default.",
+      "Flat: no shadows, no gradients; tone and 1px edges separate things.",
+      "Every control has a fill or a visible 1px border; links are always underlined.",
+      "The highlighter means \"the AI suggested this\" and nothing else.",
+      "Colours are chosen by role in one palette file, never in components."
+    ],
+    "rules": [
+      {
+        "name": "The One Ember Rule",
+        "body": "Ember means action or location. If something is coloured Ember and cannot be pressed or is not the current place, it is wrong; use Ember Wash for information.",
+        "section": "colors"
+      },
+      {
+        "name": "The Blue Pencil Rule",
+        "body": "The highlighter marks what the AI suggested and nothing else. If it is everywhere it marks nothing, and the writer's own words must stay visually theirs.",
+        "section": "colors"
+      },
+      {
+        "name": "The Roles Not Colours Rule",
+        "body": "Markup says what something is (`bg-surface`, `text-ink-soft`), never what it looks like. Tailwind's default palette is switched off, so a raw colour class does nothing. A new colour is a new role in the palette file (light, dark and system-dark), mapped in `theme.css`, with its pairs added to `palette.test.ts`.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Sans Rule",
+        "body": "No serif, no monospace for metadata, no second typeface. Nothing read is smaller than 14px, except small buttons and chips (13px) and tabular tags (12px).",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Desk Rule",
+        "body": "If something needs to stand out, give it a different tone or a 1px edge. A `shadow-*` class is never the answer.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** build with roles and component classes (`bg-surface`, `text-ink-soft`, `btn btn-primary`, `panel`, `chip`).",
+      "**Do** give every button and field a fill or a visible 1px border, and underline every link.",
+      "**Do** keep one primary button per area.",
+      "**Do** separate surfaces with tone and a 1px edge.",
+      "**Do** use the highlighter only for what the AI produced, with a text label beside it.",
+      "**Do** put another site's picture on the square plate (`PublicationImage kind=\"source\"`).",
+      "**Do** look at every screen in light and dark and at 390px, and keep `palette.test.ts` and the axe checks passing.",
+      "**Do** give every async action its loading, empty and error states, with error text that says what to do next."
+    ],
+    "donts": [
+      "**Don't** write a colour value (hex, `rgb()`, a Tailwind palette name) in a component, or use `dark:`.",
+      "**Don't** add shadows, gradients or decoration.",
+      "**Don't** use Ember for decoration, or Raspberry for anything but errors and irreversible actions.",
+      "**Don't** add a second typeface, or a monospace face for metadata.",
+      "**Don't** use bare `rounded`; use the control (6px), panel (10px) or full radius.",
+      "**Don't** let colour be the only signal: errors have words, the current item has `aria-current`, AI items have a label.",
+      "**Don't** show the Wordwright mark anywhere but the menu header, signed-out pages, the browser tab and the home-screen icon; never as decoration or in place of a publication's picture.",
+      "**Don't** add streaks, scores, badges or progress that rewards use."
+    ]
+  }
+}
