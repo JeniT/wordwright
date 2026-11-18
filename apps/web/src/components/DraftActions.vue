@@ -8,7 +8,7 @@ import ReassignDraftDialog from './ReassignDraftDialog.vue'
 
 /**
  * The things a person can start on a draft besides writing it: handing it over, asking for it, reassigning it and
- * reading the handover history (sending for review is in the Reviews tab). Each opens a dialog, so the writer stays on the draft. What the
+ * reading the handover history (sending for review is in the Reviews tab). Handing over needs someone to hand to, so a writer alone in a publication sees no Hand over button. Each opens a dialog, so the writer stays on the draft. What the
  * handover is waiting for is `HandoverNotices`, not here. Which buttons show depends on who the person is.
  */
 const props = defineProps<{
@@ -32,7 +32,7 @@ const close = () => (open.value = null)
 /** With no buttons to show (a member who has already asked, no history) the row is left out, not left empty. */
 const anyButton = computed(
   () =>
-    (isEditor.value && !handover.data.value?.offer) ||
+    (isEditor.value && !handover.data.value?.offer && others.value.length > 0) ||
     (!isEditor.value && !myAsk.value && !offeredToMe.value) ||
     (isOwner.value && !isEditor.value && others.value.length > 0) ||
     !!handover.data.value?.history.length,
@@ -44,7 +44,7 @@ const asked = () => actions.ask.mutate(undefined, { onSettled: close })
   <div v-if="handover.data.value" role="group" aria-label="Handover">
     <div v-if="anyButton" class="flex flex-wrap items-center gap-2">
       <button
-        v-if="isEditor && !handover.data.value.offer"
+        v-if="isEditor && !handover.data.value.offer && others.length"
         type="button"
         class="btn btn-outline btn-sm"
         @click="open = 'offer'"

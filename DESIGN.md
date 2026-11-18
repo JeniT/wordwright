@@ -331,7 +331,7 @@ except small buttons and chips (13px) and tabular tags (12px).
   the mark (Home) between, and on the drafting page a panel edge-tab flush right. The menu then opens as a drawer
   over the page behind a scrim, sliding in over 0.15s (off under reduced motion).
 - **Content width:** `max-w-3xl` for reading and forms; `max-w-6xl` for wide routes such as the drafting page with
-  its notes column.
+  its notes column. The draft itself is at most 36rem wide (about 80 characters a line).
 - **Rhythm:** Tailwind's spacing scale. Page sections are 2–3rem apart; panels have 1–1.5rem of padding. Match the
   neighbouring screen before inventing a value.
 - **Phone width:** every screen is checked at 390px and nothing may scroll sideways.

@@ -94,7 +94,7 @@ Read this when you change sign-in, registration, passwords, publications and the
   **What is waiting on you** (#159): `GET /api/publications/:id/attention` feeds a block at the top of the publication's landing
   page: a draft offered to you (Accept / Decline there) and your own offer still waiting (Withdraw). How the reviews of your
   drafts stand is in Keep writing (#310). Nothing is shown when nothing waits, and nothing is emailed or counted elsewhere.
-  **Handover** (#155), on the draft page itself (what waits for an answer, and what you have set going, are notices at the top; **Offer draft**, **Ask for this draft** (with a confirm), **Reassign draft**, **Send for review** and the history are buttons opening dialogs, #296; who is reviewing is a Reviews tab beside the draft, #301) (`/api/publications/:id/drafts/:draft/handover`): the editor **offers** the
+  **Handover** (#155), on the draft page itself (what waits for an answer, and what you have set going, are notices at the top; **Hand over editing** (only when the publication has someone to hand to), **Ask for this draft** (with a confirm), **Reassign draft**, **Send for review** and the history are buttons opening dialogs, #296; who is reviewing is a Reviews tab beside the draft, #301) (`/api/publications/:id/drafts/:draft/handover`): the editor **offers** the
   draft to a named member (`POST …/offer`, one open offer per draft); they stay editor, and can keep writing, until the
   member **accepts** (`…/offer/accept`) or **declines**; the editor can **withdraw** (`DELETE …/offer`). Any other
   member can **ask** (`POST …/asks`), which only shows the editor a request to offer or set aside. An owner can

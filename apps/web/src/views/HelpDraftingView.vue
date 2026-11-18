@@ -45,8 +45,10 @@ import Icon from '../components/Icon.vue'
       first. It points and asks; it never writes replacement words.
     </p>
     <ol class="mb-2 list-decimal space-y-1 pl-5">
-      <li>Open the Comments tab.</li>
-      <li>Press Critique, below your comments. Your draft is saved first.</li>
+      <li>
+        Press Critique. The first time, it is under your draft, above Publish; after that it is at
+        the end of the Comments tab, below your comments. Your draft is saved first.
+      </li>
       <li>Read the comments that arrive, and change the draft in your own words.</li>
       <li>Resolve a comment when you have dealt with it, or decided not to.</li>
     </ol>
@@ -55,7 +57,7 @@ import Icon from '../components/Icon.vue'
       does not send your notes.
     </p>
     <p class="mb-6">
-      Each draft gets a few critiques, and the count under the button reads, for example, “2 of 3
+      Each draft gets a few critiques, and the count beside the button reads, for example, “2 of 3
       critiques used”. Only the draft’s editor can ask for one. The reason for the limit, and how to
       change it, are on the
       <RouterLink :to="{ name: 'help-ai-settings' }" class="link">AI settings page</RouterLink>.
@@ -77,8 +79,8 @@ import Icon from '../components/Icon.vue'
       </li>
     </ul>
     <p class="mb-2">
-      Hand over editing is above the draft. A member who is not the editor sees Ask for this draft
-      there instead, which only prompts the editor.
+      Hand over editing is above the draft, once someone else has joined the publication. A member
+      who is not the editor sees Ask for this draft there instead, which only prompts the editor.
     </p>
     <p class="mb-2">
       Send for review is at the top of the Reviews tab. A snapshot is a frozen copy of the title and

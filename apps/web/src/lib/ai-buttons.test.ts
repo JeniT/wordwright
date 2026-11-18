@@ -41,8 +41,18 @@ describe('AI buttons', () => {
       'views/BrainstormView.vue',
       'views/EditorView.vue',
     ])
+    // A caller uses AiButton itself, or one of these components, each of which is its AI button and nothing else.
+    const wrappers = ['CritiqueControl']
+    for (const name of wrappers) {
+      const text = readFileSync(join(src, `components/${name}.vue`), 'utf8')
+      expect(text, name).toMatch(/^import AiButton from '\.\/AiButton\.vue'$/m)
+    }
+    const aiButton = new RegExp(
+      `^import (AiButton|${wrappers.join('|')}) from '(\\.\\./components|\\.)/(AiButton|${wrappers.join('|')})\\.vue'$`,
+      'm',
+    )
     for (const { file, text } of callers) {
-      expect(text, file).toMatch(/^import AiButton from '(\.\.\/components|\.)\/AiButton\.vue'$/m)
+      expect(text, file).toMatch(aiButton)
     }
   })
 

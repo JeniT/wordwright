@@ -92,7 +92,7 @@ The principles (they are the point of the pattern; keep them when you add a page
 **The Breadcrumb** (`components/Breadcrumb.vue`, trail from `crumbs` in `lib/nav.ts`) is Publication › Idea; Publication ›
 Settings; Account. Every crumb is a link, the page you are on is left to its heading, and there is no Home crumb. On a
 desktop `StepHeading` shows it above the title; on a phone it is row two of the top bar and the in-page one is hidden, so
-a page never shows two. Long names truncate one by one, the last crumb getting room first.
+a page never shows two. The last crumb gets most of the room; an earlier one keeps its whole name when short and is cut off at its share of 40% of the line when long, so it never shrinks to a letter or two.
 
 **How a page joins the menu.** Give its route `meta: { level: 'publication' | 'idea' | 'account', step: '<key>' }` in `router.ts`
 (`step` is a key from `PUBLICATION_STEPS`/`IDEA_STEPS`, or from `ACCOUNT_PAGES`/`PUBLICATION_SETTINGS_PAGES`, in `lib/nav.ts`). Sub-pages of a step

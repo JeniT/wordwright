@@ -123,8 +123,9 @@ fits a 390px phone. Order, top to bottom: the **current wording** (editable; a l
 then **Cancel** and **Use this**. Nothing leaves the window until Use this.
 
 **Rephrase title** (#163) sits beside the title field (the title wraps above it on a phone) and opens the same window, headed
-"Rephrase the title", with no selection step. While the draft is too short it is disabled and the line under the title says
-"Write more first. Options for a title come from what you've written."
+"Rephrase the title", with no selection step. While the draft is too short it is `aria-disabled`, not `disabled`, so it stays in the tab order with the reason as its
+description ("Write at least 300 words first. Options for a title come from your draft."); pressing it shows that line
+under the title, as the toolbar's buttons do.
 
 - **Short wording** (a title, or up to 25 words) shows its options as a **list**: each row is the option and a
   `btn btn-sm btn-outline` **Replace wording** button, which puts it in the wording field. **Longer wording** shows a

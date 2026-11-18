@@ -1630,13 +1630,31 @@ describe('what the editing page says, and where', () => {
     )
   })
 
-  it('keeps Critique in the Comments tab, where the empty text points, not under the draft (#428)', async () => {
+  it('puts Critique under the draft, before Publish, until the first critique, where the empty text points', async () => {
     mockEditor(() => new Response(null))
+    await renderAt('/p/p1/drafts/d1')
+    const region = await screen.findByRole('region', { name: 'Critique' })
+    const button = within(region).getByRole('button', { name: 'Critique' })
+    expect(button.closest('article')).not.toBeNull()
+    expect(button.closest('[role="tabpanel"]')).toBeNull()
+    expect(region).toHaveTextContent('0 of 3 critiques used')
+    await showTab('Comments')
+    expect(screen.getAllByRole('button', { name: 'Critique' })).toHaveLength(1)
+    // Before Publish in the page (and so in tab order).
+    const publish = screen.getByRole('button', { name: 'Copy' })
+    expect(button.compareDocumentPosition(publish) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(
+      await screen.findByText(/No comments yet\. Press Critique under your draft/),
+    ).toBeInTheDocument() // once the comments have loaded
+  })
+
+  it('moves Critique to the end of the Comments tab once there has been one, so the comments come first (#428)', async () => {
+    mockEditor(() => new Response(null), undefined, { used: 1, allowed: 3 })
     await renderAt('/p/p1/drafts/d1')
     const button = await findCritique()
     expect(button.closest('[role="tabpanel"]')).toHaveAccessibleName(/^Comments/)
     expect(button.closest('article')).toBeNull()
-    expect(await screen.findByText(/No comments yet\. Press Critique below/)).toBeInTheDocument() // once the comments have loaded
+    expect(screen.queryByRole('region', { name: 'Critique' })).toBeNull()
   })
 
   it('keeps the explanations behind info icons while tutorial mode is off', async () => {
@@ -1648,7 +1666,7 @@ describe('what the editing page says, and where', () => {
     )
     expect(
       screen.getByRole('button', { name: 'About rephrasing the title' }),
-    ).toHaveAccessibleDescription(/ask your AI for title options/)
+    ).toHaveAccessibleDescription(/AI can offer title options drawn from your draft/)
   })
 
   it('puts each icon beside its own button, and none on a line of its own', async () => {
@@ -1673,7 +1691,7 @@ describe('what the editing page says, and where', () => {
     tutorial(true)
     await renderAt('/p/p1/drafts/d1')
     expect(await screen.findByText(/a limited number of times for a draft/)).toBeInTheDocument()
-    expect(screen.getByText(/ask your AI for title options/)).toBeInTheDocument()
+    expect(screen.getByText(/AI can offer title options drawn from your draft/)).toBeInTheDocument()
     expect(screen.queryByText(/Comment is for the words/)).toBeNull()
     expect(screen.queryByText(/Add a note to the paragraph you are in/)).toBeNull()
     expect(screen.queryByText(/Add a link to something you have read/)).toBeNull()

@@ -182,7 +182,7 @@ defineExpose({
     <QueryState :query="query" what="the comments">
       <p v-if="!comments.length && !round && !pending" class="text-sm text-ink-soft">
         <template v-if="isEditor">
-          No comments yet. Press Critique below, or select words and press Comment.
+          No comments yet. Press Critique under your draft, or select words and press Comment.
         </template>
         <template v-else> You haven’t commented yet. Select words and press Comment. </template>
       </p>

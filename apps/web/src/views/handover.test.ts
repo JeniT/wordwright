@@ -33,7 +33,10 @@ const state = (over: object = {}) => ({
 })
 
 /** The draft page as `me` sees it: `role` in the publication, `editor` as the draft's editor, `handover` as the server has it. */
-function mockPage(me: typeof ada, { role = 'member', editor = 'u1', handover = state() } = {}) {
+function mockPage(
+  me: typeof ada,
+  { role = 'member', editor = 'u1', handover = state(), solo = false } = {},
+) {
   const calls: { method: string; path: string; body?: unknown }[] = []
   const record =
     (method: string) =>
@@ -56,11 +59,13 @@ function mockPage(me: typeof ada, { role = 'member', editor = 'u1', handover = s
           siteIconUrl: null,
           description: null,
           role,
-          members: [
-            { ...ada, role: 'owner' },
-            { ...bob, role: 'member' },
-            { ...cy, role: 'member' },
-          ],
+          members: solo
+            ? [{ ...ada, role: 'owner' }]
+            : [
+                { ...ada, role: 'owner' },
+                { ...bob, role: 'member' },
+                { ...cy, role: 'member' },
+              ],
         },
       ]),
     ),
@@ -93,6 +98,14 @@ function mockPage(me: typeof ada, { role = 'member', editor = 'u1', handover = s
 }
 
 describe('handing a draft over (#155)', () => {
+  it('offers no Hand over button to a writer alone in the publication, since there is no one to hand to', async () => {
+    mockPage(ada, { role: 'owner', solo: true })
+    await renderAt('/p/p1/drafts/d1')
+    await screen.findByRole('textbox', { name: 'Draft body' })
+    await screen.findByRole('group', { name: 'Handover' })
+    expect(screen.queryByRole('button', { name: 'Hand over editing' })).toBeNull()
+  })
+
   it('lets the editor offer the draft to a named member, and says they are emailed and choose whether to accept', async () => {
     const calls = mockPage(ada, { role: 'owner' })
     await renderAt('/p/p1/drafts/d1')

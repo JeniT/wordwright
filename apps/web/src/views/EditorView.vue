@@ -1,13 +1,22 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, onBeforeUnmount, ref, shallowRef, useTemplateRef, watch, watchEffect } from 'vue'
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  ref,
+  shallowRef,
+  useTemplateRef,
+  watch,
+  watchEffect,
+} from 'vue'
 import Explain from '../components/Explain.vue'
 import Icon from '../components/Icon.vue'
 import SaveStatus from '../components/SaveStatus.vue'
 import PersonChip from '../components/PersonChip.vue'
 import PublishedChip from '../components/PublishedChip.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import AiButton from '../components/AiButton.vue'
+import CritiqueControl from '../components/CritiqueControl.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import DraftNotes from '../components/DraftNotes.vue'
 import { useHandover } from '../lib/draft-people'
@@ -365,8 +374,17 @@ const titleProblem = computed(() => {
   }
   return wordingProblem('title', title.value)
 })
+/** Why Rephrase title did nothing when pressed, said under it (the button stays reachable, so its reason can be heard). */
+const titleReason = ref('')
+watch(titleProblem, (problem) => {
+  if (!problem) titleReason.value = ''
+})
 function openTitleRephrase() {
-  if (titleProblem.value) return
+  if (titleProblem.value) {
+    titleReason.value = titleProblem.value
+    return
+  }
+  titleReason.value = ''
   rephraseNotice.value = ''
   rephrasing.value = { kind: 'title', text: title.value }
 }
@@ -468,9 +486,18 @@ const comments = computed(() => commentList.data.value ?? [])
 const critique = useMutation({
   mutationFn: () => api.critique(props.publicationId, props.id),
   onSuccess: async (state) => {
+    // The first critique moves the button from under the draft to the Comments tab, so focus follows it there
+    // rather than being lost with the button.
+    const fromUnderDraft = critiqueUnderDraft.value
     queryClient.setQueryData(queryKeys.critique(props.publicationId, props.id), state)
     await invalidateRoots(queryClient, 'comments')
     activePointId.value = null
+    if (fromUnderDraft && sideIsBeside()) {
+      await nextTick()
+      document
+        .querySelector<HTMLElement>('#draft-notes [role="tab"][aria-selected="true"]')
+        ?.focus()
+    }
   },
   // Whatever came back (comments, or why not) is shown, even on a phone where the comments are in the drawer.
   onSettled: async () => {
@@ -542,7 +569,8 @@ async function startComment() {
 }
 const round = computed(() => lastCritique.data.value?.round)
 const looks = computed(() => lastCritique.data.value)
-const outOfLooks = computed(() => !!looks.value && looks.value.used >= looks.value.allowed)
+/** No critique yet: the button is under the draft. (Until that is known, it is in the Comments tab, as it was.) */
+const critiqueUnderDraft = computed(() => looks.value?.used === 0)
 const commentsPanel = useTemplateRef<InstanceType<typeof CommentsPanel>>('commentsPanel')
 const activePointId = ref<string | null>(null)
 /** The words of each comment's paragraph as the text has it now; a comment whose paragraph is gone is not in it. */
@@ -622,10 +650,11 @@ async function requestCritique() {
 
 <template>
   <QueryState :query="draft" what="this draft">
-    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-10">
-      <!-- With comments marked in the text, room below the end so that even the last paragraph can scroll to the top. -->
+    <div class="lg:grid lg:grid-cols-[minmax(0,36rem)_22rem] lg:items-start lg:gap-10">
+      <!-- With comments marked in the text, room below the end so that even the last paragraph can scroll to the top.
+           36rem keeps the draft's lines to about 80 characters, a comfortable measure for reading your own words. -->
       <article
-        class="min-w-0 max-w-2xl"
+        class="min-w-0 max-w-[36rem]"
         :class="markPoints.length ? 'pb-[60vh]' : ''"
         @focusin="noteFocus"
         @focusout="canEdit && quietly()"
@@ -667,7 +696,7 @@ async function requestCritique() {
         <label class="sr-only" for="title">Title</label>
         <div
           class="flex flex-wrap items-center gap-x-3 gap-y-2"
-          :class="canEdit && titleProblem ? 'mb-2' : 'mb-6'"
+          :class="canEdit && titleReason ? 'mb-2' : 'mb-6'"
         >
           <TitleField
             id="title"
@@ -677,23 +706,29 @@ async function requestCritique() {
             placeholder="Title"
             @enter="editor?.focusStart()"
           />
+          <!-- Not `disabled`: it stays reachable, and pressing it says why it can't help yet (as the toolbar's do). -->
           <button
             v-if="canEdit"
             type="button"
             class="btn btn-outline"
-            :disabled="!!titleProblem"
+            :aria-disabled="titleProblem ? true : undefined"
             :aria-describedby="titleProblem ? 'title-rephrase-hint' : undefined"
             @click="openTitleRephrase"
           >
             Rephrase title
           </button>
           <Explain v-if="canEdit" label="About rephrasing the title" class="-ml-2">
-            You can ask your AI for title options here. The
-            <Icon name="ai" class="inline align-text-bottom" /> button in the toolbar also enables
-            you to ask your AI for options for rephrasing text you select in your draft.
+            Your AI can offer title options drawn from your draft. To rephrase words in the draft,
+            select them and press <Icon name="ai" class="inline align-text-bottom" /> in the
+            toolbar.
           </Explain>
         </div>
-        <p v-if="canEdit && titleProblem" id="title-rephrase-hint" class="text-sm text-ink-soft">
+        <!-- Read out as the button's description; shown only once the button was pressed and couldn't help. -->
+        <p
+          v-if="canEdit && titleProblem"
+          id="title-rephrase-hint"
+          :class="titleReason ? 'mb-6 text-sm text-ink-soft' : 'sr-only'"
+        >
           {{ titleProblem }}
         </p>
 
@@ -739,7 +774,18 @@ async function requestCritique() {
           <NewTabLink to="/help/formatting" class="underline">Formatting and shortcuts</NewTabLink>
         </p>
 
-        <!-- Critique is in the Comments tab; this button is for the width where the panel is neither beside nor a tab. -->
+        <!-- Until the first critique it sits under the words it reads, before Publish; after that it is at the end of
+             the Comments tab, so the writer meets the comments before asking again. -->
+        <section
+          v-if="canEdit && draft.data.value?.ideaId && critiqueUnderDraft"
+          aria-label="Critique"
+          class="mt-6 border-t border-line pt-4"
+          data-testid="critique-under-draft"
+        >
+          <CritiqueControl :busy="critiquing" :looks="looks" @critique="requestCritique" />
+        </section>
+
+        <!-- This button is for the width where the panel is neither beside the draft nor a drawer from the top bar. -->
         <div
           v-if="draft.data.value?.ideaId"
           class="mt-6 border-t border-line pt-4 max-md:hidden lg:hidden"
@@ -872,44 +918,14 @@ async function requestCritique() {
               @start-comment="startComment"
             >
               <template #after>
-                <div v-if="canEdit" class="mt-6 border-t border-line pt-4">
-                  <div class="flex flex-wrap items-center gap-1">
-                    <AiButton
-                      class="btn btn-outline"
-                      :busy="critiquing"
-                      busy-text="Reading your draft…"
-                      :disabled="outOfLooks"
-                      :aria-describedby="looks ? 'critique-looks critique-sent' : 'critique-sent'"
-                      @click="requestCritique"
-                    >
-                      Critique
-                    </AiButton>
-                    <Explain label="About Critique">
-                      If you ask for a critique, your AI will give you comments on how to improve
-                      your draft. AI will always find something wrong with your text, so you can
-                      only do this a limited number of times for a draft; you can change this limit
-                      in your user settings.
-                    </Explain>
-                  </div>
-                  <p id="critique-sent" class="mt-2 text-sm text-ink-soft">
-                    Critique will send this publication’s description and this draft’s title and
-                    text to your AI. It will not send your notes.
-                  </p>
-                  <p v-if="looks" id="critique-looks" class="mt-2 text-sm text-ink-soft">
-                    <template v-if="outOfLooks">
-                      You have used your {{ looks.allowed }}
-                      {{ looks.allowed === 1 ? 'critique' : 'critiques' }} of this draft. The next
-                      step is to
-                      <RouterLink :to="{ hash: '#publish' }" class="underline" @click="closeNotes"
-                        >publish it</RouterLink
-                      >. Change how many critiques a draft gets in your
-                      <RouterLink to="/account/ai" class="underline">account settings</RouterLink>.
-                    </template>
-                    <template v-else
-                      >{{ looks.used }} of {{ looks.allowed }} critiques used</template
-                    >
-                  </p>
-                </div>
+                <CritiqueControl
+                  v-if="canEdit && !critiqueUnderDraft"
+                  class="mt-6 border-t border-line pt-4"
+                  :busy="critiquing"
+                  :looks="looks"
+                  @critique="requestCritique"
+                  @to-publish="closeNotes"
+                />
               </template>
             </CommentsPanel>
           </template>

@@ -142,6 +142,7 @@ status and `btn-sm` Approve / Decline buttons whose accessible name includes the
   Tab stays inside, Escape closes) and it closes on navigation. No shadow: separation is the scrim and a 1px `line`
   edge. The slide is 0.15s and off under reduced motion. Signed-out pages have a centred name only.
 - **Content width:** `max-w-3xl` for reading and forms; routes with `meta.wide` get `max-w-6xl` (the drafting page
-  with its notes column). Check every screen at 390px; nothing may scroll sideways.
+  with its notes column). On the drafting page the draft itself is at most 36rem wide, about 80 characters a line at
+  the draft size, beside the 22rem notes column. Check every screen at 390px; nothing may scroll sideways.
 - **Landmarks:** the side menu is the page `header`; the page content is `main`; a skip link comes first. Don't add a
   second `aside` for the menu: tests and screen-reader users find the drafting notes by that landmark.

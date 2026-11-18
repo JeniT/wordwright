@@ -354,10 +354,17 @@ describe('EditorView: Rephrase', () => {
       mockDraft()
       await renderAt('/p/p1/drafts/d1')
       const button = await titleButton()
-      expect(button).toBeDisabled()
+      // Reachable, so its reason can be heard; not shown until it is pressed.
+      expect(button).toBeEnabled()
+      expect(button).toHaveAttribute('aria-disabled', 'true')
       expect(button).toHaveAccessibleDescription(
         'Write at least 300 words first. Options for a title come from your draft.',
       )
+      const reason = document.getElementById('title-rephrase-hint')!
+      expect(reason).toHaveClass('sr-only')
+      await fireEvent.click(button)
+      expect(reason).not.toHaveClass('sr-only')
+      expect(screen.queryByRole('dialog', { name: 'Rephrase the title' })).toBeNull()
     })
 
     it('is not offered to someone who cannot change the draft', async () => {
@@ -373,7 +380,7 @@ describe('EditorView: Rephrase', () => {
     it('asks about the title with no selection, sets the title from the chosen option, saves and records it', async () => {
       const { saved, recorded, asked } = mockDraft(testUser, { body: LONG })
       await renderAt('/p/p1/drafts/d1')
-      await waitFor(async () => expect(await titleButton()).toBeEnabled())
+      await waitFor(async () => expect(await titleButton()).not.toHaveAttribute('aria-disabled'))
       await fireEvent.click(await titleButton())
 
       const dialog = await screen.findByRole('dialog', { name: 'Rephrase the title' })
@@ -410,7 +417,7 @@ describe('EditorView: Rephrase', () => {
     it('leaves the title alone, and returns to the button, when cancelled', async () => {
       const { saved, recorded } = mockDraft(testUser, { body: LONG })
       await renderAt('/p/p1/drafts/d1')
-      await waitFor(async () => expect(await titleButton()).toBeEnabled())
+      await waitFor(async () => expect(await titleButton()).not.toHaveAttribute('aria-disabled'))
       ;(await titleButton()).focus()
       await fireEvent.click(await titleButton())
       await fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))

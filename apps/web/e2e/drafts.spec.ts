@@ -187,7 +187,7 @@ test('register, write, save and request a critique', async ({ page }) => {
 
   await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
 
-  // Critique is in the Comments tab beside the draft, not under it.
+  // Before the first critique, Critique is under the draft (after that, at the end of the Comments tab).
   await page
     .getByRole('complementary')
     .getByRole('tab', { name: /^Comments/ })
@@ -468,12 +468,16 @@ test('rephrases the title once the draft is long enough, and records the option 
   await bodyBox.click()
   await page.keyboard.type('The river bends because the outside bank erodes faster.')
 
-  // Too little written: the button waits and says what to do.
+  // Too little written: the button stays reachable, and pressing it says what to do instead of opening.
   const rephraseTitle = page.getByRole('button', { name: 'Rephrase title' })
-  await expect(rephraseTitle).toBeDisabled()
+  await expect(rephraseTitle).toHaveAttribute('aria-disabled', 'true')
+  await expect(rephraseTitle).toHaveAccessibleDescription(/Write at least 300 words first/)
+  await rephraseTitle.focus() // in the tab order, unlike a disabled button
+  await page.keyboard.press('Enter')
   await expect(
     page.getByText('Write at least 300 words first. Options for a title come from'),
   ).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 
   // Enough written (typing 300 words one key at a time is slow, so paste them in).
   const words = Array.from({ length: 310 }, (_, i) => `word${i}`).join(' ')
@@ -484,7 +488,7 @@ test('rephrases the title once the draft is long enough, and records the option 
       new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
     )
   }, words)
-  await expect(rephraseTitle).toBeEnabled()
+  await expect(rephraseTitle).not.toHaveAttribute('aria-disabled')
   await rephraseTitle.click()
 
   const dialog = page.getByRole('dialog', { name: 'Rephrase the title' })
@@ -632,7 +636,7 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   await expect(more).toBeFocused()
 })
 
-test('the Critique tip fits inside the side panel, and its tutorial text goes under the button (#428)', async ({
+test('the Critique tip fits on screen under the draft, and its tutorial text goes under the button (#428)', async ({
   page,
 }) => {
   await registerUser(page)
@@ -641,32 +645,31 @@ test('the Critique tip fits inside the side panel, and its tutorial text goes un
   await goTo(page, 'Draft')
   await page.getByRole('button', { name: 'New draft' }).click()
   await page.getByLabel('Title', { exact: true }).fill('Why rivers meander')
-  const side = page.getByRole('complementary')
-  await side.getByRole('tab', { name: /^Comments/ }).click()
+  // Before the first critique the button is under the draft, before Publish, with the count beside it.
+  const region = page.getByRole('region', { name: 'Critique' })
+  await expect(region).toContainText('0 of 3 critiques used')
 
   // A new account has tutorial mode on: the text is written out, full width, under the button.
-  const critique = side.getByRole('button', { name: 'Critique', exact: true })
-  const note = side.getByText(/your AI will give you comments on how to improve/)
+  const critique = region.getByRole('button', { name: 'Critique', exact: true })
+  const note = region.getByText(/your AI will give you comments on how to improve/)
   await expect(note).toBeVisible()
   expect((await note.boundingBox())!.y).toBeGreaterThan((await critique.boundingBox())!.y)
-  const panel = (await side.boundingBox())!
-  expect((await note.boundingBox())!.width).toBeGreaterThan(panel.width / 2)
+  expect((await note.boundingBox())!.width).toBeGreaterThan((await region.boundingBox())!.width / 2)
+  expect((await note.boundingBox())!.y).toBeLessThan(
+    (await page.getByRole('heading', { name: 'Publish' }).boundingBox())!.y,
+  )
 
-  // With it off, the icon's tip opens inside the panel.
+  // With it off, the icon's tip opens on screen, even on a narrow phone.
   const res = await page.request.put('/api/account/tutorial', { data: { on: false } })
   expect(res.ok()).toBe(true)
-  // On a narrow phone the panel is a drawer only 288px wide, narrower than the tip's usual width.
   await page.setViewportSize({ width: 320, height: 700 })
   await page.reload()
-  await page.getByRole('button', { name: 'Draft panel' }).click()
-  await side.getByRole('tab', { name: /^Comments/ }).click()
-  await side.getByRole('button', { name: 'About Critique' }).hover()
-  const tip = side.getByRole('tooltip')
+  await region.getByRole('button', { name: 'About Critique' }).hover()
+  const tip = page.getByRole('tooltip')
   await expect(tip).toBeVisible()
   const box = (await tip.boundingBox())!
-  const inside = (await side.boundingBox())!
-  expect(box.x).toBeGreaterThanOrEqual(inside.x)
-  expect(box.x + box.width).toBeLessThanOrEqual(inside.x + inside.width)
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(320)
 })
 
 test('a draft opened by its address says it is loading, then shows the draft (#433)', async ({

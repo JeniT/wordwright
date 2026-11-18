@@ -184,7 +184,7 @@ test('the editor offers a draft; the member declines once and accepts the next t
   await expect(page.getByRole('button', { name: 'Hand over editing', exact: true })).toBeVisible()
   await offer()
   // Bob is told on the draft page and declines.
-  // Critique is in the Comments tab, so the editor's tools show once it is open.
+  // The editor's tools: Critique is under the draft until the first critique.
   await page
     .getByRole('complementary')
     .getByRole('tab', { name: /^Comments/ })
