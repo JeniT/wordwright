@@ -62,6 +62,14 @@ only through the web app's build tooling (`vue-router` > `unplugin`), which hand
 nothing of it is in the built bundle or the API. **Remove the ignore as soon as a patched `picomatch` is released**
 (then update the lockfile); deleting the entry and running `pnpm audit --prod` shows when that is.
 
+### Forced versions
+
+`pnpm-workspace.yaml` `overrides` force `glob` ^14.0.2 and `minimatch` ^11.0.1 (moderate advisories GHSA-3g3m-2fjr-6pw4
+and GHSA-g3hv-75wg-m249). Patched versions exist, but `js-beautify` and `editorconfig` (under `@vue/test-utils`) and
+`typescript-estree` (under typescript-eslint) pin older majors, so Dependabot reported `security_update_not_possible`.
+All of them are dev-only (tests and lint). **Remove an override once every parent asks for a patched version**
+(delete it, run `pnpm install` and `pnpm audit`; the audit shows when it is safe).
+
 ## Licences
 
 `scripts/check-licences.mjs` is the source of truth for this list. `pnpm check` runs it, and it fails when anything shipped (`pnpm licenses list --prod`)
