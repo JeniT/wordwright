@@ -13,3 +13,8 @@ allowBuilds:
 auditConfig:
   ignoreGhsas:
     - GHSA-fc5q-39xc-vjpf
+# Patched glob and minimatch exist but their parents (js-beautify, editorconfig, typescript-estree) pin older majors;
+# see "Forced versions" in docs/dependencies.md.
+overrides:
+  glob: ^14.0.2
+  minimatch: ^11.0.1
