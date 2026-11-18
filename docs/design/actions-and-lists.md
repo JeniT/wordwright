@@ -107,12 +107,18 @@ lines; the actions stay top-right (a reading item's are behind “…”, above)
 puts the buttons at the top of the row, not centred. Where a note came from (“From” and the page's title as a link that opens in a new tab,
 “From” and “conversation with your AI” (or “their AI”) as a link to the idea's Refine page, “Added”, then, on the line below, the name of the person who took it) is `meta` text in a column at the right, under
 the row's buttons on the Note pages and alone on rows with no buttons (Recent notes, an article's notes); on a phone
-it wraps under the note. It does not say the page's authors (the article's page does) or whether the note is a
+it wraps under the note. On the Note pages a writer alone in the publication is not told that they added their own typed notes
+(“Added” and their own name): there is no one else it could have been, so that note has no origin line at all; once
+someone else joins, every note says who took it. It does not say the page's authors (the article's page does) or whether the note is a
 quotation (its mark does). Tags stay under the note's text. A **quotation** is set apart by a `quote-mark`, a large
 opening curly quote hanging before its first line. It is bare, with no box, so it is never mistaken for a control beside
 the select box (hidden from screen readers: the text is in a `blockquote`). It is never a left border. The Note page's
 own form is above the list and puts a new note first;
-notes that arrive any other way go last.
+notes that arrive any other way go last. Ctrl or ⌘ and Enter adds the note. If it can't be saved, the box says so as an
+error (danger colour, an alert, the field marked invalid) and that the words are still there; a server that gives no
+reason gets "We couldn't save your note", never its status code. Escape leaves an edit at once only when nothing was
+changed; with changes it stays open and says to press Save note or Cancel. **Merge** stays reachable while it can't be
+used (`aria-disabled`, its reason as a `v-tip` and its description) and, pressed, says why under the list.
 
 **Posts from the feeds (`RecentPostRow`).** The Scan page's Recent posts and the Scan panel on a publication's landing page
 show the same row, so a post looks and works the same wherever it turns up. The decision is two icon buttons, a **tick**

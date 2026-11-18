@@ -1285,7 +1285,9 @@ describe('idea page', () => {
         'A quote from the paper.',
       ])
       const items = within(region()).getAllByRole('listitem')
-      expectOrigin(items[0]!, 'Added', 'Ada')
+      // Ada is alone in the publication: her own typed note doesn't say she added it.
+      expect(items[0]).not.toHaveTextContent('Added')
+      expect(within(items[0]!).queryByText('Ada')).toBeNull()
       expectOrigin(items[1]!, 'From conversation with your AI', 'Ada')
       // It goes to this idea’s Refine page.
       const chat = within(items[1]!).getByRole('link', { name: 'conversation with your AI' })
@@ -1294,6 +1296,38 @@ describe('idea page', () => {
       // One plain list, with no choice of layout.
       expect(items[0]!.closest('ol')).not.toHaveClass('grid')
       expect(within(region()).queryByRole('group', { name: 'Show notes as' })).toBeNull()
+    })
+
+    it('says who added a typed note once someone else is in the publication', async () => {
+      fakeNotes()
+      // Its own handlers, not `open`'s, so that this list of publications (with Bob) is the one answered.
+      server.use(
+        signedInAs(testUser),
+        http.get('*/api/publications', () =>
+          HttpResponse.json([
+            {
+              ...publication,
+              members: [
+                ...publication.members,
+                {
+                  userId: 'u2',
+                  name: 'Bob',
+                  handle: 'bob',
+                  email: 'bob@example.com',
+                  role: 'member',
+                },
+              ],
+            },
+          ]),
+        ),
+        http.get(ideaUrl, () => HttpResponse.json(idea)),
+        http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+      )
+      await renderAt('/p/ada-substack/ideas/i1/notes')
+      await screen.findByText('Erosion loops.')
+      await waitFor(() =>
+        expectOrigin(within(region()).getAllByRole('listitem')[0]!, 'Added', 'Ada'),
+      )
     })
 
     it('offers no Edit for a direct quotation, and sets it apart; it can still be deleted', async () => {
@@ -1445,8 +1479,36 @@ describe('idea page', () => {
       const box = await screen.findByRole('textbox', { name: 'Note' })
       await fireEvent.update(box, 'One too many')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
-      expect(await screen.findByText('An idea can have up to 200 notes.')).toBeInTheDocument()
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('An idea can have up to 200 notes.')
+      expect(alert).toHaveTextContent('Your words are still in the box')
+      expect(box).toHaveAttribute('aria-invalid', 'true')
       expect(box).toHaveValue('One too many')
+    })
+
+    it('says plainly that a note wasn’t saved when the server gives no reason, never its status code', async () => {
+      fakeNotes()
+      server.use(http.post(notesUrl, () => new HttpResponse(null, { status: 500 })))
+      await open()
+      const box = await screen.findByRole('textbox', { name: 'Note' })
+      await fireEvent.update(box, 'Lost?')
+      await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent(
+        'We couldn’t save your note. Your words are still in the box: check your connection, then press Add note again.',
+      )
+      expect(alert).not.toHaveTextContent('500')
+      expect(box).toHaveValue('Lost?')
+    })
+
+    it('adds the note with Ctrl or ⌘ and Enter', async () => {
+      fakeNotes()
+      await open()
+      const box = await screen.findByRole('textbox', { name: 'Note' })
+      await fireEvent.update(box, 'Quick one.')
+      await fireEvent.keyDown(box, { key: 'Enter', ctrlKey: true })
+      expect(await screen.findByText('Quick one.')).toBeInTheDocument()
+      await waitFor(() => expect(box).toHaveValue(''))
     })
 
     describe('editing', () => {
@@ -1484,8 +1546,22 @@ describe('idea page', () => {
         const box = await edit()
         await fireEvent.update(box, 'x')
         await fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
-        expect(await screen.findByText('Write something in the note')).toBeInTheDocument()
+        expect(await screen.findByRole('alert')).toHaveTextContent('Write something in the note')
         expect(box).toHaveValue('x')
+      })
+
+      it('keeps a changed note open on Escape, and says how to keep or drop the changes', async () => {
+        const state = fakeNotes()
+        await open()
+        const box = await edit()
+        await fireEvent.update(box, 'Half a thought')
+        await fireEvent.keyDown(box, { key: 'Escape' })
+        expect(
+          await screen.findByText(/Press Save note to keep the changes, or Cancel to drop them/),
+        ).toBeInTheDocument()
+        expect(box).toHaveValue('Half a thought')
+        expect(screen.getByRole('button', { name: 'Save note' })).toBeInTheDocument()
+        expect(state.sent).toEqual([])
       })
 
       it('cancels without saving, with the Escape key too', async () => {
@@ -1864,9 +1940,15 @@ describe('idea page', () => {
         await screen.findByText('Only one.')
         expect(screen.queryByRole('button', { name: 'Merge' })).toBeNull()
         await fireEvent.click(tick('Only one'))
-        expect(merge()).toBeDisabled()
+        // Reachable, so its reason can be heard; pressing it says why instead of merging.
+        expect(merge()).toHaveAttribute('aria-disabled', 'true')
+        expect(merge()).toHaveAccessibleDescription(/Select two or more notes/)
+        await fireEvent.click(merge())
+        expect(
+          await screen.findByText(/Select two or more notes/, { selector: 'p[role="status"]' }),
+        ).toBeInTheDocument()
         await fireEvent.click(tick('Another'))
-        expect(merge()).toBeEnabled()
+        expect(merge()).not.toHaveAttribute('aria-disabled')
       })
 
       it('merges the selected notes into one, and clears the selection', async () => {
@@ -1891,11 +1973,8 @@ describe('idea page', () => {
         await screen.findAllByRole('checkbox', { name: /^Select note/ })
         await fireEvent.click(tick('Erosion'))
         await fireEvent.click(tick('Exact'))
-        expect(merge()).toBeDisabled()
-        expect(merge()).toHaveAttribute(
-          'title',
-          expect.stringMatching(/Quotations must stay as written/),
-        )
+        expect(merge()).toHaveAttribute('aria-disabled', 'true')
+        expect(merge()).toHaveAccessibleDescription(/Quotations must stay as written/)
       })
 
       it("shows the server's reason when notes can't be merged, and keeps the choice", async () => {

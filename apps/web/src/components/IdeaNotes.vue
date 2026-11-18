@@ -3,9 +3,11 @@ import { useMutation } from '@tanstack/vue-query'
 import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Article, IdeaNote } from '@wordwright/core'
-import { api, errorMessage } from '../lib/api'
+import { ApiError, api, errorMessage } from '../lib/api'
 import { noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
+import { usePublication } from '../lib/usePublications'
+import { vTip } from '../lib/tip'
 import { useIdeaNotes } from '../lib/queries'
 import { orderWithHidden, tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import { useMove, useMoveDestination } from '../lib/move'
@@ -68,6 +70,24 @@ const add = useMutation({
     addBox.value?.querySelector('textarea')?.focus()
   },
 })
+/**
+ * Why a note wasn't saved, and that the words are safe. A server that gives no reason (a 5xx, a dropped connection)
+ * gets plain words instead of its status code.
+ */
+function notSaved(err: unknown, action: string) {
+  const reason =
+    err instanceof ApiError && err.status < 500 && !err.message.startsWith('Request failed')
+      ? err.message
+      : 'We couldn’t save your note.'
+  return `${reason} Your words are still in the box: check your connection, then press ${action} again.`
+}
+const addProblem = computed(() => (add.isError.value ? notSaved(add.error.value, 'Add note') : ''))
+/** Ctrl or ⌘ and Enter adds the note, as it sends a message elsewhere. */
+function addOnShortcut(event: KeyboardEvent) {
+  if (!(event.metaKey || event.ctrlKey) || event.key !== 'Enter') return
+  event.preventDefault()
+  if (draft.value.trim() && !add.isPending.value) add.mutate()
+}
 
 // ---- each note's “…” button, to give focus back to when its edit form or tag field closes
 const menus = new Map<string, InstanceType<typeof ActionMenu>>()
@@ -90,9 +110,21 @@ const {
 
 function startEditing(note: IdeaNote) {
   save.reset()
+  escapeNotice.value = ''
   editText.value = note.text
   return start(note.id)
 }
+/**
+ * Escape leaves an unchanged note at once; with changes it stays open and says how to keep or drop them, so a stray
+ * Escape never throws away what was typed.
+ */
+const escapeNotice = ref('')
+function escapeEditing(note: IdeaNote) {
+  if (editText.value.trim() === note.text.trim()) return void stopEditing()
+  escapeNotice.value =
+    'You have changed this note. Press Save note to keep the changes, or Cancel to drop them.'
+}
+watch(editingId, () => (escapeNotice.value = ''))
 const save = useMutation({
   // Only a changed text is sent; tags are set on their own, under each note.
   mutationFn: async (note: IdeaNote) =>
@@ -144,6 +176,17 @@ const mergeHint = computed(() =>
       ? 'Select two or more notes to join into one. It goes where the first of them is.'
       : 'Join the selected notes into one. It goes where the first of them is.',
 )
+/** Merge stays reachable while it can't be used; pressing it then says why (under the list). */
+const mergeReason = ref('')
+watch(chosenIds, () => (mergeReason.value = ''))
+function pressMerge() {
+  if (!canMerge.value) {
+    mergeReason.value = mergeHint.value
+    return
+  }
+  mergeReason.value = ''
+  merge.mutate()
+}
 const merge = useMutation({
   mutationFn: () => api.mergeIdeaNotes(props.publicationId, props.ideaId, chosenIds.value),
   onSuccess: async (all) => {
@@ -400,6 +443,13 @@ function moveNote(note: IdeaNote, putAway: () => void) {
   putAway()
   startMovingOne(note)
 }
+// ---- where a note came from. A writer alone in the publication isn't told that they added their own typed notes:
+// there is no one else it could have been.
+const { publication } = usePublication(() => props.publicationId)
+const alone = computed(() => publication.value?.members.length === 1)
+function showsOrigin(note: IdeaNote) {
+  return !(alone.value && note.origin === 'entered' && note.authorId === session.user?.id)
+}
 const label = (note: IdeaNote) => {
   const first = note.text.split('\n', 1)[0]!
   return `note “${first.length > 40 ? `${first.slice(0, 40)}…` : first}”`
@@ -418,13 +468,13 @@ const label = (note: IdeaNote) => {
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
     <QueryState :query="notes" what="the notes" loading="Loading notes…">
-      <form ref="addBox" class="mb-6" @submit.prevent="add.mutate()">
+      <form ref="addBox" class="mb-6" @submit.prevent="add.mutate()" @keydown.enter="addOnShortcut">
         <TextAreaField
           v-model="draft"
           label="Note"
           :rows="3"
           :maxlength="20000"
-          :hint="add.isError.value ? errorMessage(add.error.value) : undefined"
+          :error="addProblem || undefined"
         />
         <button
           type="submit"
@@ -496,14 +546,17 @@ const label = (note: IdeaNote) => {
                   Tag…
                 </button>
                 <button
+                  v-tip="mergeHint"
                   type="button"
                   class="btn btn-sm btn-neutral"
-                  :disabled="!canMerge || merge.isPending.value"
-                  :title="mergeHint"
-                  @click="merge.mutate()"
+                  :aria-disabled="canMerge ? undefined : true"
+                  :disabled="merge.isPending.value"
+                  aria-describedby="merge-hint"
+                  @click="pressMerge"
                 >
                   {{ merge.isPending.value ? 'Merging…' : 'Merge' }}
                 </button>
+                <span id="merge-hint" class="sr-only">{{ mergeHint }}</span>
                 <button type="button" class="btn btn-sm btn-neutral" @click="toggleMoving">
                   Move to…
                 </button>
@@ -568,15 +621,18 @@ const label = (note: IdeaNote) => {
               :data-edit-note="note.id"
               class="min-w-[12rem] flex-1"
               @submit.prevent="save.mutate(note)"
-              @keydown.esc="stopEditing"
+              @keydown.esc="escapeEditing(note)"
             >
               <TextAreaField
                 v-model="editText"
                 :label="`Text of ${label(note)}`"
                 :rows="4"
                 :maxlength="20000"
-                :hint="save.isError.value ? errorMessage(save.error.value) : undefined"
+                :error="save.isError.value ? notSaved(save.error.value, 'Save note') : undefined"
               />
+              <p v-if="escapeNotice" role="status" class="mb-3 -mt-2 text-sm text-ink-soft">
+                {{ escapeNotice }}
+              </p>
               <p class="mb-4 -mt-2 text-sm text-ink-soft">
                 Put the cursor where the note should be cut, then press
                 <button
@@ -661,7 +717,7 @@ const label = (note: IdeaNote) => {
                   </HoldButton>
                 </template>
               </ActionMenu>
-              <p v-if="editingId !== note.id" class="meta sm:text-right">
+              <p v-if="editingId !== note.id && showsOrigin(note)" class="meta sm:text-right">
                 <NoteOrigin
                   v-bind="noteOrigin(note, articleList, session.user?.id ?? null, refineTo)"
                   :author-name="note.authorName"
@@ -671,6 +727,9 @@ const label = (note: IdeaNote) => {
             </div>
           </template>
         </ReorderableList>
+        <p v-if="mergeReason" role="status" class="mt-2 text-sm text-ink-soft">
+          {{ mergeReason }}
+        </p>
         <p v-if="merge.isError.value" role="alert" class="mt-2 text-danger">
           {{ errorMessage(merge.error.value) }}
         </p>

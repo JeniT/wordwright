@@ -5,7 +5,7 @@ import IdeaNotes from '../components/IdeaNotes.vue'
 import NextStep from '../components/NextStep.vue'
 import StepHeading from '../components/StepHeading.vue'
 
-/** Step 02 of an idea: its notes, tagged, merged, split and put in order. */
+/** Step 03 of an idea: its notes, tagged, merged, split and put in order. */
 defineProps<{ publicationId: string; id: string }>()
 </script>
 

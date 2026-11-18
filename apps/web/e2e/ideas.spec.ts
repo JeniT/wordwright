@@ -32,8 +32,12 @@ test('captures an idea, and its first note is kept as a note', async ({ page }) 
   // The one typed when the idea was created is a card.
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByRole('listitem')).toHaveCount(1)
-  await expect(notes.getByRole('listitem').first()).toContainText('Added')
-  await expect(notes.getByRole('listitem').first().getByText('Ida', { exact: true })).toBeVisible()
+  await expect(notes.getByRole('listitem').first()).toContainText(
+    'Erosion on the outside of each bend.',
+  )
+  // Ida is alone in the publication, so her own typed note doesn't say she added it.
+  await expect(notes.getByRole('listitem').first()).not.toContainText('Added')
+  await expect(notes.getByRole('listitem').first().getByText('Ida', { exact: true })).toHaveCount(0)
 })
 
 test('develops an idea into a linked set of drafts, in an order that can be changed', async ({
