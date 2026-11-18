@@ -1,0 +1,15 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": ["src/views/publication-lists.test.ts"],
+        "createdAt": "2026-11-18T19:50:28.149Z",
+        "reason": "agent: the test asserts a quotation does NOT have border-l-4 (publication-lists.test.ts:1441)"
+      }
+    ]
+  }
+}
