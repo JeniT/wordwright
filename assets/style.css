@@ -13,6 +13,14 @@
   font-style: normal;
   font-display: swap;
 }
+/* The real italic, so emphasis in a post isn't the upright letters slanted by the browser. */
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/ibm-plex-sans-latin-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
 
 :root {
   --paper: #f8f5f1;
@@ -27,6 +35,17 @@
   --sunken: #eee8e0;
   --line-strong: #85786b;
   color-scheme: light dark;
+
+  /* Type roles: one family, hierarchy from size and weight (DESIGN.md, the One Sans rule). */
+  --font: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --size-display: clamp(2.5rem, 1.9rem + 2.6vw, 3.5rem); /* the home page's name */
+  --size-headline: clamp(2rem, 1.7rem + 1.4vw, 2.75rem); /* a page or post title */
+  --size-lead: clamp(1.3125rem, 1.2rem + 0.5vw, 1.5rem); /* the line under a title */
+  --size-title: 1.375rem; /* section headings */
+  --size-body: 1.0625rem;
+  --size-reading: 1.125rem; /* a post's text */
+  --size-meta: 0.9375rem; /* dates, bylines, notes */
+  --measure-reading: 36rem; /* about 65 characters at the reading size */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -54,9 +73,19 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-size: 1.0625rem;
+  font-family: var(--font);
+  font-size: var(--size-body);
   line-height: 1.6;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+p,
+li {
+  text-wrap: pretty;
+}
+time {
+  font-variant-numeric: tabular-nums;
 }
 
 /* As in the app: selection is the Blue Pencil highlighter, focus the 3px Ember outline. */
@@ -190,18 +219,20 @@ main {
 }
 h1,
 h2 {
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  text-wrap: balance;
 }
 h1 {
   margin: 0 0 1rem;
-  font-size: 2.25rem;
-  font-weight: 600;
+  font-size: var(--size-headline);
+  line-height: 1.1;
+  letter-spacing: -0.022em;
 }
 h2 {
   margin: 0 0 1rem;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: var(--size-title);
+  line-height: 1.25;
+  letter-spacing: -0.012em;
 }
 section {
   padding-top: 2rem;
@@ -244,13 +275,15 @@ section.hero {
 }
 .hero h1 {
   margin-bottom: 0.75rem;
-  font-size: 3rem;
-  letter-spacing: -0.025em;
+  font-size: var(--size-display);
+  line-height: 1.02;
+  letter-spacing: -0.032em;
 }
 .hero .lead {
   margin-bottom: 1.25rem;
-  font-size: 1.5rem;
+  font-size: var(--size-lead);
   line-height: 1.3;
+  letter-spacing: -0.005em;
   text-wrap: balance;
 }
 .hero-body {
@@ -265,7 +298,7 @@ section.hero {
 }
 .hero .note {
   color: var(--ink-soft);
-  font-size: 0.9375rem;
+  font-size: var(--size-meta);
 }
 
 .part {
@@ -327,8 +360,9 @@ ul.principles strong {
 .coda {
   padding-top: 1.5rem;
   border-top: 1px solid var(--line-strong);
-  font-size: 1.25rem;
-  line-height: 1.4;
+  font-size: var(--size-lead);
+  line-height: 1.35;
+  letter-spacing: -0.005em;
   text-wrap: balance;
 }
 
@@ -338,12 +372,6 @@ ul.principles strong {
   }
 }
 @media (max-width: 30rem) {
-  .hero h1 {
-    font-size: 2.5rem;
-  }
-  .hero .lead {
-    font-size: 1.3125rem;
-  }
   ul.steps li {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.125rem;
@@ -368,9 +396,6 @@ ul.principles strong {
   .hero-mark .mark {
     margin: 0;
   }
-  .hero h1 {
-    font-size: 3.5rem;
-  }
   .part {
     padding-top: 4rem;
     padding-bottom: 4rem;
@@ -378,7 +403,6 @@ ul.principles strong {
   .part h2 {
     margin: 0;
     padding-top: 0.125rem;
-    font-size: 1.375rem;
     text-align: right;
   }
   .band {
@@ -387,6 +411,7 @@ ul.principles strong {
   }
   .band h2 {
     font-size: 1.75rem;
+    letter-spacing: -0.018em;
   }
 }
 
@@ -419,38 +444,80 @@ ul.plain li {
   margin-bottom: 0.75rem;
 }
 
+/* ---- The blog: a list of titles, then each post set for reading. */
+.blog-head,
+ul.posts,
+.feed,
+.post,
+.back {
+  max-width: var(--measure-reading);
+}
 ul.posts {
   list-style: none;
   padding: 0;
+  margin: 2rem 0;
 }
 ul.posts li {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.25rem 1rem;
-  padding: 0.5rem 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--line);
+}
+ul.posts li:last-child {
   border-bottom: 1px solid var(--line);
 }
-ul.posts time,
-.byline {
+ul.posts a {
+  font-size: var(--size-title);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+ul.posts .summary {
+  margin: 0;
   color: var(--ink-soft);
 }
+ul.posts time,
+.byline,
+.feed {
+  color: var(--ink-soft);
+  font-size: var(--size-meta);
+}
+ul.posts time {
+  order: -1;
+}
 
+.post {
+  font-size: var(--size-reading);
+  line-height: 1.7;
+}
 .post h1 {
-  margin-bottom: 0.25rem;
+  margin: 0.5rem 0 0.75rem;
 }
 .post .byline {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
+}
+.post p,
+.post ol,
+.post ul {
+  margin-bottom: 1.25em;
 }
 .post ol,
 .post ul {
-  padding-left: 1.5rem;
+  padding-left: 1.25em;
 }
 .post li {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.6em;
+  padding-left: 0.25em;
+}
+.post li::marker {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
 }
 .back {
-  margin-top: 2rem;
+  margin-top: 3rem;
+  font-size: var(--size-meta);
 }
 
 .site-footer {
@@ -458,14 +525,9 @@ ul.posts time,
   padding-bottom: 2rem;
   border-top: 1px solid var(--line);
   color: var(--ink-soft);
-  font-size: 0.9375rem;
+  font-size: var(--size-meta);
 }
 
-@media (max-width: 30rem) {
-  h1 {
-    font-size: 1.875rem;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
