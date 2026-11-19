@@ -50,7 +50,7 @@ without the script (or under reduced motion, where CSS fades it in) nothing is l
     var noise = q('#burn-noise'), noise2 = q('#burn-noise-2');
     // The fire catches at (55.5, 259), just inside the base. The farthest part of the flame, the nib, is about 102
     // units away; the burnt edge ends past that, with room for the ragged edge, so everything is Ember at the end.
-    var END = 116, BAND = 16, DELAY = 400, BURN = 2800, SETTLE = 700, GHOST = 0.07;
+    var END = 116, BAND = 16, DELAY = 200, BURN = 2800, SETTLE = 700, GHOST = 0.07;
     svg.classList.add('is-burning');
     ghost.setAttribute('opacity', String(GHOST));
     done.setAttribute('r', '0');
