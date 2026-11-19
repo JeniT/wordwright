@@ -1,0 +1,83 @@
+{%- comment -%}
+The hero mark, which burns into being once when the page opens: a faint ghost of the flame, then a bright yellow
+front with a ragged, flickering edge climbs from the base to the nib and leaves Ember behind. The markup on its own
+is the finished flame, so without the script (or under reduced motion, where CSS fades it in) nothing is lost.
+{%- endcomment -%}
+<svg class="mark mark-lit mark-burn" aria-hidden="true" focusable="false" width="56" height="82" viewBox="17.6 151.3 74.6 109.2">
+  <defs>
+    <filter id="burn-edge" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feTurbulence id="burn-noise" type="fractalNoise" baseFrequency="0.09 0.05" numOctaves="2" seed="2" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="9" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+    <filter id="burn-tongues" x="-30%" y="-40%" width="160%" height="180%" color-interpolation-filters="sRGB">
+      <feTurbulence id="burn-noise-2" type="fractalNoise" baseFrequency="0.14 0.035" numOctaves="2" seed="5" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="16" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+    <filter id="burn-heat" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="0.7" />
+    </filter>
+    <linearGradient id="burn-colour" gradientUnits="userSpaceOnUse" x1="0" y1="140" x2="0" y2="140">
+      <stop offset="0" stop-color="#fff3b0" />
+      <stop offset="0.3" stop-color="#ffd23a" />
+      <stop offset="0.75" stop-color="#ffa21f" />
+      <stop offset="1" stop-color="#f06a12" />
+    </linearGradient>
+    <mask id="burn-front" maskUnits="userSpaceOnUse" x="0" y="130" width="120" height="150">
+      <rect class="burn-front-edge" x="0" y="300" width="120" height="150" fill="#fff" filter="url(#burn-tongues)" />
+      <rect class="burn-front-cut" x="0" y="300" width="120" height="160" fill="#000" filter="url(#burn-edge)" />
+    </mask>
+    <mask id="burn-done" maskUnits="userSpaceOnUse" x="0" y="130" width="120" height="150">
+      <rect class="burn-done-edge" x="0" y="120" width="120" height="160" fill="#fff" filter="url(#burn-edge)" />
+    </mask>
+  </defs>
+  <path class="burn-ghost" fill="currentColor" opacity="0" d="m 51.210261,157.11819 c 5.287843,7.56324 8.814802,13.2251 11.164743,17.33679 6.294672,11.01378 10.385296,25.04485 10.632943,36.82256 0.02071,0.98519 -1.205883,28.1997 -15.953548,28.19983 -6.865216,2.3e-4 -12.430711,-5.56503 -12.430766,-12.43025 5.5e-5,-6.86522 5.56555,-12.43048 12.430766,-12.43025 4.147185,6e-5 6.16473,0.7276 7.78247,2.29599 7.866596,-9.56725 -3.376434,-34.58509 -6.079215,-40.751 -4.830259,-11.01937 -6.072204,-13.64909 -8.68868,-18.77247 -1.472325,-2.88299 -2.225491,-2.62149 -2.042431,0.60926 1.819741,32.11584 -25.790525,46.0386 -28.215349,64.65339 -2.55192,19.59048 16.01547,35.77146 35.77146,35.77146 19.755985,0 34.561483,-16.01547 34.561483,-35.77146 0,-18.05537 -17.947842,-52.76167 -37.303657,-67.24662 -2.774615,-2.07639 -3.617708,-1.12994 -1.630219,1.71277 z" />
+  <path class="burn-flame" fill="url(#burn-colour)" mask="url(#burn-front)" filter="url(#burn-heat)" d="m 51.210261,157.11819 c 5.287843,7.56324 8.814802,13.2251 11.164743,17.33679 6.294672,11.01378 10.385296,25.04485 10.632943,36.82256 0.02071,0.98519 -1.205883,28.1997 -15.953548,28.19983 -6.865216,2.3e-4 -12.430711,-5.56503 -12.430766,-12.43025 5.5e-5,-6.86522 5.56555,-12.43048 12.430766,-12.43025 4.147185,6e-5 6.16473,0.7276 7.78247,2.29599 7.866596,-9.56725 -3.376434,-34.58509 -6.079215,-40.751 -4.830259,-11.01937 -6.072204,-13.64909 -8.68868,-18.77247 -1.472325,-2.88299 -2.225491,-2.62149 -2.042431,0.60926 1.819741,32.11584 -25.790525,46.0386 -28.215349,64.65339 -2.55192,19.59048 16.01547,35.77146 35.77146,35.77146 19.755985,0 34.561483,-16.01547 34.561483,-35.77146 0,-18.05537 -17.947842,-52.76167 -37.303657,-67.24662 -2.774615,-2.07639 -3.617708,-1.12994 -1.630219,1.71277 z" />
+  <path class="burn-ember" fill="currentColor" mask="url(#burn-done)" d="m 51.210261,157.11819 c 5.287843,7.56324 8.814802,13.2251 11.164743,17.33679 6.294672,11.01378 10.385296,25.04485 10.632943,36.82256 0.02071,0.98519 -1.205883,28.1997 -15.953548,28.19983 -6.865216,2.3e-4 -12.430711,-5.56503 -12.430766,-12.43025 5.5e-5,-6.86522 5.56555,-12.43048 12.430766,-12.43025 4.147185,6e-5 6.16473,0.7276 7.78247,2.29599 7.866596,-9.56725 -3.376434,-34.58509 -6.079215,-40.751 -4.830259,-11.01937 -6.072204,-13.64909 -8.68868,-18.77247 -1.472325,-2.88299 -2.225491,-2.62149 -2.042431,0.60926 1.819741,32.11584 -25.790525,46.0386 -28.215349,64.65339 -2.55192,19.59048 16.01547,35.77146 35.77146,35.77146 19.755985,0 34.561483,-16.01547 34.561483,-35.77146 0,-18.05537 -17.947842,-52.76167 -37.303657,-67.24662 -2.774615,-2.07639 -3.617708,-1.12994 -1.630219,1.71277 z" />
+</svg>
+<script>
+  (function () {
+    var svg = document.currentScript.previousElementSibling;
+    if (!svg || !window.requestAnimationFrame) return;
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var ghost = svg.querySelector('.burn-ghost');
+    var front = svg.querySelector('.burn-front-edge');
+    var done = svg.querySelector('.burn-done-edge');
+    var cut = svg.querySelector('.burn-front-cut');
+    var noise2 = svg.querySelector('#burn-noise-2');
+    var colour = svg.querySelector('#burn-colour');
+    var noise = svg.querySelector('#burn-noise');
+    var flame = svg.querySelector('.burn-flame');
+    // The flame runs from y 151 (nib) to 260.5 (base). The edge starts below the base and finishes above the nib,
+    // with room for the ragged edge, so nothing is burnt at the start and everything is at the end.
+    var START = 272, END = 142, BAND = 18, DELAY = 200, BURN = 1300, SETTLE = 300, GHOST = 0.07;
+    svg.classList.add('is-burning');
+    ghost.setAttribute('opacity', String(GHOST));
+    function place(y) {
+      front.setAttribute('y', y - BAND);
+      done.setAttribute('y', y);
+      cut.setAttribute('y', y);
+      colour.setAttribute('y1', y - BAND);
+      colour.setAttribute('y2', y + 2);
+    }
+    place(START);
+    // Fire catches slowly, climbs steadily, then slows as it runs out of fuel at the nib.
+    function ease(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
+    var t0 = null, lastSeed = 0, seed = 2;
+    function frame(now) {
+      if (t0 === null) t0 = now;
+      var t = now - t0 - DELAY;
+      if (t < 0) return requestAnimationFrame(frame);
+      var p = Math.min(t / BURN, 1);
+      place(START + (END - BAND - START) * ease(p));
+      if (now - lastSeed > 60) { seed = (seed % 40) + 1; noise.setAttribute('seed', seed); noise2.setAttribute('seed', seed + 7); lastSeed = now; }
+      if (p < 1) return requestAnimationFrame(frame);
+      // Burnt through: the yellow cools away and the ghost is no longer needed.
+      var s = Math.min((t - BURN) / SETTLE, 1);
+      flame.style.opacity = 1 - s;
+      ghost.setAttribute('opacity', String(GHOST * (1 - s)));
+      if (s < 1) return requestAnimationFrame(frame);
+      svg.classList.remove('is-burning');
+    }
+    requestAnimationFrame(frame);
+  })();
+</script>

@@ -181,21 +181,10 @@ main,
   transform: rotate(-7deg);
 }
 
-/* The flame lights once, rising from its base to the nib, when the page opens. Visible by default if CSS animation
-   doesn't run; under reduced motion it fades in instead. */
-.mark-lit {
-  transform-origin: 50% 100%;
-  animation: light 900ms cubic-bezier(0.16, 1, 0.3, 1) 150ms backwards;
-}
-@keyframes light {
-  from {
-    clip-path: inset(100% 0 0 0);
-    transform: scale(0.92, 0.8);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-    transform: none;
-  }
+/* The hero flame burns in once, driven by the script in _includes/mark-burn.html. The SVG on its own is the finished
+   flame; under reduced motion the script doesn't run and the flame fades in instead (below). */
+.mark-burn {
+  overflow: visible;
 }
 @keyframes fade {
   from {
