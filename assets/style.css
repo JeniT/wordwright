@@ -23,6 +23,7 @@
   --accent-strong: #8a3207;
   --on-accent: #ffffff;
   --focus: #b0440c;
+  --mark: #cfe6f2;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -35,6 +36,7 @@
     --accent-strong: #ffa56e;
     --on-accent: #2a1204;
     --focus: #ffa56e;
+    --mark: #2f4a5c;
   }
 }
 
@@ -53,17 +55,28 @@ body {
   line-height: 1.6;
 }
 
+/* As in the app: selection is the Blue Pencil highlighter, focus the 3px Ember outline. */
+::selection {
+  background: var(--mark);
+  color: var(--ink);
+}
 a {
   color: var(--accent);
   text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 0.18em;
+  transition:
+    color 150ms ease-out,
+    text-decoration-thickness 150ms ease-out;
 }
 a:hover {
   color: var(--accent-strong);
+  text-decoration-thickness: 2px;
 }
 :focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .skip {
@@ -124,6 +137,47 @@ main,
 .mark {
   color: var(--accent);
   flex: none;
+}
+/* The small flame leans, as if someone breathed near it, when the name is pointed at or focused. */
+.brand .mark {
+  transform-origin: 50% 100%;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.brand:hover .mark,
+.brand:focus-visible .mark {
+  transform: rotate(-7deg);
+}
+
+/* The flame lights once, rising from its base to the nib, when the page opens. Visible by default if CSS animation
+   doesn't run; under reduced motion it fades in instead. */
+.mark-lit {
+  transform-origin: 50% 100%;
+  animation: light 900ms cubic-bezier(0.16, 1, 0.3, 1) 150ms backwards;
+}
+@keyframes light {
+  from {
+    clip-path: inset(100% 0 0 0);
+    transform: scale(0.92, 0.8);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The end mark: printed articles close with a small sign, so the reader knows the piece is finished. */
+.nowrap {
+  white-space: nowrap;
+}
+.end-mark {
+  display: inline-block;
+  margin-left: 0.4em;
+  vertical-align: -0.1em;
 }
 
 main {
@@ -195,6 +249,11 @@ ul {
   font-weight: 600;
   text-decoration: none;
 }
+.btn {
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out;
+}
 .btn:hover {
   background: var(--accent-strong);
   border-color: var(--accent-strong);
@@ -260,5 +319,8 @@ ul.posts time,
   * {
     transition: none !important;
     animation: none !important;
+  }
+  .hero .mark-lit {
+    animation: fade 600ms ease-out 150ms backwards !important;
   }
 }
