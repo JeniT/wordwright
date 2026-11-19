@@ -1,51 +1,62 @@
 ---
 layout: default
 title: Wordwright
+body_class: home
 ---
 <section class="hero">
-  {% include mark.html width=44 height=64 class="mark-lit" %}
-  <h1>Wordwright</h1>
-  <p class="lead">Wordwright helps people who love writing to do more of it.</p>
-  <p>Wordwright helps spark ideas, research different perspectives, work out what to say, and improve your drafts, but it never writes your words for you.</p>
-  <p class="actions">
-    <a class="btn" href="{{ site.app_url }}/register">Create an account</a>
-    <a href="{{ site.app_url }}/login">Sign in</a>
-  </p>
-  <p class="note">Wordwright is in private alpha. We approve accounts by hand and will email you when yours is ready.</p>
+  <div class="hero-mark">{% include mark.html width=56 height=82 class="mark-lit" %}</div>
+  <div class="hero-body">
+    <h1>Wordwright</h1>
+    <p class="lead">Wordwright helps people who love writing to do more of it.</p>
+    <p>Wordwright helps spark ideas, research different perspectives, work out what to say, and improve your drafts, but it never writes your words for you.</p>
+    <p class="actions">
+      <a class="btn" href="{{ site.app_url }}/register">Create an account</a>
+      <a href="{{ site.app_url }}/login">Sign in</a>
+    </p>
+    <p class="note">Wordwright is in private alpha. We approve accounts by hand and will email you when yours is ready.</p>
+  </div>
 </section>
 
-<section>
+<section class="part">
   <h2>What it helps with</h2>
-  <ul class="plain">
-    <li><strong>Scan.</strong> Look over the recent posts from feeds you choose, for something to respond to.</li>
-    <li><strong>Research.</strong> Find articles that back up what you think, and articles that challenge it.</li>
-    <li><strong>Refine.</strong> Talk an idea through with your AI. It asks the questions and keeps your answers as notes.</li>
-    <li><strong>Critique.</strong> Get comments on the parts of a draft that are hard to follow or could be misread. You decide what to do with them.</li>
-    <li><strong>Rephrase.</strong> Stuck on a title or an opening? Say what the wording should do and choose between different options.</li>
-  </ul>
+  <div class="part-body">
+    <ul class="steps">
+      <li><strong>Scan.</strong> <span>Look over the recent posts from feeds you choose, for something to respond to.</span></li>
+      <li><strong>Research.</strong> <span>Find articles that back up what you think, and articles that challenge it.</span></li>
+      <li><strong>Refine.</strong> <span>Talk an idea through with your AI. It asks the questions and keeps your answers as notes.</span></li>
+      <li><strong>Critique.</strong> <span>Get comments on the parts of a draft that are hard to follow or could be misread. You decide what to do with them.</span></li>
+      <li><strong>Rephrase.</strong> <span>Stuck on a title or an opening? Say what the wording should do and choose between different options.</span></li>
+    </ul>
+  </div>
 </section>
 
-<section>
+<section class="part band">
   <h2>Your words stay yours</h2>
-  <ul class="plain">
-    <li><strong>No AI when it isn’t needed.</strong> You find things to write about through feeds you subscribe to, not an AI search.</li>
-    <li><strong>Your AI asks, and you answer.</strong> To refine your idea, your AI acts as a coach and keeps your words so you have them later.</li>
-    <li><strong>Purposeful limits.</strong> A critique can always find something wrong, and writing is never perfect. You get three critiques of a draft by default, and then it’s time to publish.</li>
-    <li><strong>Options, not suggestions.</strong> When rephrasing, you say what you want a passage to do then choose which option to use, and edit it.</li>
-    <li><strong>Challenge, not flattery.</strong> Research looks for articles that disagree with you. A critique says what to strengthen; it doesn’t tell you the writing is rubbish or perfect.</li>
-  </ul>
-  <p>Wordwright makes these limits the default, so you don’t have to hold the line yourself.</p>
+  <div class="part-body">
+    <ul class="principles">
+      <li><strong>No AI when it isn’t needed.</strong> You find things to write about through feeds you subscribe to, not an AI search.</li>
+      <li><strong>Your AI asks, and you answer.</strong> To refine your idea, your AI acts as a coach and keeps your words so you have them later.</li>
+      <li><strong>Purposeful limits.</strong> A critique can always find something wrong, and writing is never perfect. You get three critiques of a draft by default, and then it’s time to publish.</li>
+      <li><strong>Options, not suggestions.</strong> When rephrasing, you say what you want a passage to do then choose which option to use, and edit it.</li>
+      <li><strong>Challenge, not flattery.</strong> Research looks for articles that disagree with you. A critique says what to strengthen; it doesn’t tell you the writing is rubbish or perfect.</li>
+    </ul>
+    <p class="coda">Wordwright makes these limits the default, so you don’t have to hold the line yourself.</p>
+  </div>
 </section>
 
-<section>
+<section class="part">
   <h2>What you need</h2>
-  <ul class="plain">
-    <li><strong>Bring your own AI key.</strong> Wordwright has no AI key of its own, and you pay your provider directly. Today that is Anthropic. <a href="{{ site.app_url }}/help/api-key">How to get a key</a></li>
-    <li><strong>Ask to join.</strong> Wordwright is a private alpha. To try it, create an account, or write to <a href="mailto:jeni@wordwright.io">jeni@wordwright.io</a>.</li>
-  </ul>
+  <div class="part-body">
+    <ul class="plain">
+      <li><strong>Bring your own AI key.</strong> Wordwright has no AI key of its own, and you pay your provider directly. Today that is Anthropic. <a href="{{ site.app_url }}/help/api-key">How to get a key</a></li>
+      <li><strong>Ask to join.</strong> Wordwright is a private alpha. To try it, create an account, or write to <a href="mailto:jeni@wordwright.io">jeni@wordwright.io</a>.</li>
+    </ul>
+  </div>
 </section>
 
-<section>
+<section class="part">
   <h2>Why I built it</h2>
-  <p>Built by Jeni Tennison. <span class="nowrap"><a href="/blog/why-i-built-wordwright/">Read why I built it</a>{% include mark.html width=10 height=15 class="end-mark" %}</span></p>
+  <div class="part-body">
+    <p>Built by Jeni Tennison. <span class="nowrap"><a href="/blog/why-i-built-wordwright/">Read why I built it</a>{% include mark.html width=10 height=15 class="end-mark" %}</span></p>
+  </div>
 </section>

@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/assets/style.css" />
     {% feed_meta %}
   </head>
-  <body>
+  <body{% if page.body_class %} class="{{ page.body_class }}"{% endif %}>
     <a class="skip" href="#main">Skip to the content</a>
     <header class="site-header">
       <a class="brand" href="/">{% include mark.html width=18 height=26 %}<span>Wordwright</span></a>
