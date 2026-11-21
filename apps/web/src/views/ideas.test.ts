@@ -1454,6 +1454,8 @@ describe('idea page', () => {
       await screen.findByText('Erosion loops.')
       const box = screen.getByRole('textbox', { name: 'Note' })
       expect(screen.getByRole('button', { name: 'Add note' })).toBeDisabled() // nothing to add yet
+      // The form's one action, as in Quick add; the publication's Notes page shares this component.
+      expect(screen.getByRole('button', { name: 'Add note' })).toHaveClass('btn', 'btn-primary')
       await fireEvent.update(box, 'Oxbow lakes form when a loop is cut off.')
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
 

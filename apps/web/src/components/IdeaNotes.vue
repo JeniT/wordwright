@@ -478,7 +478,7 @@ const label = (note: IdeaNote) => {
         />
         <button
           type="submit"
-          class="btn btn-outline"
+          class="btn btn-primary"
           :disabled="add.isPending.value || !draft.trim()"
         >
           {{ add.isPending.value ? 'Adding…' : 'Add note' }}
