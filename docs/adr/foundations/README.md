@@ -4,6 +4,7 @@ Read this when you change architecture, stack, ports, bring-your-own-key, test r
 
 - [Client/server rather than a browser-only app](clientserver-rather-than-a-browser-only-app.md)
 - [Landing: CI on `main` is the final gate, not a retest after every rebase (#220)](landing-ci-on-main-is-the-final-gate-not.md): rebase-overlap decides whether a rebase needs the full suite rerun
+- [e2e runs by what a change touches; CI runs the whole suite (#461)](e2e-runs-by-what-a-change-touches.md): none, one screen's spec, or the whole suite for the app's shell
 - [Ports and adapters for every external service](ports-and-adapters-for-every-external-service.md)
 - [Tests must fail on browser errors](tests-must-fail-on-browser-errors.md)
 - [TypeScript monorepo; Hono + SQLite (`node:sqlite`); Vue 3 + Tiptap + Tailwind](typescript-monorepo-hono-sqlite-nodesqlite-vue-3-tiptap-tailwind.md)

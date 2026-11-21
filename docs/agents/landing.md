@@ -12,8 +12,10 @@ your own branch, never `main`. Run these as **separate commands**, reading each 
    doesn't earn a full rerun:
    - The rebase said the branch was already up to date: nothing has changed since your last green run, so skip this.
    - The script said `overlap` (it also counts changes to shared files such as `domain.ts` and the
-     lockfile; the list is `SHARED_SPOTS` in the script), or the rebase conflicted: rerun `pnpm check`,
-     `pnpm build` and `pnpm test:e2e` on the rebased branch.
+     lockfile; the list is `SHARED_SPOTS` in the script), or the rebase conflicted: rerun `pnpm check` and
+     `pnpm build` on the rebased branch, and the e2e specs you ran for the change plus those of any screen the
+     overlapping files belong to ([When to run e2e](testing.md#when-to-run-e2e)). The whole suite only when what came
+     in, or your change, touches the app's shell.
    - Otherwise (`no overlap`, no conflicts): run `pnpm typecheck` and the tests of the packages you changed (as in
      [testing.md](testing.md)), then push.
 
@@ -30,8 +32,8 @@ your own branch, never `main`. Run these as **separate commands**, reading each 
    `git merge --ff-only origin/main`, and confirm your commits are in `git log`. If the fast-forward is refused,
    local `main` has another session's unpushed commits: run `git merge origin/main` instead (it keeps their commits
    as they are), resolve conflicts keeping both sides (for a clash in the `MIGRATIONS` array, the
-   already-published migration stays first and the unpublished one is appended after it), rerun `pnpm check`,
-   `pnpm build` and `pnpm test:e2e`, and commit the merge. **Leave that merge unpushed**: those commits belong
+   already-published migration stays first and the unpublished one is appended after it), rerun `pnpm check` and
+   `pnpm build` (and the e2e specs of any screen the conflict was in), and commit the merge. **Leave that merge unpushed**: those commits belong
    to the other session. Don't wait for the CI run your push started: the next task begins by checking it.
 
 The remote is `origin` (private GitHub repo `JeniT/wordwright`). Push only your own work to `main`.

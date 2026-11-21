@@ -4,7 +4,9 @@ Read this before you commit, and when you plan a task's tests and docs.
 
 1. Behaviour covered by tests at the right level: unit/API tests for logic, component tests for UI states
    (loading / empty / error), contract tests for adapters, and an e2e test for any new user-facing flow.
-2. `pnpm check`, `pnpm build` and `pnpm test:e2e` all pass. When a check fails on existing code, fix the code;
+2. `pnpm check` and `pnpm build` pass, and the e2e tests the change calls for
+   ([When to run e2e](testing.md#when-to-run-e2e): none, one screen's spec, or the whole suite for the app's shell).
+   When a check fails on existing code, fix the code;
    loosen the check's config only for something kept on purpose, with the reason beside the entry. No new console errors. UI changes follow
    [design](../design/README.md) and have been looked at in light **and** dark mode and at phone width (390px).
 3. Docs updated where behaviour changed (the matching doc: [README](../../README.md), [accounts](../accounts.md), [byok](../byok.md) or [ai-features](../ai-features.md); `.env.example`, `docs/adr/` for non-obvious choices (see [adr/README.md](../adr/README.md))).

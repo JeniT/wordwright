@@ -13,12 +13,34 @@ Several sessions share one machine, and the full suites take minutes. While deve
 - **Format and lint only what you touched:** `pnpm exec prettier --write <files>` and `pnpm exec eslint <files>`.
 - **Types:** `pnpm typecheck` (about 30s) once the code compiles in your head, not after every edit.
 
-Then run `pnpm check`, `pnpm build` and `pnpm test:e2e` **once** when you are done. A failure in a full run means
+Then run `pnpm check` and `pnpm build` **once** when you are done, and the e2e tests the change calls for
+([When to run e2e](#when-to-run-e2e)). A failure in a full run means
 rerunning **only what failed**: `pnpm check` ends by naming the step that failed (`pnpm check: failed at …`; on this
 machine its first step also formats every file), and after an e2e run `apps/web/test-results/.last-run.json` lists the
 failed tests, which `pnpm --filter @wordwright/web exec playwright test --last-failed` reruns alone. If a test passes alone but timed out in the full run, the
 machine was busy: note it, and look at the test only if it fails alone too. Locally the runners take only a few cores
 each (`maxWorkers` in `apps/web/vite.config.ts`, `workers` in `apps/web/playwright.config.ts`); leave those as they are.
+
+## When to run e2e
+
+The whole suite takes about 5 minutes on a quiet machine and much longer beside other sessions' runs. CI runs all of it
+on every push to `main`, and the next session checks CI before it starts ([claim.md](claim.md)), so locally you run
+only what your change could break ([ADR](../adr/foundations/e2e-runs-by-what-a-change-touches.md)):
+
+- **Logic, API, copy, or a change inside one component's own box:** no e2e. Unit, API and component tests, `pnpm check`
+  and a look in the browser are the gate.
+- **A new or changed flow, or a layout or style change on one screen:** that screen's spec, before you commit. Find it
+  with `grep -l "<the page's heading or route>" apps/web/e2e/*.spec.ts`. A new user-facing flow adds its test there
+  ([definition of done](definition-of-done.md), item 1). Add `accessibility-routes.spec.ts` when you add a page or
+  route.
+- **A change to the app's shell:** the whole suite, once, before you land. The shell is `App.vue`, `router.ts`,
+  `main.ts`, `style.css`, `src/theme/`, `SideMenu.vue`, `PageNav.vue`, `HelpPage.vue`, the e2e set-up (`e2e/fixtures.ts`,
+  `playwright.config.ts`), a dependency upgrade that reaches the browser (Vue, Tiptap, Tailwind, Vite), and
+  `deploy/Caddyfile` (run `csp.spec.ts` for that one).
+- **Moving or renaming e2e tests:** the specs you touched, and the title check below.
+
+If you are unsure which row a change is in, take the next one down. When CI on `main` goes red after your push, fixing
+it is yours, before anything else ([claim.md](claim.md#check-ci-before-you-start)).
 
 `pnpm coverage` (or `pnpm --filter @wordwright/api coverage`) runs a package's whole suite, prints a coverage
 summary and writes an HTML report to that package's `coverage/`. It is for finding untested code, not a gate.
