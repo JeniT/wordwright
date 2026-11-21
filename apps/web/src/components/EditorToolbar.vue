@@ -40,6 +40,7 @@ const markdownMode = defineModel<boolean>('markdownMode', { default: false })
 
 const SLOT = 38 // a button (2.25rem) and the gap after it, in pixels
 const RULE = 13 // the rule before a section (1px), its padding and the gap beside it
+const SLACK = 12 // kept free beside the More button when some buttons are in it
 const barId = useId()
 const bar = useTemplateRef<HTMLElement>('bar')
 
@@ -53,11 +54,22 @@ function measure() {
   if (!width) return // not laid out (or not in a browser): show everything
   const right = (props.markdownToggle ? SLOT : 0) + (props.actions ? 2 * SLOT : 0)
   const all = props.tools.length
-  const rules = Math.max((props.sections?.length ?? 0) - 1, 0)
-  fitting.value =
-    all * SLOT + rules * RULE + right <= width
-      ? null
-      : Math.max(1, Math.floor((width - right - SLOT - 12 - rules * RULE) / SLOT))
+  if (needs(all) + right <= width) {
+    fitting.value = null
+    return
+  }
+  // Otherwise as many as fit beside the More button, counting only the rules that are drawn.
+  let fit = 1
+  while (fit < all && needs(fit + 1) + SLOT + SLACK + right <= width) fit++
+  fitting.value = fit
+}
+
+/** The width the first `count` tools take: their buttons, and a rule before each section after the first. */
+function needs(count: number): number {
+  const sectionOf = (name: ToolName) =>
+    props.sections?.findIndex((s) => s.tools.includes(name)) ?? 0
+  const sections = new Set(props.tools.slice(0, count).map(sectionOf)).size
+  return count * SLOT + Math.max(sections - 1, 0) * RULE
 }
 let observer: ResizeObserver | undefined
 onMounted(() => {
@@ -135,11 +147,13 @@ const rovingProps = (key: string) => ({
 const moreOpen = ref(false)
 function toggleMore() {
   moreOpen.value = !moreOpen.value
-  // Into the menu, so the keyboard follows what it opened.
+  // Into the menu, so the keyboard follows what it opened: onto its first button that is on (Remove link may lead it).
   if (moreOpen.value)
     nextTick(() =>
       bar.value
-        ?.querySelector<HTMLElement>('[role="group"][aria-label="More formatting"] button')
+        ?.querySelector<HTMLElement>(
+          '[role="group"][aria-label="More formatting"] button:not(:disabled)',
+        )
         ?.focus(),
     )
 }

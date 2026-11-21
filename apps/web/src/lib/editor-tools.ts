@@ -143,10 +143,13 @@ export interface ToolSection {
   tools: ToolName[]
 }
 
-/** The sections of the draft's toolbar, in the order they show. */
+/**
+ * The sections of the draft's toolbar, in the order they show. Emphasis and links come first because they are the
+ * buttons used most while drafting, and on a narrow screen the first ones are what stays on the bar (#460).
+ */
 export const DRAFT_SECTIONS: ToolSection[] = [
-  { label: 'Text style', tools: ['paragraph', 'heading2', 'heading3'] },
   { label: 'Emphasis and links', tools: ['bold', 'italic', 'link', 'unlink'] },
+  { label: 'Text style', tools: ['paragraph', 'heading2', 'heading3'] },
   { label: 'Lists and quotes', tools: ['bulletList', 'orderedList', 'quote'] },
   { label: 'Code', tools: ['code', 'codeBlock'] },
 ]

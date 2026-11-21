@@ -615,7 +615,8 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   await expect(bodyBox.getByRole('heading', { level: 2, name: 'A heading' })).toBeVisible()
   await expect(bodyBox).toContainText('Added as Markdown.')
 
-  // Dark mode, and a phone: the buttons that do not fit move into a More menu, with no sideways scroll.
+  // Dark mode, and a phone: the buttons that do not fit move into a More menu, with no sideways scroll; the ones
+  // used most while drafting (Bold, Italic and the link buttons) stay on the bar (#460).
   await page.emulateMedia({ colorScheme: 'dark' })
   expect((await new AxeBuilder({ page }).analyze()).violations, 'the toolbar in dark').toEqual([])
   await page.emulateMedia({ colorScheme: 'light' })
@@ -625,11 +626,14 @@ test('formats a draft with the toolbar, adds a link in a dialog, and edits it as
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
     true,
   )
+  const emphasis = page.getByRole('group', { name: 'Emphasis and links' })
+  for (const name of ['Bold', 'Italic', 'Link', 'Remove link'])
+    await expect(emphasis.getByRole('button', { name, exact: true })).toBeVisible()
   await more.click()
   await expect(
     page
       .getByRole('group', { name: 'More formatting' })
-      .getByRole('button', { name: 'Link', exact: true }),
+      .getByRole('button', { name: 'Paragraph', exact: true }),
   ).toBeVisible()
   expect((await new AxeBuilder({ page }).analyze()).violations, 'the More menu').toEqual([])
   await page.keyboard.press('Escape')

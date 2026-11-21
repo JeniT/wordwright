@@ -26,19 +26,19 @@ describe('editor tools', () => {
 
   it('put the draft tools in labelled sections, in order, each tool once', () => {
     expect(DRAFT_SECTIONS.map((s) => s.label)).toEqual([
-      'Text style',
       'Emphasis and links',
+      'Text style',
       'Lists and quotes',
       'Code',
     ])
     expect(DRAFT_TOOLS).toEqual([
-      'paragraph',
-      'heading2',
-      'heading3',
       'bold',
       'italic',
       'link',
       'unlink',
+      'paragraph',
+      'heading2',
+      'heading3',
       'bulletList',
       'orderedList',
       'quote',

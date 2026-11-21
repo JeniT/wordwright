@@ -45,13 +45,13 @@ describe('RichEditor toolbar', () => {
     const toolbar = screen.getByRole('toolbar', { name: 'Formatting' })
     const names = [...toolbar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))
     expect(names).toEqual([
-      'Paragraph',
-      'Heading 2',
-      'Heading 3',
       'Bold',
       'Italic',
       'Link',
       'Remove link',
+      'Paragraph',
+      'Heading 2',
+      'Heading 3',
       'Bulleted list',
       'Numbered list',
       'Quote',
@@ -63,7 +63,9 @@ describe('RichEditor toolbar', () => {
       within(toolbar)
         .getAllByRole('group')
         .map((g) => g.getAttribute('aria-label')),
-    ).toEqual(['Text style', 'Emphasis and links', 'Lists and quotes', 'Code'])
+    ).toEqual(['Emphasis and links', 'Text style', 'Lists and quotes', 'Code'])
+    const emphasis = within(toolbar).getByRole('group', { name: 'Emphasis and links' })
+    expect(within(emphasis).getAllByRole('button')[0]).toHaveAccessibleName('Bold') // the bar starts with it
     const styles = within(toolbar).getByRole('group', { name: 'Text style' })
     expect(within(styles).getAllByRole('button')).toHaveLength(3)
   })
@@ -97,8 +99,8 @@ describe('RichEditor toolbar', () => {
     link.focus()
     await fireEvent.keyDown(link, { key: 'ArrowRight' })
     expect(button('Remove link')).not.toHaveFocus() // off with no link under the cursor: skipped
-    expect(button('Bulleted list')).toHaveFocus()
-    await fireEvent.keyDown(button('Bulleted list'), { key: 'End' })
+    expect(button('Paragraph')).toHaveFocus()
+    await fireEvent.keyDown(button('Paragraph'), { key: 'End' })
     expect(button('Edit as Markdown')).toHaveFocus()
     await fireEvent.keyDown(button('Edit as Markdown'), { key: 'ArrowLeft' })
     expect(button('Code block')).toHaveFocus()
@@ -164,18 +166,22 @@ describe('RichEditor toolbar', () => {
     show('Words')
     await screen.findByRole('textbox', { name: 'Draft body' })
     const bar = screen.getByRole('toolbar')
-    Object.defineProperty(bar, 'clientWidth', { value: 230, configurable: true }) // room for about five
+    Object.defineProperty(bar, 'clientWidth', { value: 230, configurable: true }) // room for three
     notify()
     const more = await screen.findByRole('button', { name: 'More formatting' })
     expect(more).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByRole('button', { name: 'Link' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Link' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Paragraph' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Edit as Markdown' })).toBeInTheDocument()
 
     await fireEvent.click(more)
     expect(more).toHaveAttribute('aria-expanded', 'true')
     const menu = screen.getByRole('group', { name: 'More formatting' })
-    await waitFor(() => expect(within(menu).getAllByRole('button')[0]).toHaveFocus()) // into the menu
-    expect(within(menu).getByRole('button', { name: 'Link' })).toBeInTheDocument()
+    expect(within(menu).getAllByRole('button')[0]).toHaveAccessibleName('Remove link') // off: no link here
+    await waitFor(() =>
+      expect(within(menu).getByRole('button', { name: 'Paragraph' })).toHaveFocus(),
+    ) // into the menu, on the first that can be used
+    expect(within(menu).getByRole('button', { name: 'Paragraph' })).toBeInTheDocument()
     await fireEvent.keyDown(more, { key: 'Escape' })
     expect(screen.queryByRole('group', { name: 'More formatting' })).toBeNull()
     await waitFor(() => expect(more).toHaveFocus())

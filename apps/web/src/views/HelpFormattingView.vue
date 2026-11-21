@@ -15,13 +15,13 @@ import HelpPage from '../components/HelpPage.vue'
     <h2 class="mb-2 font-display text-xl font-semibold">What you can use</h2>
     <ul class="mb-4 list-disc space-y-2 pl-5">
       <li>
-        Paragraph, Heading 2 and Heading 3: the style of the line. The title is separate, so there
-        is no Heading 1.
-      </li>
-      <li>
         Bold, italic and inline code, and a link (you type its address in a window). Remove link
         takes a link off the words you have selected, or off the whole link if you only have the
         cursor in it.
+      </li>
+      <li>
+        Paragraph, Heading 2 and Heading 3: the style of the line. The title is separate, so there
+        is no Heading 1.
       </li>
       <li>A quote, a bulleted list, a numbered list and a code block.</li>
     </ul>

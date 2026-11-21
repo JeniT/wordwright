@@ -20,9 +20,13 @@ The draft editor had no toolbar (formatting was keyboard shortcuts or typed Mark
   cannot report where in its text a drop landed. Switching back sets the editor's content without emitting an update, so it is not an edit and
   nothing is rewritten by the serialiser until the writer types.
 - **Help:** "Formatting your draft" (`/help/formatting`) lists the buttons, the shortcuts and Markdown mode, and is linked under the draft.
-- **Order follows the job (#340):** text style, then emphasis and links, then lists and quote, then code, in labelled groups
-  separated by a thin rule; a group with nothing left on the bar draws no rule, so More never leaves one dangling. Comment,
-  Rephrase and Edit as Markdown sit together on the right and are never in More.
+- **Order follows the job (#340, #460):** emphasis and links, then text style, then lists and quote, then code, in labelled
+  groups separated by a thin rule; a group with nothing left on the bar draws no rule (and is not given room for one), so
+  More never leaves one dangling. Comment, Rephrase and Edit as Markdown sit together on the right and are never in More.
+  #340 put text style first; #460 moved emphasis and links ahead of it, because on a phone only the first few buttons stay
+  on the bar and Bold, Italic and Link are the ones used most while drafting. One order at every width, not a phone order,
+  so the bar is the same to learn everywhere. Opening More puts focus on its first button that is on, since Remove link,
+  off unless the cursor is in a link, can lead it.
 - **Ctrl or ⌘ + K opens the link dialog** from the rich-text editor, and the Link tooltip says so; in the Markdown box it does
   nothing, as there is no dialog to fill in. Shortcuts that do not exist are not promised.
 - **A status line above the toolbar:** the save state on the left (polite, so it changes only when the save state does, not on
