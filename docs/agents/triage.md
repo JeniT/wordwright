@@ -15,14 +15,20 @@ each one through with them and produces the real task and decision issues.
 | `ready-for-human`  | `decision` | Requires the owner's decision or action           |
 | `wontfix`          | `wontfix`  | Will not be actioned                              |
 
-Also in use: `backlog` (waits on a prerequisite or decision), `in-progress` (claimed), `idea`, `duplicate`, and the
-type labels `enhancement`, `bug`, `documentation`, `content-crit`.
+Also in use: `epic` (an umbrella for one step of the roadmap; its tasks are sub-issues), `grill` (the task needs a
+design conversation with the owner before anyone builds it), `backlog` (waits on its blockers or a decision),
+`in-progress` (claimed), `idea`, `duplicate`, and the type labels `enhancement`, `bug`, `documentation`,
+`content-crit`. The plugin's board reference has the commands for epics and blocked-by links.
 
 ## Filing (the owner, or an agent on their behalf)
 
 Open an issue with the label `inbox` plus one type label: `idea` (a rough thought), `enhancement` (a feature) or
 `bug`. A title and a sentence or two is enough; for a bug, what happened and what was expected. `inbox` means "not
 yet triaged": `gh issue list --label inbox` is the queue, and an `inbox` issue is implemented only after triage.
+
+An agent files what it noticed the same way (the `file-issue` skill): `inbox`, a type label, `Seen while doing #N`,
+linked under its epic. Triage is where it is checked against what the owner has already talked through, and made
+`ready`, merged into an existing issue, or closed.
 
 ## The triage conversation
 
@@ -39,7 +45,8 @@ yet triaged": `gh issue list --label inbox` is the queue, and an `inbox` issue i
 3. Agree the outcome with the owner, which is one or more of:
    - **Task issues** for work that is clear: a "why", then acceptance criteria that include the tests and docs the
      [definition of done](definition-of-done.md) requires, small enough for one agent in one go. Label `ready`, or
-     `backlog` if it waits on a prerequisite (name it: `Needs #12`). Add `bug` or `enhancement` too. A big feature
+     `backlog` if it waits on a prerequisite (with a blocked-by link to it: the `file-issue` skill has the command),
+     and link it under its epic. Add `bug` or `enhancement` too. A big feature
      becomes an ordered set of tasks, each its own issue, plus a design note in `docs/` if the reasoning needs a home.
    - **Decision issues** (label `decision`) for what the owner must choose: the question, the options with
      trade-offs, your recommendation, and which tasks it blocks.

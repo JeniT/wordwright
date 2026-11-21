@@ -24,4 +24,5 @@ move on: the next start (or the next landing) is where CI is checked. Before you
   array. Keep changes to those small and additive. If two branches add a migration, the second to merge renumbers
   theirs (appends after the other) and reruns the tests. The shared files are also the `sharedSpots` in
   `agent-workflow.config.json`.
-- **No epics yet** (#465): until wordwright has them, an issue you file is placed by its milestone alone.
+- **The epics are the roadmap:** wordwright has no roadmap file. `gh issue list --label epic` lists the steps, and an
+  issue you file goes under one of them as well as having a milestone.

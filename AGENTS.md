@@ -35,6 +35,7 @@ titles/openings/social posts. Users bring their own LLM API key; the service has
 | Ready to merge                                                          | the `land` skill, then [docs/agents/landing.md](docs/agents/landing.md)                                            |
 | Triaging an `inbox` issue                                               | [docs/agents/triage.md](docs/agents/triage.md)                                                                     |
 | Filing an issue (a follow-up, an observation, a decision)               | the `file-issue` skill, then [docs/agents/triage.md](docs/agents/triage.md)                                        |
+| Closing out an epic                                                     | the `close-epic` skill, then [docs/agents/closing-an-epic.md](docs/agents/closing-an-epic.md)                      |
 | Running a content crit                                                  | [docs/agents/content-crit.md](docs/agents/content-crit.md)                                                         |
 | Asking why something is the way it is                                   | [docs/adr/](docs/adr/README.md)                                                                                    |
 | Setting up; learning the architecture                                   | [README.md](README.md)                                                                                             |
@@ -59,9 +60,9 @@ Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue li
 
 ## Gotchas nothing else records
 
-- The workflow (claim, land, file an issue) is the **agent-workflow** plugin's skills and its `aw` commands
-  (`pnpm exec aw` lists them); `docs/agents/` holds only what wordwright adds.
-- Work in a worktree (`.worktrees/issue-N`); local `main` is shared by every session and receives only a fast-forward
+- The workflow (claim, land, file an issue, close an epic) is the **agent-workflow** plugin's skills and its `aw`
+  commands (`pnpm exec aw` lists them); `docs/agents/` holds only what wordwright adds.
+- Work in a worktree (`.worktrees/issue-N`), a `grill` included; local `main` is shared by every session and receives only a fast-forward
   from `origin/main`. Publish with `git push origin HEAD:main`, never local `main`.
 - In a worktree, bring in the base branch with `git fetch origin` then `git merge origin/main`; the app's
   `sync_with_base_branch` refuses `.worktrees/`.
