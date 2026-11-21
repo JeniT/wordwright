@@ -174,8 +174,8 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.15.0(jiti@2.7.0)(supports-color@7.2.0))
       agent-workflow:
-        specifier: github:JeniT/agent-workflow#42a2e1b
-        version: git+https://github.com/JeniT/agent-workflow.git#42a2e1b6b4bcb95c518028688ed5bb4c7ff74a57
+        specifier: github:JeniT/agent-workflow#74f3a72
+        version: https://codeload.github.com/JeniT/agent-workflow/tar.gz/74f3a725d265df4ed7fe076e61eda3f2b4fa30c8
       eslint:
         specifier: ^10.15.0
         version: 10.15.0(jiti@2.7.0)(supports-color@7.2.0)
@@ -1924,8 +1924,8 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
-  agent-workflow@git+https://github.com/JeniT/agent-workflow.git#42a2e1b6b4bcb95c518028688ed5bb4c7ff74a57:
-    resolution: {commit: 42a2e1b6b4bcb95c518028688ed5bb4c7ff74a57, repo: https://github.com/JeniT/agent-workflow.git, type: git}
+  agent-workflow@https://codeload.github.com/JeniT/agent-workflow/tar.gz/74f3a725d265df4ed7fe076e61eda3f2b4fa30c8:
+    resolution: {gitHosted: true, integrity: sha512-Pm+yf9pNpBCNyV8uFAjRFGZ/mRr7uxu8aCcLj/V8S5M0sMPLowNjFFOKlju+r/hCzv/XMsUw4BioOv4sbI5Cuw==, tarball: https://codeload.github.com/JeniT/agent-workflow/tar.gz/74f3a725d265df4ed7fe076e61eda3f2b4fa30c8}
     version: 0.1.0
     engines: {node: '>=26'}
     hasBin: true
@@ -4895,7 +4895,7 @@ snapshots:
 
   acorn@8.19.0: {}
 
-  agent-workflow@git+https://github.com/JeniT/agent-workflow.git#42a2e1b6b4bcb95c518028688ed5bb4c7ff74a57:
+  agent-workflow@https://codeload.github.com/JeniT/agent-workflow/tar.gz/74f3a725d265df4ed7fe076e61eda3f2b4fa30c8:
     dependencies:
       zod: 4.6.7
 
