@@ -878,7 +878,7 @@ describe('moving to another publication', () => {
   })
 })
 
-describe('selecting, bulk actions and pages in the articles', () => {
+describe('selecting and bulk actions in the articles', () => {
   const seven = () =>
     Array.from({ length: 7 }, (_, i) => link(`l${i + 1}`, `Link ${i + 1}`, { origin: 'feed' }))
   const titles = () =>
@@ -887,31 +887,21 @@ describe('selecting, bulk actions and pages in the articles', () => {
       .map((c) => c.getAttribute('aria-label')!.replace('Select ', ''))
   const selectAll = () => screen.getByRole('checkbox', { name: 'Select all items on this page' })
 
-  it('pages the list five at a time, with where you are, and keeps the filter ahead of the paging', async () => {
+  it('lists every item that passes the filters, with no pages', async () => {
     fakePublication({
       articles: [...seven(), link('l8', 'Done', { readAt: '2026-02-02T00:00:00Z' })],
     })
     await renderAt('/p/ada-substack/read')
     await screen.findByText('Link 1')
-    expect(titles()).toEqual(['Link 1', 'Link 2', 'Link 3', 'Link 4', 'Link 5'])
-    expect(screen.getAllByText('Items 1–5 of 7').length).toBeGreaterThan(0)
-    await fireEvent.click(screen.getAllByRole('button', { name: /^Next/ })[0]!)
-    expect(titles()).toEqual(['Link 6', 'Link 7'])
-    // A new filter starts again at the first page, and the count is of the filtered list.
+    expect(titles()).toEqual(['Link 1', 'Link 2', 'Link 3', 'Link 4', 'Link 5', 'Link 6', 'Link 7'])
+    expect(screen.queryByRole('navigation', { name: /Pages of the articles/ })).toBeNull()
+    expect(screen.queryByText(/^Items \d+–\d+ of/)).toBeNull()
     await openFilters()
     await fireEvent.click(screen.getByRole('switch', { name: 'Show read items (1)' }))
-    expect(titles()).toHaveLength(5)
-    expect(screen.getAllByText('Items 1–5 of 8').length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('checkbox', { name: /^Select (Link|Done)/ })).toHaveLength(8)
   })
 
-  it('shows no page controls for a list that fits on one page', async () => {
-    fakePublication({ articles: seven().slice(0, 3) })
-    await renderAt('/p/ada-substack/read')
-    await screen.findByText('Link 1')
-    expect(screen.queryByRole('button', { name: /^Next/ })).not.toBeInTheDocument()
-  })
-
-  it('selects the page with the box at the top, which shows a partial selection as such', async () => {
+  it('selects the whole list with the box at the top, which shows a partial selection as such', async () => {
     fakePublication({ articles: seven() })
     await renderAt('/p/ada-substack/read')
     await screen.findByText('Link 1')
@@ -919,22 +909,12 @@ describe('selecting, bulk actions and pages in the articles', () => {
     await fireEvent.click(screen.getByRole('checkbox', { name: 'Select Link 2' }))
     expect(selectAll()).toHaveProperty('indeterminate', true)
     await fireEvent.click(selectAll())
-    expect(screen.getByText('5 selected')).toBeInTheDocument()
+    expect(screen.getByText('7 selected')).toBeInTheDocument()
     expect(selectAll()).toBeChecked()
+    expect(screen.queryByRole('button', { name: /^Select all \d+$/ })).toBeNull() // nothing more to offer
+    expect(screen.getByRole('button', { name: 'Remove 7' })).toBeEnabled()
     await fireEvent.click(selectAll())
     expect(screen.getByText('0 selected')).toBeInTheDocument()
-  })
-
-  it('offers the rest of the pages once the whole page is selected, and clears the selection on a new page', async () => {
-    fakePublication({ articles: seven() })
-    await renderAt('/p/ada-substack/read')
-    await screen.findByText('Link 1')
-    await fireEvent.click(selectAll())
-    await fireEvent.click(screen.getByRole('button', { name: 'Select all 7' }))
-    expect(screen.getByText('7 selected')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Remove 7' })).toBeEnabled()
-    await fireEvent.click(screen.getAllByRole('button', { name: /^Next/ })[0]!)
-    expect(screen.getByText('0 selected')).toBeInTheDocument() // what an action touches is always what is on screen
   })
 
   it('removes the selected links only after the dialog is confirmed, and nothing until something is selected', async () => {

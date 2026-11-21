@@ -184,7 +184,8 @@ One rule decides which control confirms, so the same kind of act always feels th
   after a few seconds, when focus leaves it, or on Escape. An icon button grows to fit the word while armed. The same
   tap is what a screen reader's activation does.
 
-**Pagination.** Notes show everything. Every other list pages client-side with `PageNav` above and below (the top one
+**Pagination.** Notes and the articles on a Read page show everything (the writer reads down the whole list). Every
+other list pages client-side with `PageNav` above and below (the top one
 announces the new range; the bottom one returns you to the top of the list), five at a time (`PAGE_SIZE` in
 `lib/paging.ts`, `usePaging`). Filter first, then page; a new filter returns to page 1; removing the last item on a page
 steps back one. No page controls when everything fits on one page.

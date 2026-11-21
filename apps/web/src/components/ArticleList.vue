@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Article } from '@wordwright/core'
 import { RouterLink } from 'vue-router'
 import { errorMessage } from '../lib/api'
 import { useMove, useMoveDestination } from '../lib/move'
 import { tagsUsedOn, useTagFilter } from '../lib/note-tags'
-import { usePaging } from '../lib/paging'
 import { useArticleList } from '../lib/articles'
 import AddArticleForm from './AddArticleForm.vue'
 import BulkTagFields from './BulkTagFields.vue'
@@ -13,7 +12,6 @@ import ConfirmDialog from './ConfirmDialog.vue'
 import ArticleItem from './ArticleItem.vue'
 import ListToolbar from './ListToolbar.vue'
 import MoveFields from './MoveFields.vue'
-import PageNav from './PageNav.vue'
 import SwitchField from './SwitchField.vue'
 import TagFilter from './TagFilter.vue'
 import QueryState from './QueryState.vue'
@@ -47,15 +45,14 @@ watch(
 // Only the items with every chosen tag. A tag nothing carries any more can't be what is shown.
 const usedTags = computed(() => tagsUsedOn(list.articles.value ?? []))
 const { chosen: tagFilter, matches: matchesTags } = useTagFilter(usedTags)
+// A new filter clears the selection, so what an action will touch is always on screen.
 watch([showRead, tagFilter], () => {
   justRead.value = new Set()
   clearSelection()
-  paging.first()
 })
 /** A new item is unread and untagged: show it, whatever was filtering the list. */
 function showAdded() {
   tagFilter.value = []
-  paging.first()
 }
 const readCount = computed(() => (list.articles.value ?? []).filter((l) => l.readAt).length)
 /** What is filtering the list, for the funnel to say while the filters are folded away. */
@@ -63,23 +60,12 @@ const filterSummary = computed(() => {
   const parts = [...tagFilter.value, showRead.value ? 'including read' : null].filter(Boolean)
   return parts.length ? parts.join(' · ') : undefined
 })
+/** Every item that passes the filters, all on one page: the writer reads down the whole list, not page by page. */
 const shown = computed(() =>
   (list.articles.value ?? []).filter(
     (l) => (!l.readAt || showRead.value || justRead.value.has(l.id)) && matchesTags(l),
   ),
 )
-
-// ---- pages: filter first, then page. A new page or filter clears the selection, so what an action will touch is
-// always on screen.
-const paging = usePaging(() => shown.value, 'items')
-const heading = useTemplateRef<HTMLElement>('heading')
-watch(paging.page, clearSelection)
-/** From the bottom of the list the next page starts a long way up, so go back to the top of it. */
-function goFromBottom(step: -1 | 1) {
-  paging.go(step)
-  heading.value?.scrollIntoView?.({ block: 'start' })
-  heading.value?.focus({ preventScroll: true }) // keyboard users continue from the top too
-}
 
 // ---- selecting items for a bulk action (Move, Remove)
 const selected = ref<string[]>([])
@@ -90,15 +76,10 @@ function clearSelection() {
 const chosen = computed(() =>
   shown.value.filter((l) => selected.value.includes(l.id)).map((l) => l.id),
 )
-const chosenOnPage = computed(
-  () => paging.pageItems.value.filter((l) => selected.value.includes(l.id)).length,
-)
 function toggleSelected(id: string, on: boolean) {
   selected.value = on ? [...selected.value, id] : selected.value.filter((s) => s !== id)
 }
-const selectPage = (on: boolean) =>
-  (selected.value = on ? paging.pageItems.value.map((l) => l.id) : [])
-const selectEverything = () => (selected.value = shown.value.map((l) => l.id))
+const selectAll = (on: boolean) => (selected.value = on ? shown.value.map((l) => l.id) : [])
 
 // ---- tagging the selected items together
 const tagging = ref(false)
@@ -241,14 +222,7 @@ function removeChosen() {
         :idea-id="ideaId"
         @added="showAdded"
       />
-      <h2
-        id="links-heading"
-        ref="heading"
-        tabindex="-1"
-        class="mb-1 font-display text-xl font-semibold"
-      >
-        Articles
-      </h2>
+      <h2 id="links-heading" class="mb-1 font-display text-xl font-semibold">Articles</h2>
       <p v-if="ideaId" class="mb-3 text-sm text-ink-soft">
         Articles, papers or earlier posts that this idea builds on or responds to. Mark each one
         Read when you have read it, even if you read it somewhere else.
@@ -284,33 +258,26 @@ function removeChosen() {
         </template>
       </p>
       <template v-else>
-        <PageNav
-          v-if="paging.pageCount.value > 1"
-          v-bind="paging.nav.value"
-          label="Pages of the articles, above the list"
-          announce
-          class="mb-3"
-          @go="paging.go"
-        />
         <p v-if="shown.some((l) => l.why)" class="mb-3 text-sm">
           <span class="bg-mark"
             >Highlighted text is your AI’s reason for suggesting this item.</span
           >
         </p>
         <div class="mb-4 overflow-hidden rounded-ctl border border-line bg-surface">
+          <!-- The whole list is one page, so the page and the total are the same. -->
           <ListToolbar
-            :page-size="paging.pageItems.value.length"
+            :page-size="shown.length"
             :total="shown.length"
             :selected="chosen.length"
-            :selected-on-page="chosenOnPage"
+            :selected-on-page="chosen.length"
             noun="items"
             :can-filter="usedTags.length > 0 || readCount > 0"
             :filter-summary="filterSummary"
             :form-open="formOpen"
             :confirm-label="confirmLabel"
             :can-confirm="canConfirm"
-            @toggle-page="selectPage"
-            @select-everything="selectEverything"
+            @toggle-page="selectAll"
+            @select-everything="selectAll(true)"
             @confirm="confirmForm"
             @cancel="cancelForm"
           >
@@ -369,9 +336,9 @@ function removeChosen() {
               </p>
             </template>
           </ListToolbar>
-          <ul v-if="paging.pageItems.value.length" class="divide-y divide-line">
+          <ul v-if="shown.length" class="divide-y divide-line">
             <ArticleItem
-              v-for="link in paging.pageItems.value"
+              v-for="link in shown"
               :key="link.id"
               :publication-id="publicationId"
               :idea-id="ideaId"
@@ -391,13 +358,6 @@ function removeChosen() {
             }}
           </p>
         </div>
-        <PageNav
-          v-if="paging.pageCount.value > 1"
-          v-bind="paging.nav.value"
-          label="Pages of the articles, below the list"
-          class="mb-4"
-          @go="goFromBottom"
-        />
       </template>
       <p v-if="list.remove.isError.value" role="alert" class="mb-3 text-danger">
         Sorry, we couldn’t remove that item. Please try again.
