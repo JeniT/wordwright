@@ -48,7 +48,6 @@ function trackSaves(page: Page) {
       .poll(() => saving, { timeout: 5000 })
       .toBe(0)
       .catch(() => undefined)
-    await page.waitForLoadState('networkidle').catch(() => undefined)
   }
   settlers.set(page, settled)
   for (const method of ['reload', 'goBack', 'goto'] as const) {
@@ -232,30 +231,45 @@ export async function fillSignUp(page: Page, name: string, username = uniqueUser
   return email
 }
 
-/** From the landing page, creates a publication named "<name>'s writing" and opens it. */
-export async function createFirstPublication(page: Page, name: string) {
-  await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Publication name', { exact: true }).fill(`${name}'s writing`)
-  await page.getByRole('button', { name: 'Create publication' }).click()
-  await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
-  await page.getByRole('link', { name: 'Wordwright' }).click()
-  await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
+/**
+ * Signs up and signs in through the API, which is a second or more quicker than the form. Set-up is not what most
+ * tests are about; the sign-up form and the New publication form have their own tests in auth.spec.ts.
+ */
+export async function signUp(
+  page: Page,
+  name: string,
+  {
+    handle = uniqueUsername(),
+    email = `user-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+  } = {},
+) {
+  const res = await page.request.post('/api/auth/register', {
+    data: { name, handle, email, password: PASSWORD },
+  })
+  expect(res.ok(), await res.text()).toBe(true)
+  return email
+}
+
+/** Creates a publication through the API, for the person signed in on `page`; returns its id. */
+export async function createPublication(page: Page, name: string) {
+  const res = await page.request.post('/api/publications', { data: { name } })
+  expect(res.ok(), await res.text()).toBe(true)
+  return ((await res.json()) as { id: string }).id
 }
 
 /**
- * Each test registers its own user, so tests are independent and can run in parallel. Most tests
- * are about what happens after set-up, so this also creates a first publication, "<name>'s writing".
+ * Each test registers its own user, so tests are independent and can run in parallel. Most tests are about what
+ * happens after set-up, so this also creates a first publication, "<name>'s writing". It ends on the publication list.
  */
 export async function registerUser(
   page: Page,
   name = 'Ada Lovelace',
   { withPublication = true } = {},
 ) {
-  await page.goto('/register')
-  const email = await fillSignUp(page, name)
-  await page.getByRole('button', { name: 'Create account' }).click()
+  const email = await signUp(page, name)
+  if (withPublication) await createPublication(page, `${name}'s writing`)
+  await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
-  if (withPublication) await createFirstPublication(page, name)
   return email
 }
 
@@ -344,15 +358,8 @@ export async function joinFrom(
 
 export async function signUpWithPublication(page: Page) {
   const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
-  await page.goto('/register')
-  await page.getByLabel('What should we call you?').fill('Ida')
-  await page.getByLabel('Username').fill(`u${id}`)
-  await page.getByLabel('Email').fill(`ida-${id}@example.com`)
-  await page.getByLabel('Password').fill('a perfectly good password')
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByRole('link', { name: 'New publication' }).click()
-  await page.getByLabel('Publication name', { exact: true }).fill('Weekly letters')
-  await page.getByRole('button', { name: 'Create publication' }).click()
+  await signUp(page, 'Ida', { handle: `u${id}`, email: `ida-${id}@example.com` })
+  await page.goto(`/p/${await createPublication(page, 'Weekly letters')}`)
   await expect(page.getByRole('heading', { name: 'Ideas', exact: true })).toBeVisible()
 }
 

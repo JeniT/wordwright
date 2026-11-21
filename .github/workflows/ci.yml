@@ -21,9 +21,14 @@ jobs:
       - run: pnpm audit --prod --audit-level=high
       - run: pnpm build
 
+  # Alongside check, not after it: a failure in either is a red run, and waiting for check first only made CI longer.
+  # Three shards of the suite run at once; each starts its own servers.
   e2e:
     runs-on: ubuntu-24.04
-    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -33,9 +38,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @wordwright/web exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      - run: pnpm test:e2e --shard=${{ matrix.shard }}/3
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: apps/web/playwright-report

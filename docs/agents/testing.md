@@ -23,7 +23,7 @@ each (`maxWorkers` in `apps/web/vite.config.ts`, `workers` in `apps/web/playwrig
 
 ## When to run e2e
 
-The whole suite takes about 5 minutes on a quiet machine and much longer beside other sessions' runs. CI runs all of it
+The whole suite takes about 4 minutes on a quiet machine and much longer beside other sessions' runs. CI runs all of it
 on every push to `main`, and the next session checks CI before it starts ([claim.md](claim.md)), so locally you run
 only what your change could break ([ADR](../adr/foundations/e2e-runs-by-what-a-change-touches.md)):
 
@@ -67,6 +67,10 @@ This is fine. Each worktree gets its own web and API ports (hashed from its path
 database, and servers are never reused, so sessions don't test each other's code. A second run in the _same_
 worktree while one is going stops at once with "already used": wait for the first. If a port is taken by something
 unrelated, pick others with `E2E_WEB_PORT` and `E2E_API_PORT` (and the `E2E_APPROVAL_*` and `E2E_CSP_*` pairs). Leave other sessions' processes running.
+
+A run that names spec files or a `--project` starts only the servers those use: the approval and CSP pairs (the CSP
+one runs a production build) start only for `approval.spec.ts` and `csp.spec.ts`, or for a run that names neither files
+nor projects (`playwright.config.ts` reads the command line).
 
 `pnpm test:e2e` fails on any uncaught exception, `console.error`, failed request or 5xx.
 

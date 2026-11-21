@@ -8,10 +8,9 @@ import {
   leaveSettings,
   openFeeds,
   openSettingsPage,
+  signUp,
   test,
 } from './fixtures'
-
-const PASSWORD = 'a perfectly good password'
 
 /** A real PNG of the given size (flat colour), for checking what happens to a picture bigger than the app keeps. */
 function solidPng(width: number, height: number) {
@@ -52,14 +51,10 @@ const PNG = Buffer.from(
   'base64',
 )
 
+/** Signs up (through the API) with a username that is the name, so publication addresses start with it. */
 async function registerUser(page: Page, name: string) {
-  const email = `user-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
-  await page.goto('/register')
-  await page.getByLabel('What should we call you?').fill(name)
-  await page.getByLabel('Username').fill(name.toLowerCase()) // so publication addresses start with it
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(PASSWORD)
-  await page.getByRole('button', { name: 'Create account' }).click()
+  await signUp(page, name, { handle: name.toLowerCase() })
+  await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Your publications' })).toBeVisible()
 }
 

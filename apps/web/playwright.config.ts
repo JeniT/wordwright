@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto'
+import { readdirSync } from 'node:fs'
+import { argv } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, devices } from '@playwright/test'
 
@@ -38,6 +40,46 @@ const approvalDb = fileURLToPath(new URL('./.e2e-data/approval.sqlite', import.m
 export const approvalOutbox = fileURLToPath(new URL('./.e2e-data/approval-outbox', import.meta.url))
 /** The owner of the approval servers: confirmed, this address becomes an admin. */
 export const APPROVAL_ADMIN_EMAIL = 'owner@approval.example'
+
+// The approval and CSP servers serve one spec each, and the CSP pair runs a production build first (about 4s). A run
+// that names spec files or projects (`playwright test e2e/ideas.spec.ts`) starts only the servers those can use; a run
+// that names neither (CI, `pnpm test:e2e`, `--last-failed`) starts them all. The command line is read here because
+// Playwright has no per-project servers. Anything that names no spec file is ignored, so an unusual flag can only
+// start a server too many, never one too few.
+const e2eDir = fileURLToPath(new URL('./e2e/', import.meta.url))
+const specFiles = readdirSync(e2eDir)
+  .filter((f) => f.endsWith('.spec.ts'))
+  .map((f) => e2eDir + f)
+const FLAGS_WITH_VALUES = new Set(
+  '-c --config -g --grep -G --grep-invert --global-timeout -j --workers --last-failed-file --max-failures --output --reporter --add-reporter --repeat-each --retries --run-agents --shard --test-list --test-list-invert --timeout --trace --tsconfig --ui-host --ui-port --update-source-method --browser'.split(
+    ' ',
+  ),
+)
+function selection(argv: string[]) {
+  const args = argv.slice(argv.indexOf('test') + 1)
+  const filters: string[] = []
+  const projects: string[] = []
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]!
+    if (arg === '--project') {
+      while (args[i + 1] !== undefined && !args[i + 1]!.startsWith('-')) projects.push(args[++i]!)
+    } else if (arg.startsWith('--project=')) projects.push(arg.slice('--project='.length))
+    else if (FLAGS_WITH_VALUES.has(arg)) i++
+    else if (!arg.startsWith('-')) filters.push(arg.replace(/(:\d+){1,2}$/, ''))
+  }
+  const matches = (filter: string, file: string) => {
+    try {
+      return new RegExp(filter).test(file)
+    } catch {
+      return file.includes(filter)
+    }
+  }
+  const named = filters.filter((f) => specFiles.some((file) => matches(f, file)))
+  return (project: string, spec: string) =>
+    (projects.length === 0 || projects.includes(project)) &&
+    (named.length === 0 || named.some((f) => matches(f, e2eDir + spec)))
+}
+const needed = argv.includes('test') ? selection(argv) : () => true
 
 // Servers are never reused: one already on these ports is somebody else's (another worktree's, or this
 // one's before you edited it), and testing against it would test the wrong code. A taken port fails loudly.
@@ -94,52 +136,60 @@ export default defineConfig({
       url: `http://localhost:${webPort}`,
       reuseExistingServer: false,
     },
-    {
-      command: `rm -rf "${approvalDb}" "${approvalDb}-wal" "${approvalDb}-shm" "${approvalOutbox}" && pnpm --filter @wordwright/api start`,
-      env: {
-        PORT: approvalApiPort,
-        DATABASE_PATH: approvalDb,
-        FAKE_LLM: 'true',
-        FAKE_FEEDS: 'true',
-        PAGE_FETCHER: 'fake',
-        MAIL_TRANSPORT: 'file',
-        MAIL_OUTBOX_DIR: approvalOutbox,
-        PUBLIC_URL: `http://localhost:${approvalWebPort}`,
-        ACCOUNT_APPROVAL: 'required',
-        ADMIN_EMAILS: APPROVAL_ADMIN_EMAIL,
-      },
-      url: `http://localhost:${approvalApiPort}/health`,
-      reuseExistingServer: false,
-    },
-    {
-      command: `pnpm exec vite --port ${approvalWebPort} --strictPort`,
-      env: { API_URL: `http://localhost:${approvalApiPort}` },
-      url: `http://localhost:${approvalWebPort}`,
-      reuseExistingServer: false,
-    },
-    {
-      command: `rm -rf "${cspDb}" "${cspDb}-wal" "${cspDb}-shm" && pnpm --filter @wordwright/api start`,
-      env: {
-        PORT: cspApiPort,
-        DATABASE_PATH: cspDb,
-        FAKE_LLM: 'true',
-        FAKE_FEEDS: 'true',
-        PAGE_FETCHER: 'fake',
-        MAIL_TRANSPORT: 'file',
-        MAIL_OUTBOX_DIR: fileURLToPath(new URL('./.e2e-data/csp-outbox', import.meta.url)),
-        PUBLIC_URL: `http://localhost:${cspWebPort}`,
-        ACCOUNT_APPROVAL: 'open',
-      },
-      url: `http://localhost:${cspApiPort}/health`,
-      reuseExistingServer: false,
-    },
-    {
-      // Built into its own folder, so a dev build in dist/ is left alone.
-      command: `pnpm exec vite build --outDir .e2e-data/csp-dist --emptyOutDir && pnpm exec vite preview --outDir .e2e-data/csp-dist --port ${cspWebPort} --strictPort`,
-      env: { API_URL: `http://localhost:${cspApiPort}` },
-      url: `http://localhost:${cspWebPort}`,
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
+    ...(needed('approval', 'approval.spec.ts')
+      ? [
+          {
+            command: `rm -rf "${approvalDb}" "${approvalDb}-wal" "${approvalDb}-shm" "${approvalOutbox}" && pnpm --filter @wordwright/api start`,
+            env: {
+              PORT: approvalApiPort,
+              DATABASE_PATH: approvalDb,
+              FAKE_LLM: 'true',
+              FAKE_FEEDS: 'true',
+              PAGE_FETCHER: 'fake',
+              MAIL_TRANSPORT: 'file',
+              MAIL_OUTBOX_DIR: approvalOutbox,
+              PUBLIC_URL: `http://localhost:${approvalWebPort}`,
+              ACCOUNT_APPROVAL: 'required',
+              ADMIN_EMAILS: APPROVAL_ADMIN_EMAIL,
+            },
+            url: `http://localhost:${approvalApiPort}/health`,
+            reuseExistingServer: false,
+          },
+          {
+            command: `pnpm exec vite --port ${approvalWebPort} --strictPort`,
+            env: { API_URL: `http://localhost:${approvalApiPort}` },
+            url: `http://localhost:${approvalWebPort}`,
+            reuseExistingServer: false,
+          },
+        ]
+      : []),
+    ...(needed('csp', 'csp.spec.ts')
+      ? [
+          {
+            command: `rm -rf "${cspDb}" "${cspDb}-wal" "${cspDb}-shm" && pnpm --filter @wordwright/api start`,
+            env: {
+              PORT: cspApiPort,
+              DATABASE_PATH: cspDb,
+              FAKE_LLM: 'true',
+              FAKE_FEEDS: 'true',
+              PAGE_FETCHER: 'fake',
+              MAIL_TRANSPORT: 'file',
+              MAIL_OUTBOX_DIR: fileURLToPath(new URL('./.e2e-data/csp-outbox', import.meta.url)),
+              PUBLIC_URL: `http://localhost:${cspWebPort}`,
+              ACCOUNT_APPROVAL: 'open',
+            },
+            url: `http://localhost:${cspApiPort}/health`,
+            reuseExistingServer: false,
+          },
+          {
+            // Built into its own folder, so a dev build in dist/ is left alone.
+            command: `pnpm exec vite build --outDir .e2e-data/csp-dist --emptyOutDir && pnpm exec vite preview --outDir .e2e-data/csp-dist --port ${cspWebPort} --strictPort`,
+            env: { API_URL: `http://localhost:${cspApiPort}` },
+            url: `http://localhost:${cspWebPort}`,
+            reuseExistingServer: false,
+            timeout: 120_000,
+          },
+        ]
+      : []),
   ],
 })

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, startDraft, startIdea, test } from './fixtures'
+import { createPublication, expect, signUp, test } from './fixtures'
 
 // The accessibility review (#319): every route is checked against WCAG 2.2 AA with axe, in light and dark and at phone
 // width, and must not scroll sideways at 320px (the width of 400% zoom). Redirect-only routes are covered by the pages
@@ -68,54 +68,73 @@ const SIGNED_OUT = [
   '/help/nothing-here',
 ]
 
-test('every page for someone who is signed out passes axe, in both themes and on a phone', async ({
-  page,
-}) => {
-  test.setTimeout(240_000)
-  for (const path of SIGNED_OUT) await auditEverywhere(page, path)
-})
+// One test per page, so the pages are checked side by side rather than one after another in a single long test.
+for (const path of SIGNED_OUT) {
+  test(`every page for someone who is signed out passes axe, in both themes and on a phone: ${path}`, async ({
+    page,
+  }) => {
+    await auditEverywhere(page, path)
+  })
+}
 
-test('every page for someone who is signed in passes axe, in both themes and on a phone', async ({
-  page,
-}) => {
-  test.setTimeout(480_000)
-  await startIdea(page)
-  const [, , publicationId, , ideaId] = new URL(page.url()).pathname.split('/')
-  await startDraft(page)
-  const draftId = new URL(page.url()).pathname.split('/').pop()
-  const pub = `/p/${publicationId}`
-  const idea = `${pub}/ideas/${ideaId}`
+// `:publication`, `:idea` and `:draft` are filled in from what each test makes.
+const SIGNED_IN = [
+  '/',
+  '/waiting',
+  '/reviews',
+  '/reviews/start',
+  '/account/details',
+  '/account/ai',
+  '/account/display',
+  '/account/security',
+  '/account/download',
+  '/account/delete',
+  '/publications/new',
+  '/p/:publication',
+  '/p/:publication/scan',
+  '/p/:publication/read',
+  '/p/:publication/notes',
+  '/p/:publication/settings/details',
+  '/p/:publication/settings/description',
+  '/p/:publication/settings/feeds',
+  '/p/:publication/settings/sharing',
+  '/p/:publication/settings/download',
+  '/p/:publication/settings/delete',
+  '/p/:publication/ideas/:idea',
+  '/p/:publication/ideas/:idea/research',
+  '/p/:publication/ideas/:idea/read',
+  '/p/:publication/ideas/:idea/notes',
+  '/p/:publication/ideas/:idea/refine',
+  '/p/:publication/ideas/:idea/drafts',
+  '/p/:publication/ideas/:idea/settings',
+  '/p/:publication/drafts/:draft',
+]
 
-  const paths = [
-    '/',
-    '/waiting',
-    '/reviews',
-    '/reviews/start',
-    '/account/details',
-    '/account/ai',
-    '/account/display',
-    '/account/security',
-    '/account/download',
-    '/account/delete',
-    '/publications/new',
-    pub,
-    `${pub}/scan`,
-    `${pub}/read`,
-    `${pub}/notes`,
-    `${pub}/settings/details`,
-    `${pub}/settings/description`,
-    `${pub}/settings/feeds`,
-    `${pub}/settings/sharing`,
-    `${pub}/settings/download`,
-    `${pub}/settings/delete`,
-    idea,
-    `${idea}/research`,
-    `${idea}/read`,
-    `${idea}/notes`,
-    `${idea}/refine`,
-    `${idea}/drafts`,
-    `${idea}/settings`,
-    `${pub}/drafts/${draftId}`,
-  ]
-  for (const path of paths) await auditEverywhere(page, path)
-})
+/** Every signed-in page is checked with the same things to show: a publication with an idea, a note and a draft. */
+async function signUpWithADraft(page: Page) {
+  await signUp(page, 'Ida')
+  const publication = await createPublication(page, 'Weekly letters')
+  const made = async (path: string, data: object) => {
+    const res = await page.request.post(`/api/publications/${publication}${path}`, { data })
+    expect(res.ok(), await res.text()).toBe(true)
+    return ((await res.json()) as { id: string }).id
+  }
+  const idea = await made('/ideas', {
+    name: 'Why rivers meander',
+    notes: 'Erosion on the outside of each bend.',
+  })
+  const draft = await made(`/ideas/${idea}/drafts`, {})
+  return { publication, idea, draft }
+}
+
+for (const route of SIGNED_IN) {
+  test(`every page for someone who is signed in passes axe, in both themes and on a phone: ${route}`, async ({
+    page,
+  }) => {
+    const ids = await signUpWithADraft(page)
+    await auditEverywhere(
+      page,
+      route.replace(/:(publication|idea|draft)/g, (_, key: keyof typeof ids) => ids[key]),
+    )
+  })
+}
