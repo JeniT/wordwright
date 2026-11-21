@@ -1,7 +1,7 @@
-// Decides whether a rebase onto origin/main needs the full suite rerun.
+// Decides whether a rebase onto origin/main needs the checks rerun (docs/agents/landing.md step 2).
 // Run it after `git fetch origin` and BEFORE `git rebase origin/main`: once rebased, the merge-base is
 // origin/main itself and "what came in" can no longer be seen.
-// Exit 0: nothing incoming touches what this branch changed. Exit 1: overlap (printed); rerun everything.
+// Exit 0: nothing incoming touches what this branch changed. Exit 1: overlap (printed); rerun pnpm check, pnpm build and the affected e2e specs.
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
@@ -40,7 +40,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     )
   } else {
     console.log(
-      `overlap: ${overlap.join(', ')}\nrerun pnpm check, pnpm build and pnpm test:e2e after rebasing`,
+      `overlap: ${overlap.join(', ')}\nrerun pnpm check, pnpm build and the affected e2e specs after rebasing (docs/agents/testing.md#when-to-run-e2e)`,
     )
     process.exitCode = 1
   }
