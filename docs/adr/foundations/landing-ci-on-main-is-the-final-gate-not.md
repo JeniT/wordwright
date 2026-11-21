@@ -2,8 +2,8 @@
 
 With several sessions landing close together, each rebase onto a moved `main` used to mean a full rerun of
 `pnpm check`, `pnpm build` and `pnpm test:e2e`, so one session could run the whole suite three or four times for no
-reason. Now `scripts/rebase-overlap.mjs` (run after `git fetch`, before `git rebase`) says whether what came in touches
-anything the branch changed, or a shared spot (the list is `SHARED_SPOTS` in the script). No overlap: a rebase can't change what the branch's tests exercise, so run `pnpm typecheck` and
+reason. Now `aw rebase-overlap` (from agent-workflow; run after `git fetch`, before `git rebase`) says whether what came in touches
+anything the branch changed, or a shared spot (the list is `sharedSpots` in `agent-workflow.config.json`). No overlap: a rebase can't change what the branch's tests exercise, so run `pnpm typecheck` and
 the changed packages' tests, then push. Overlap, or any conflict: the full rerun, as before. (Since #461 that rerun
 is `pnpm check`, `pnpm build` and the affected e2e specs, not the whole e2e suite:
 [e2e runs by what a change touches](e2e-runs-by-what-a-change-touches.md).)

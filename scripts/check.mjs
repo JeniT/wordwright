@@ -53,6 +53,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       `\npnpm check: failed at \`pnpm ${failed}\`. Fix it, rerun that step, then pnpm check.`,
     )
     process.exitCode = 1
+  } else if (!process.env.CI) {
+    // So the pre-push hook can tell this content has passed (`aw stamp`, from agent-workflow). CI pushes nothing.
+    const stamped = spawnSync('pnpm', ['exec', 'aw', 'stamp'], { stdio: 'inherit' }).status === 0
+    console.log(
+      stamped
+        ? '\npnpm check: all passed'
+        : '\npnpm check: all passed, but `aw stamp` failed, so the pre-push hook will refuse this content',
+    )
   } else {
     console.log('\npnpm check: all passed')
   }

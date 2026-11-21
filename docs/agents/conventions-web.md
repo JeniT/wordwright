@@ -9,7 +9,7 @@ calls the API, and it validates responses with the shared schemas. `src/theme/` 
 
 - **Looking at a change in a browser:** run `pnpm dev:private` (not `pnpm dev`, whose ports other sessions may hold). It
   starts your own API and web on free ports with a fake LLM and open sign-up, and prints the address. Stop it with
-  Ctrl-C, or as in [testing.md](testing.md#stopping-a-server-you-started).
+  Ctrl-C, or by its port: `kill $(lsof -nP -iTCP:<port> -sTCP:LISTEN -t)` (a name pattern such as `pkill -f tsx` stops other sessions' servers too).
 - **Web queries:** query keys and the queries screens share (`useIdea`, `useIdeas`, `useIdeaNotes`, `useSources`,
   `useDraft`) live in `apps/web/src/lib/queries.ts`, and lint requires every `queryKey` to come from `queryKeys`
   there. Refresh with `invalidateRoots` / `refreshNotesEverywhere`.

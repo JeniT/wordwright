@@ -1,6 +1,7 @@
 # Running tests and checks
 
-Read this when you are about to run tests, format, or lint.
+Read this when you are about to run tests, format, or lint. Stopping servers, editing on this macOS machine and the
+shared stash are in the agent-workflow plugin's notes on this machine (its `claim` skill links them).
 
 ## Test narrowly while you work; run everything once, at the end
 
@@ -56,11 +57,6 @@ or drop the `export` if the file still uses it. To keep something on purpose (a 
 `savesAnswered`), add it under `ignoreIssues` in `knip.json`. Files loaded by a computed `import()` path are listed
 as `entry` patterns there too.
 
-## Stopping a server you started
-
-Other sessions run servers on this machine too. Stop yours by its port: `kill $(lsof -nP -iTCP:<port> -sTCP:LISTEN -t)`.
-A name pattern (`pkill -f tsx`) also matches their servers.
-
 ## e2e in several worktrees at once
 
 This is fine. Each worktree gets its own web and API ports (hashed from its path; CI uses fixed ones) and its own
@@ -73,14 +69,6 @@ one runs a production build) start only for `approval.spec.ts` and `csp.spec.ts`
 nor projects (`playwright.config.ts` reads the command line).
 
 `pnpm test:e2e` fails on any uncaught exception, `console.error`, failed request or 5xx.
-
-## Editing files on this machine
-
-This machine is macOS, so `sed` is BSD `sed`, not GNU. `sed -i 's/a/b/' file` fails (BSD wants a backup suffix after
-`-i`, so it reads the script as the suffix: "undefined label", "illegal option"), and GNU-only features such as `\+`,
-`\b` and `\n` in replacements behave differently. It is not a permissions problem. For edits, use the Edit tool; for a
-repeated change across files, use `perl -pi -e 's/a/b/' <files>`. To read part of a file, use the Read tool with
-`offset` and `limit`.
 
 ## The production Content-Security-Policy
 

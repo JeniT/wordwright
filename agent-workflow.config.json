@@ -1,0 +1,14 @@
+{
+  "sharedSpots": [
+    "packages/core/src/domain.ts",
+    "apps/api/src/app.ts",
+    "apps/api/src/server.ts",
+    "apps/api/src/db/database.ts",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
+  ],
+  "afterRebase": {
+    "noOverlap": "run pnpm check (bare) before the push: the pre-push hook needs it on the rebased content",
+    "overlap": "rerun pnpm check and pnpm build, and the e2e specs the change and what came in touch (docs/agents/testing.md#when-to-run-e2e), after rebasing"
+  }
+}

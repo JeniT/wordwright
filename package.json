@@ -26,10 +26,12 @@
     "check:licences": "node scripts/check-licences.mjs",
     "check:node-pins": "node scripts/check-node-pins.mjs",
     "knip": "knip",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "prepare": "aw install-hooks || true"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "agent-workflow": "github:JeniT/agent-workflow#42a2e1b",
     "eslint": "^10.15.0",
     "eslint-plugin-vue": "^10.12.1",
     "globals": "^17.14.0",

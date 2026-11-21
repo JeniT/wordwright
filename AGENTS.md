@@ -21,26 +21,27 @@ titles/openings/social posts. Users bring their own LLM API key; the service has
 
 ## Read before you act
 
-| When you are…                                                           | Read                                                                   |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Choosing what to work on, or starting an issue                          | [docs/agents/claim.md](docs/agents/claim.md)                           |
-| Changing anything people see                                            | [docs/design/](docs/design/README.md)                                  |
-| Writing or changing any UI words                                        | [docs/style-guide.md](docs/style-guide.md), [CONTEXT.md](CONTEXT.md)   |
-| Calling an LLM, or editing a prompt                                     | [docs/responsible-ai.md](docs/responsible-ai.md), `prompts/README.md`  |
-| Adding an LLM adapter, boundary evals or invariant tests                | [docs/evals.md](docs/evals.md)                                         |
-| Changing `apps/web`                                                     | [docs/agents/conventions-web.md](docs/agents/conventions-web.md)       |
-| Changing `apps/api`, `packages/core`, the database, or adding a service | [docs/agents/conventions-api.md](docs/agents/conventions-api.md)       |
-| Running tests, formatting or editing files                              | [docs/agents/testing.md](docs/agents/testing.md)                       |
-| About to commit                                                         | [docs/agents/definition-of-done.md](docs/agents/definition-of-done.md) |
-| Ready to merge                                                          | [docs/agents/landing.md](docs/agents/landing.md)                       |
-| Triaging an `inbox` issue, or filing one                                | [docs/agents/triage.md](docs/agents/triage.md)                         |
-| Running a content crit                                                  | [docs/agents/content-crit.md](docs/agents/content-crit.md)             |
-| Asking why something is the way it is                                   | [docs/adr/](docs/adr/README.md)                                        |
-| Setting up; learning the architecture                                   | [README.md](README.md)                                                 |
-| Changing sign-in, accounts, publications, sharing, ideas or drafts      | [docs/accounts.md](docs/accounts.md)                                   |
-| Changing key handling or adding an LLM provider                         | [docs/byok.md](docs/byok.md)                                           |
-| Changing brainstorm, Research, Critique or Rephrase                     | [docs/ai-features.md](docs/ai-features.md)                             |
-| Deploying or operating a server                                         | [docs/deploy.md](docs/deploy.md), [docs/runbook.md](docs/runbook.md)   |
+| When you are…                                                           | Read                                                                                                               |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Choosing what to work on, or starting an issue                          | the `claim` skill, then [docs/agents/claim.md](docs/agents/claim.md)                                               |
+| Changing anything people see                                            | [docs/design/](docs/design/README.md)                                                                              |
+| Writing or changing any UI words                                        | [docs/style-guide.md](docs/style-guide.md), [CONTEXT.md](CONTEXT.md)                                               |
+| Calling an LLM, or editing a prompt                                     | [docs/responsible-ai.md](docs/responsible-ai.md), `prompts/README.md`                                              |
+| Adding an LLM adapter, boundary evals or invariant tests                | [docs/evals.md](docs/evals.md)                                                                                     |
+| Changing `apps/web`                                                     | [docs/agents/conventions-web.md](docs/agents/conventions-web.md)                                                   |
+| Changing `apps/api`, `packages/core`, the database, or adding a service | [docs/agents/conventions-api.md](docs/agents/conventions-api.md)                                                   |
+| Running tests, formatting or editing files                              | [docs/agents/testing.md](docs/agents/testing.md)                                                                   |
+| About to commit                                                         | the definition of done (`land` skill), then [docs/agents/definition-of-done.md](docs/agents/definition-of-done.md) |
+| Ready to merge                                                          | the `land` skill, then [docs/agents/landing.md](docs/agents/landing.md)                                            |
+| Triaging an `inbox` issue                                               | [docs/agents/triage.md](docs/agents/triage.md)                                                                     |
+| Filing an issue (a follow-up, an observation, a decision)               | the `file-issue` skill, then [docs/agents/triage.md](docs/agents/triage.md)                                        |
+| Running a content crit                                                  | [docs/agents/content-crit.md](docs/agents/content-crit.md)                                                         |
+| Asking why something is the way it is                                   | [docs/adr/](docs/adr/README.md)                                                                                    |
+| Setting up; learning the architecture                                   | [README.md](README.md)                                                                                             |
+| Changing sign-in, accounts, publications, sharing, ideas or drafts      | [docs/accounts.md](docs/accounts.md)                                                                               |
+| Changing key handling or adding an LLM provider                         | [docs/byok.md](docs/byok.md)                                                                                       |
+| Changing brainstorm, Research, Critique or Rephrase                     | [docs/ai-features.md](docs/ai-features.md)                                                                         |
+| Deploying or operating a server                                         | [docs/deploy.md](docs/deploy.md), [docs/runbook.md](docs/runbook.md)                                               |
 
 Any other doc: [docs/README.md](docs/README.md) says when to open each one.
 Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue list --label ready`.
@@ -58,8 +59,10 @@ Issues are on [GitHub](https://github.com/JeniT/wordwright/issues): `gh issue li
 
 ## Gotchas nothing else records
 
+- The workflow (claim, land, file an issue) is the **agent-workflow** plugin's skills and its `aw` commands
+  (`pnpm exec aw` lists them); `docs/agents/` holds only what wordwright adds.
 - Work in a worktree (`.worktrees/issue-N`); local `main` is shared by every session and receives only a fast-forward
-  from `origin/main`.
+  from `origin/main`. Publish with `git push origin HEAD:main`, never local `main`.
 - In a worktree, bring in the base branch with `git fetch origin` then `git merge origin/main`; the app's
   `sync_with_base_branch` refuses `.worktrees/`.
 - Edit with the Edit tool, or `perl -pi -e` across files: this is macOS and BSD `sed -i` fails.

@@ -1,0 +1,6 @@
+{
+  "extraKnownMarketplaces": {
+    "agent-workflow": { "source": { "source": "github", "repo": "JeniT/agent-workflow" } }
+  },
+  "enabledPlugins": { "agent-workflow@agent-workflow": true }
+}
