@@ -163,7 +163,11 @@ test('Quick add reads “Add: Idea · Note · Article” on one line on a phone'
       ...['New idea', 'Add a note', 'Add article'].map((name) => quick.getByRole('tab', { name })),
     ].map((l) => l.boundingBox()),
   )
-  const tops = boxes.map((b) => Math.round(b!.y + b!.height / 2))
-  expect(new Set(tops).size, 'the label and all three tabs share a line').toBe(1)
+  // Centres within a couple of pixels: the row can sit at a fraction of a pixel, which rounding would split.
+  const middles = boxes.map((b) => b!.y + b!.height / 2)
+  expect(
+    Math.max(...middles) - Math.min(...middles),
+    'the label and all three tabs share a line',
+  ).toBeLessThan(2)
   expect(boxes[3]!.x + boxes[3]!.width).toBeLessThanOrEqual(390)
 })

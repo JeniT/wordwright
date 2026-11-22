@@ -598,7 +598,10 @@ test('writes a description with guidance on what it needs, and nothing drafts it
   await expect(
     page.getByRole('link', { name: /See what makes a useful description/ }),
   ).toBeVisible()
-  await expect(page.locator('details')).toHaveCount(0)
+  // (The email notice's one line is a `details` of its own, #457.)
+  await expect(page.locator('details:not([aria-label="Email confirmation"] details)')).toHaveCount(
+    0,
+  )
   await expect(page.getByText('Draft from a few posts')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Draft a description' })).toHaveCount(0)
   await noViolations(page)

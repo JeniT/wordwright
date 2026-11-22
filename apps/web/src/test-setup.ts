@@ -20,3 +20,5 @@ window.scrollTo = () => {}
 Element.prototype.scrollIntoView ??= () => {}
 
 afterEach(cleanup)
+// What a page remembers in this browser (the email notice seen, the last publication) mustn't leak into the next test.
+afterEach(() => localStorage.clear())

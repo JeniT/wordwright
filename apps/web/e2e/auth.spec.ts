@@ -163,6 +163,21 @@ test('confirms an email address from the signup email', async ({ page }) => {
 
   // Until they confirm, sharing is explained rather than offered.
   await openSettings(page)
+  // On a later page the notice is one line (#457), which opens for the address; it passes axe at both widths.
+  await expect(banner).toHaveAttribute('data-compact')
+  await expect(banner.getByRole('button', { name: 'Resend' })).toBeVisible()
+  await banner.getByText('Please confirm your email.').click()
+  await expect(banner.getByText(email)).toBeVisible()
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'one-line notice').toEqual([])
+  await page.setViewportSize({ width: 390, height: 800 })
+  const line = await banner.boundingBox()
+  await banner.getByText('Please confirm your email.').click() // closes it
+  expect((await banner.boundingBox())!.height).toBeLessThan(line!.height)
+  expect((await banner.boundingBox())!.height, 'one line at phone width').toBeLessThan(60)
+  expect((await new AxeBuilder({ page }).analyze()).violations, 'one-line notice, phone').toEqual(
+    [],
+  )
+  await page.setViewportSize({ width: 1280, height: 800 })
   await expect(page.getByText('Confirm your email address to invite people')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Send invitation' })).toHaveCount(0)
 
