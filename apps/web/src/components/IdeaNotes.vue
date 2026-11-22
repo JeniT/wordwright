@@ -514,6 +514,7 @@ const label = (note: IdeaNote) => {
           :item-label="label"
           :save="saveOrder"
           :keep-toolbar="tagFilter.length > 0"
+          :is-selected="(note) => selected.includes(note.id)"
           align-top
         >
           <template #toolbar>

@@ -27,6 +27,11 @@ defineProps<{
   keepToolbar?: boolean
   /** Line the content and actions up at the top of the row, for rows that can be tall (a long note). */
   alignTop?: boolean
+  /**
+   * Whether a row is ticked for a bulk action. A ticked row has the accent wash, which echoes its checkbox on a long
+   * list; the checkbox stays the control and the signal that doesn't rely on colour.
+   */
+  isSelected?: (item: T) => boolean
 }>()
 
 defineSlots<{
@@ -49,6 +54,8 @@ defineSlots<{
         v-for="(item, index) in items"
         :key="item.id"
         class="flex items-stretch"
+        :class="{ 'bg-accent-wash': isSelected?.(item) }"
+        :data-selected="isSelected?.(item) || undefined"
         v-bind="rowAttrs?.(item)"
       >
         <slot name="rail" :item="item" :index="index" />

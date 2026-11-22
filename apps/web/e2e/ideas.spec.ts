@@ -206,6 +206,18 @@ test('with tutorial mode on, a tip is written out on the page instead of behind 
   await noViolations(page, 'a tip written out')
   await page.setViewportSize({ width: 390, height: 800 })
   await noViolations(page, 'a tip written out, phone')
+  // A ticked row has the accent wash (#456), and still passes contrast in dark mode.
+  const row = (start: string) =>
+    notes
+      .getByRole('listitem')
+      .filter({ has: page.getByRole('checkbox', { name: new RegExp(`^Select note “${start}`) }) })
+  const background = (start: string) =>
+    row(start).evaluate((li) => getComputedStyle(li).backgroundColor)
+  expect(await background('Erosion')).toBe('rgb(251, 230, 214)')
+  expect(await background('Oxbow')).not.toBe('rgb(251, 230, 214)')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  expect(await background('Erosion')).toBe('rgb(67, 39, 26)')
+  await noViolations(page, 'a tip written out, phone, dark')
 })
 
 test('tags several notes at once, then takes a tag off them all again', async ({ page }) => {

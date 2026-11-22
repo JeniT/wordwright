@@ -258,7 +258,7 @@ Warm stone paper and ink with one ember of colour, and a pale blue pencil kept f
   It means "you can act here" or "this is where you are", never decoration. Its hover and pressed state is
   **Deep Ember** (accent-strong); text on it uses on-accent.
 - **Ember Wash** (accent-wash): the tinted background for information that is not an action: notices, callouts,
-  counts, the current menu item, a hovered card, a selected icon button.
+  counts, the current menu item, a hovered card, a selected icon button, a list row ticked for a bulk action.
 
 ### Neutral
 

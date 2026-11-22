@@ -8,9 +8,12 @@ defineProps<{ name: string | null }>()
 </script>
 
 <template>
-  <span v-if="name" class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink">{{
-    name
-  }}</span>
+  <!-- In a ticked row, which has the same wash (`RowList`), the chip takes the surface colour so it still shows. -->
+  <span
+    v-if="name"
+    class="rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-ink in-data-selected:bg-surface"
+    >{{ name }}</span
+  >
   <span v-else class="rounded-full bg-sunken px-2 py-0.5 text-xs text-ink-soft italic"
     >A former member</span
   >

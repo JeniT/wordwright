@@ -112,7 +112,8 @@ function saveLink() {
 </script>
 
 <template>
-  <li>
+  <!-- A ticked row has the accent wash, as in `RowList`; the checkbox stays the control. -->
+  <li :class="{ 'bg-accent-wash': selected }" :data-selected="selected || undefined">
     <form
       v-if="editing"
       ref="form"

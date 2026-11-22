@@ -29,6 +29,8 @@ const props = defineProps<{
   keepToolbar?: boolean
   /** Line each row's content and buttons up at the top (see `RowList`). */
   alignTop?: boolean
+  /** Whether a row is ticked for a bulk action, so it is tinted (see `RowList`). */
+  isSelected?: (item: T) => boolean
 }>()
 
 defineSlots<{
@@ -286,6 +288,7 @@ const rowAttrs = (item: T) => ({
       :row-attrs="rowAttrs"
       :keep-toolbar="keepToolbar"
       :align-top="alignTop"
+      :is-selected="isSelected"
     >
       <template v-if="$slots.toolbar" #toolbar><slot name="toolbar" /></template>
       <template #rail="{ item, index }">

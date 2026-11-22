@@ -91,7 +91,9 @@ only thing the rail does. Its grip shows from `lg` up (a phone cannot drag), and
 the top of the rail (always shown) is the route for keyboards, touch and screen readers. The grip is centred vertically in the rail, but never nearer than 3.75rem to the top, so it never meets the button above it (a rail is at least 5rem tall from `lg` up, which is why a short card still has room for both).
 
 **The left rail and reordering.** Every list row has a `list-rail`, a fixed-width top-aligned zone holding the row's
-select checkbox. On a reorderable list the rail is **the handle**: the whole rail is the drag area (a `grab` cursor, so a
+select checkbox. **A ticked row has the `accent-wash` background** (`RowList`'s `isSelected`; `ArticleItem` on the Read
+page), in light and dark mode, so the selection can be seen down a long list; the checkbox stays the control and the
+signal that does not rely on colour. A name chip in a ticked row takes the surface colour, so it still shows (#456). On a reorderable list the rail is **the handle**: the whole rail is the drag area (a `grab` cursor, so a
 tall row has a big handle) and it **tints to `accent-wash` under the pointer**, which shows how far it reaches. A **six-dot
 grip** (`list-rail-grip`) says so. It is a plain glyph, with no outline or fill, so it does not read as a button of its
 own, and it is faint at rest (`line-strong`, 3:1) and darker on hover. It sits under the checkbox in its own space;

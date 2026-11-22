@@ -933,6 +933,14 @@ describe('idea page', () => {
       expect(tagButton()).toBeEnabled()
     })
 
+    it('tints a ticked item’s row, as on the Notes page (#456)', async () => {
+      await openWith(two)
+      await screen.findByRole('link', { name: 'A paper' })
+      expect(tick('A paper').closest('li')).not.toHaveClass('bg-accent-wash')
+      await fireEvent.click(tick('A paper'))
+      expect(tick('A paper').closest('li')).toHaveClass('bg-accent-wash')
+    })
+
     it('adds and removes tags on all the selected links in one request, and shows them', async () => {
       const sent: unknown[] = []
       await openWith(two, [
@@ -1983,6 +1991,21 @@ describe('idea page', () => {
         ).toBeInTheDocument()
         await fireEvent.click(tick('Another'))
         expect(merge()).not.toHaveAttribute('aria-disabled')
+      })
+
+      it('tints a ticked note’s row, and only while it is ticked (#456)', async () => {
+        fakeNotes([note('n1', 'Only one.'), note('n2', 'Another.')])
+        await open()
+        await screen.findByText('Only one.')
+        const row = (start: string) => tick(start).closest('li')!
+        expect(row('Only one')).not.toHaveClass('bg-accent-wash')
+        await fireEvent.click(tick('Only one'))
+        expect(row('Only one')).toHaveClass('bg-accent-wash')
+        expect(row('Only one')).toHaveAttribute('data-selected')
+        expect(tick('Only one')).toBeChecked() // the tick stays the signal that isn't colour
+        expect(row('Another')).not.toHaveClass('bg-accent-wash')
+        await fireEvent.click(tick('Only one'))
+        expect(row('Only one')).not.toHaveClass('bg-accent-wash')
       })
 
       it('merges the selected notes into one, and clears the selection', async () => {
