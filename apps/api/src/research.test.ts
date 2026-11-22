@@ -243,7 +243,93 @@ describe('running research', () => {
     const statuses: number[] = []
     for (let i = 0; i < 11; i++) statuses.push((await run(ada, `T${i}`)).status)
     expect(statuses.slice(0, 10).every((s) => s === 201)).toBe(true)
-    expect(statuses[10]).toBe(429)
+    const refused = await run(ada, 'One too many')
+    expect(refused.status).toBe(429)
+    expect((await refused.json()).error).toBe(
+      'You’ve reached the limit of 10 searches an hour. Try again in an hour.',
+    )
+  })
+
+  describe('several at once (#446)', () => {
+    /** Each search waits until `release` is called, so several can be running together. */
+    function holdSearches(ctx: Awaited<ReturnType<typeof world>>['ctx']) {
+      const waiting: (() => void)[] = []
+      ctx.setResearch(
+        () => new Promise<ResearchFinding[]>((resolve) => waiting.push(() => resolve([found(OK)]))),
+      )
+      const started = (n: number) =>
+        new Promise<void>((resolve) => {
+          const look = () => (waiting.length >= n ? resolve() : setTimeout(look, 1))
+          look()
+        })
+      return { started, release: () => waiting.splice(0).forEach((go) => go()) }
+    }
+
+    it('runs up to three in a publication together, refusing a fourth without spending a search', async () => {
+      const { ctx, ada, run, list } = await world()
+      const held = holdSearches(ctx)
+      const three = ['A', 'B', 'C'].map((areas) => run(ada, areas))
+      await held.started(3)
+
+      const fourth = await run(ada, 'D')
+      expect(fourth.status).toBe(429)
+      expect((await fourth.json()).error).toBe(
+        '3 searches are already running in this publication. Try again when one finishes.',
+      )
+      held.release()
+      expect((await Promise.all(three)).map((r) => r.status)).toEqual([201, 201, 201])
+      expect((await list()).map((r) => r.areas).sort()).toEqual(['A', 'B', 'C'])
+
+      // Once they have finished there is room again, and the refusal used none of the hour's ten.
+      ctx.setResearch(() => [])
+      const statuses: number[] = []
+      for (let i = 0; i < 7; i++) statuses.push((await run(ada, `T${i}`)).status)
+      expect(statuses.every((s) => s === 201)).toBe(true)
+      expect((await run(ada, 'Eleventh')).status).toBe(429)
+    })
+
+    it('counts the searches of every member of the publication, and frees a place when one fails', async () => {
+      const { ctx, ada, publication, run, ideas } = await world()
+      const bob = ctx.client()
+      await register(bob, 'bob@example.com', 'Bob')
+      await saveKey(bob, 'sk-ant-bobs-own-key-1234567890')
+      verifyAccounts(ctx, 'ada@example.com')
+      await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
+      const idea = (await (await ada.get(ideas)).json())[0]
+      const held = holdSearches(ctx)
+      const running = [run(ada, 'A'), run(ada, 'B')]
+      await held.started(2)
+      const bobs = bob.post(`${ideas}/${idea.id}/research`, { areas: 'Bob’s question' })
+      await held.started(3)
+      expect((await run(ada, 'D')).status).toBe(429)
+      held.release()
+      await Promise.all([...running, bobs])
+
+      ctx.setResearch(() => {
+        throw new LLMProviderError('boom')
+      })
+      expect((await run(ada, 'Fails')).status).toBe(502)
+      ctx.setResearch(() => [])
+      expect((await run(ada, 'Fine')).status).toBe(201)
+    })
+
+    it('counts each publication apart', async () => {
+      const { ctx, ada, run } = await world()
+      const held = holdSearches(ctx)
+      const three = ['A', 'B', 'C'].map((areas) => run(ada, areas))
+      await held.started(3)
+      const other = await (await ada.post('/api/publications', { name: 'Another' })).json()
+      const otherIdea = await (
+        await ada.post(`/api/publications/${other.id}/ideas`, { name: 'Elsewhere' })
+      ).json()
+      const elsewhere = ada.post(`/api/publications/${other.id}/ideas/${otherIdea.id}/research`, {
+        areas: 'Elsewhere',
+      })
+      await held.started(4)
+      held.release()
+      expect((await elsewhere).status).toBe(201)
+      await Promise.all(three)
+    })
   })
 
   it('sends the researcher the writer’s words escaped, so they cannot close the brief’s own tags', () => {

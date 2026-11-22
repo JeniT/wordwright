@@ -122,12 +122,13 @@ If the database itself is large, `docker compose exec api du -sh /data`; tell th
 
 Each writer uses their own key with their own provider, so this is usually theirs to fix, and the app tells them how:
 
-| They see                                                                             | It means                                                    | What to do                                                                                      |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| "Your AI provider didn't accept your key. Check it in your AI key settings."         | The provider refused the key (revoked, expired, no credit). | Nothing on the server. They replace the key on Your AI.                                         |
-| "Your AI provider is limiting requests for your key right now. Try again …"          | The provider's own rate limit for their account.            | Wait. Their provider's console shows their limits.                                              |
-| "The AI provider returned an error" / "had a problem. Try again in a moment."        | The provider failed, or could not be reached.               | Look at the provider's status page (Anthropic: status.anthropic.com).                           |
-| "You’re asking your AI very quickly" / "sending messages" / "searching very quickly" | Our own throttle ([Limits](#limits)).                       | Wait a few minutes. If a real writer meets it in ordinary use, the limit is too low: change it. |
+| They see                                                                                       | It means                                                    | What to do                                                                                      |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| "Your AI provider didn't accept your key. Check it in your AI key settings."                   | The provider refused the key (revoked, expired, no credit). | Nothing on the server. They replace the key on Your AI.                                         |
+| "Your AI provider is limiting requests for your key right now. Try again …"                    | The provider's own rate limit for their account.            | Wait. Their provider's console shows their limits.                                              |
+| "The AI provider returned an error" / "had a problem. Try again in a moment."                  | The provider failed, or could not be reached.               | Look at the provider's status page (Anthropic: status.anthropic.com).                           |
+| "You’re asking your AI very quickly" / "sending messages" / "the limit of 10 searches an hour" | Our own throttle ([Limits](#limits)).                       | Wait a few minutes. If a real writer meets it in ordinary use, the limit is too low: change it. |
+| "3 searches are already running in this publication"                                           | Our cap on searches running at once in one publication.     | Wait for one to finish. Members of one publication share it.                                    |
 
 If **every** writer's AI fails at once and the provider is fine, the server cannot reach it: from the server,
 `docker compose exec api node -e "fetch('https://api.anthropic.com').then(r => console.log(r.status))"` (any status

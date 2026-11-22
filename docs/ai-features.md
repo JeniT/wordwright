@@ -29,7 +29,17 @@ appeared in a search result. Web search must be enabled for the Anthropic accoun
 with the same SSRF-safe page fetcher as typed links and shows the page's real title, flagging an address that
 doesn't resolve (it can't be added). Nothing joins the articles until a person adds it; it keeps the AI's reason,
 highlighted as the AI's in the articles (one highlighted line above the list says what the highlight is; no badge says where an item came from). The brainstorm coach can also suggest a page, but only an address the writer
-gave it. Searches are throttled to 10 an hour per person, with no other cap. With `FAKE_LLM=true` a search finds three scripted
+gave it. **Several searches can run at once** (#446): sending one clears the box for the next, and each is listed under
+it, newest first, with its own wait ("Searching the web…", read out politely) or error (with **Try again** and
+**Remove**), so one failing leaves the others alone. They are kept for the tab (`lib/research-searches.ts`), not the
+page: moving elsewhere in the app leaves a search running and the box shows it again on the way back; closing or
+reloading the tab stops it and nothing is kept, so the browser asks first while one is running, and the box says so.
+On the Research page a finished run joins the list and is shown, unless focus is inside the run being read, which then
+stays put (**Later research** leads to the new one). On the idea's landing page a finished search stays listed with
+**See the research** (`?run=<id>` opens that run) until it is removed or the Research page is visited. At most
+`RESEARCH_IN_FLIGHT_MAX` (3) run at once per publication, counted by the server across its members (a refused one
+spends nothing); the button explains when this tab has reached it. A queue that survives closing the tab is #447.
+Searches are also throttled to 10 an hour per person ("You’ve reached the limit of 10 searches an hour"). With `FAKE_LLM=true` a search finds three scripted
 pages: one fine, one with no readable title and one that doesn't exist; and the coach turns an address plus "articles" into a suggestion.
 
 ## Critique and Rephrase

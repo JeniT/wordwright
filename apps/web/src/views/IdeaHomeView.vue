@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import Explain from '../components/Explain.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 import LandingSection from '../components/LandingSection.vue'
@@ -20,14 +20,7 @@ import { usePublication } from '../lib/usePublications'
  * writer presses Research.
  */
 const props = defineProps<{ publicationId: string; id: string }>()
-const router = useRouter()
 const { publication } = usePublication(() => props.publicationId)
-
-const showResearch = () =>
-  router.push({
-    name: 'idea-research',
-    params: { publicationId: props.publicationId, id: props.id },
-  })
 </script>
 
 <template>
@@ -76,12 +69,7 @@ const showResearch = () =>
           See all research
         </RouterLink>
       </template>
-      <ResearchForm
-        class="max-w-2xl"
-        :publication-id="publicationId"
-        :idea-id="id"
-        @done="showResearch"
-      />
+      <ResearchForm class="max-w-2xl" :publication-id="publicationId" :idea-id="id" keep-finished />
     </LandingSection>
 
     <RecentArticles

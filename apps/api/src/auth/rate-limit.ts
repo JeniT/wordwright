@@ -10,7 +10,7 @@ export class RateLimiter {
   private readonly hits = new Map<string, { count: number; resetAt: number }>()
 
   constructor(
-    private readonly max: number,
+    readonly max: number,
     readonly windowMs: number,
     private readonly now: () => number = Date.now,
     private readonly maxKeys = 100_000,

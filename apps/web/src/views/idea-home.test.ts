@@ -280,7 +280,7 @@ describe('an idea’s landing page', () => {
       ).toBeInTheDocument()
     })
 
-    it('starts the research only when the button is pressed, then shows the results', async () => {
+    it('starts the research only when the button is pressed, then links to what it found, staying put', async () => {
       const state = fakeIdea({
         idea: idea(
           [link(1)].map((l) => ({ ...l, readAt: '2026-01-01T00:00:00Z' })),
@@ -297,12 +297,19 @@ describe('an idea’s landing page', () => {
       expect(state.researched).toEqual([])
       await fireEvent.click(button)
       await waitFor(() => expect(state.researched).toEqual(['How bends migrate']))
-      await waitFor(() =>
-        expect(router.currentRoute.value.path).toBe('/p/ada-substack/ideas/i1/research'),
-      )
+      const searches = await screen.findByRole('list', { name: 'Searches' })
+      const seeIt = await within(searches).findByRole('link', { name: 'See the research' })
+      expect(seeIt).toHaveAttribute('href', '/p/ada-substack/ideas/i1/research?run=run1')
+      expect(within(searches).getByText('“How bends migrate”')).toBeInTheDocument()
+      expect(within(searches).getByText('Nothing worth reading turned up.')).toBeInTheDocument()
+      expect(router.currentRoute.value.name).toBe('idea') // the writer may be typing the next one
+      expect(screen.getByLabelText('What areas do you want to research?')).toHaveValue('')
+
+      await fireEvent.click(within(searches).getByRole('button', { name: 'Remove' }))
+      expect(screen.queryByRole('list', { name: 'Searches' })).toBeNull()
     })
 
-    it('says what went wrong, and keeps the words, when the research fails', async () => {
+    it('says what went wrong, and keeps the words with the search, when the research fails', async () => {
       fakeIdea({
         idea: idea(
           [link(1)].map((l) => ({ ...l, readAt: '2026-01-01T00:00:00Z' })),
@@ -321,7 +328,9 @@ describe('an idea’s landing page', () => {
       )
       await fireEvent.click(screen.getByRole('button', { name: 'Research' }))
       expect(await screen.findByText('The search service is busy')).toBeInTheDocument()
-      expect(screen.getByLabelText('What areas do you want to research?')).toHaveValue('Keep me')
+      const searches = screen.getByRole('list', { name: 'Searches' })
+      expect(within(searches).getByText('“Keep me”')).toBeInTheDocument()
+      expect(within(searches).getByRole('button', { name: 'Try again' })).toBeEnabled()
       expect(router.currentRoute.value.name).toBe('idea')
     })
   })

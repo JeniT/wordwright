@@ -1267,6 +1267,8 @@ export type BrainstormEvent = z.infer<typeof BrainstormEventSchema>
 /** The most pages one run brings back. */
 export const MAX_RESEARCH_RESULTS = 8
 export const RESEARCH_AREAS_MAX = 1000
+/** The most searches that can be running at once in one publication, across its members (#446). */
+export const RESEARCH_IN_FLIGHT_MAX = 3
 
 export const ResearchInputSchema = z.object({
   areas: z

@@ -147,6 +147,32 @@ test('several areas can be researched around one idea, and the research is kept'
   await expect(page.getByRole('article', { name: 'Second area' })).toBeVisible()
 })
 
+test('from the idea’s page, several questions can be sent one after another, each linking to what it found', async ({
+  page,
+}) => {
+  await setUp(page)
+  await openResearchTool(page)
+  await page.goto(page.url().replace(/\/research$/, '')) // the idea's own page
+  const region = page.getByRole('region', { name: 'Research' })
+  for (const areas of ['Bends', 'Floods']) {
+    await region.getByLabel('What areas do you want to research?').fill(areas)
+    await region.getByRole('button', { name: 'Research', exact: true }).click()
+    await expect(region.getByLabel('What areas do you want to research?')).toHaveValue('')
+  }
+  const searches = region.getByRole('list', { name: 'Searches' })
+  await expect(searches.getByRole('link', { name: 'See the research' })).toHaveCount(2)
+  await expect(searches.getByRole('listitem').first()).toContainText('“Floods”') // newest first
+  await noViolations(page, 'idea page with finished searches')
+
+  await searches
+    .getByRole('listitem')
+    .last()
+    .getByRole('link', { name: 'See the research' })
+    .click()
+  await expect(page.getByRole('article', { name: 'Bends' })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Searches' })).toHaveCount(0) // every run is on this page
+})
+
 test('without an AI key, the button waits and a link says where to add one', async ({ page }) => {
   await setUp(page, { withKey: false })
   await openResearchTool(page)

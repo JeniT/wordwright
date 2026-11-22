@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useQuery } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import Explain from '../components/Explain.vue'
 import NextStep from '../components/NextStep.vue'
 import PageNav from '../components/PageNav.vue'
@@ -29,14 +30,27 @@ const runs = useQuery({
 const ordered = computed(() =>
   [...(runs.data.value ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
 )
-const chosen = ref<string | null>(null)
+const route = useRoute()
+// A link from a finished search on the idea's landing page names its run.
+const chosen = ref<string | null>(typeof route.query.run === 'string' ? route.query.run : null)
 const position = computed(() => {
   const at = ordered.value.findIndex((r) => r.id === chosen.value)
   return at === -1 ? ordered.value.length - 1 : at
 })
 const current = computed(() => ordered.value[position.value])
-const showNewest = () => (chosen.value = null)
 const heading = ref<HTMLElement | null>(null)
+const section = ref<HTMLElement | null>(null)
+/**
+ * A search has finished. Several can be running, so the writer may be working in a run by now: then the page stays
+ * on it (focus isn't taken away from them) and Later research leads to the new one. Otherwise it shows the new run.
+ */
+function finished() {
+  if (section.value?.contains(document.activeElement)) {
+    chosen.value ??= current.value?.id ?? null
+  } else {
+    chosen.value = null
+  }
+}
 function go(step: -1 | 1) {
   chosen.value = ordered.value[position.value + step]?.id ?? null
 }
@@ -69,9 +83,9 @@ const nav = computed(() => ({
         aiming for a range of opinions. Add the ones you want to your articles.
       </Explain>
 
-      <ResearchForm class="mb-8" :publication-id="publicationId" :idea-id="id" @done="showNewest" />
+      <ResearchForm class="mb-8" :publication-id="publicationId" :idea-id="id" @done="finished" />
 
-      <section aria-labelledby="previous-heading">
+      <section ref="section" aria-labelledby="previous-heading">
         <h2
           id="previous-heading"
           ref="heading"

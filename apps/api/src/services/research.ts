@@ -5,6 +5,7 @@ import {
   LLMRateLimitError,
   MAX_IDEA_ARTICLES,
   MAX_RESEARCH_RESULTS,
+  RESEARCH_IN_FLIGHT_MAX,
   type Idea,
   type PageInfoFetcher,
   type ResearchInput,
@@ -73,6 +74,8 @@ export interface ResearchDeps {
  */
 export class ResearchService {
   private readonly checker: ArticleChecker
+  /** How many searches are running in each publication now (in this process), so one can't start dozens at once. */
+  private readonly running = new Map<string, number>()
 
   constructor(private readonly d: ResearchDeps) {
     this.checker = new ArticleChecker(d.pages)
@@ -88,10 +91,39 @@ export class ResearchService {
     input: ResearchInput,
     signal?: AbortSignal,
   ): Promise<ResearchRun> {
-    const { store, limiter } = this.d
-    if (!limiter.allow(user.id)) {
-      throw fail(429, "You're searching very quickly. Wait a few minutes and try again.")
+    const { limiter } = this.d
+    const publicationId = idea.publicationId
+    const running = this.running.get(publicationId) ?? 0
+    // Checked before the throttle, so a search refused here doesn't use up one of the hour's searches.
+    if (running >= RESEARCH_IN_FLIGHT_MAX) {
+      throw fail(
+        429,
+        `${RESEARCH_IN_FLIGHT_MAX} searches are already running in this publication. Try again when one finishes.`,
+      )
     }
+    if (!limiter.allow(user.id)) {
+      throw fail(
+        429,
+        `You’ve reached the limit of ${limiter.max} searches an hour. Try again in ${limiter.wait}.`,
+      )
+    }
+    this.running.set(publicationId, running + 1)
+    try {
+      return await this.search(idea, user, input, signal)
+    } finally {
+      const left = (this.running.get(publicationId) ?? 1) - 1
+      if (left > 0) this.running.set(publicationId, left)
+      else this.running.delete(publicationId)
+    }
+  }
+
+  private async search(
+    idea: Idea,
+    user: { id: string },
+    input: ResearchInput,
+    signal?: AbortSignal,
+  ): Promise<ResearchRun> {
+    const { store } = this.d
     const { research, provider, model } = this.d.resolveResearch(user.id)
 
     const deadline = AbortSignal.timeout(this.d.timeoutMs ?? RESEARCH_TIMEOUT_MS)
