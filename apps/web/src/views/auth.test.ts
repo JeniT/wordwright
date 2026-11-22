@@ -194,9 +194,12 @@ describe('registration', () => {
     )
     await renderAt('/register')
     await fill('countess')
-    const hint = await screen.findByText('That username is already taken. Try another.')
+    const hint = (await screen.findByText('That username is already taken. Try another.')).closest(
+      'p',
+    )!
     expect(screen.getByLabelText('Username')).toBeInvalid()
     expect(hint).toHaveAttribute('aria-live', 'polite')
+    expect(hint.querySelector('svg')).not.toBeNull() // the alert icon, not colour alone (#458)
     expect(screen.getByRole('button', { name: 'Create account' })).toBeDisabled()
 
     await fireEvent.update(screen.getByLabelText('Username'), 'lovelace')

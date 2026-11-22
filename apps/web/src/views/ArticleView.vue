@@ -161,12 +161,8 @@ function toggleRead(read: boolean) {
           label="Title"
           autocomplete="off"
           :maxlength="200"
-          :invalid="saveTitle.isError.value"
-          :hint="
-            saveTitle.isError.value
-              ? errorMessage(saveTitle.error.value)
-              : 'Leave this blank to look the title and authors up again.'
-          "
+          hint="Leave this blank to look the title and authors up again."
+          :error="saveTitle.isError.value ? errorMessage(saveTitle.error.value) : undefined"
         />
         <TextField
           v-model="authors"

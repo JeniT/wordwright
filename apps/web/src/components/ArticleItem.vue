@@ -128,8 +128,7 @@ function saveLink() {
         autocomplete="off"
         autocapitalize="none"
         :spellcheck="false"
-        :invalid="save.isError.value"
-        :hint="save.isError.value ? errorMessage(save.error.value) : undefined"
+        :error="save.isError.value ? errorMessage(save.error.value) : undefined"
         @update:model-value="save.isError.value && save.reset()"
       />
       <TextField

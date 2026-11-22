@@ -707,7 +707,7 @@ describe('idea page', () => {
       [409, 'That link is already in this idea.'],
       [400, "We couldn't find a website at that address. Check it for typos."],
     ])(
-      'shows why (%i) under the field, in red, and keeps what was typed',
+      'shows why (%i) under the hint as an alert with its icon, and keeps what was typed',
       async (status, message) => {
         await open([
           http.post(`${ideaUrl}/articles`, () => HttpResponse.json({ error: message }, { status })),
@@ -716,10 +716,13 @@ describe('idea page', () => {
         await fireEvent.update(field, 'example.org/paper')
         await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
 
-        const hint = await screen.findByText(message)
-        expect(hint).toHaveClass('text-danger')
+        const alert = await screen.findByRole('alert')
+        expect(alert).toHaveTextContent(message)
+        expect(alert).toHaveClass('text-danger')
+        expect(alert.querySelector('svg')).not.toBeNull() // the alert icon: not colour alone (#458)
+        expect(screen.getByText('We will look up its title.')).toBeVisible() // the hint stays
         expect(field).toHaveAttribute('aria-invalid', 'true')
-        expect(field).toHaveAccessibleDescription(message)
+        expect(field).toHaveAccessibleDescription(`We will look up its title. ${message}`)
         expect(field).toHaveValue('example.org/paper')
       },
     )
@@ -1093,8 +1096,11 @@ describe('idea page', () => {
       const { address } = await edit()
       await fireEvent.update(address, 'example.org/other')
       await fireEvent.click(screen.getByRole('button', { name: 'Save item' }))
-      const hint = await screen.findByText('That link is already in this idea.')
-      expect(hint).toHaveClass('text-danger')
+      const alert = await screen.findByRole('alert')
+      expect(alert).toHaveTextContent('That link is already in this idea.')
+      expect(alert.querySelector('svg')).not.toBeNull()
+      expect(address).toHaveAttribute('aria-invalid', 'true')
+      expect(address).toHaveAccessibleDescription('That link is already in this idea.')
       expect(address).toHaveValue('example.org/other')
     })
 

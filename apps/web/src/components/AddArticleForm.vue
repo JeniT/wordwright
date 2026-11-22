@@ -63,8 +63,8 @@ function submit() {
         autocomplete="off"
         autocapitalize="none"
         :spellcheck="false"
-        :invalid="add.isError.value"
-        :hint="add.isError.value ? errorMessage(add.error.value) : 'We will look up its title.'"
+        hint="We will look up its title."
+        :error="add.isError.value ? errorMessage(add.error.value) : undefined"
         @update:model-value="typing"
       />
     </FieldWithAction>

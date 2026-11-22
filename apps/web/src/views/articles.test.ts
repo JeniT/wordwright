@@ -723,6 +723,12 @@ describe('reading page', () => {
       await fireEvent.update(screen.getByLabelText('Authors'), 'Typed Name')
       await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
       await waitFor(() => expect(screen.getByLabelText('Title')).toBeInvalid())
+      // An alert with its icon under the hint, which stays (#458).
+      const alert = screen.getByRole('alert')
+      expect(alert.querySelector('svg')).not.toBeNull()
+      expect(screen.getByLabelText('Title')).toHaveAccessibleDescription(
+        `Leave this blank to look the title and authors up again. ${alert.textContent!.trim()}`,
+      )
       expect(screen.getByLabelText('Title')).toHaveValue('Typed')
       expect(screen.getByLabelText('Authors')).toHaveValue('Typed Name')
     })
@@ -784,7 +790,10 @@ describe('reading page', () => {
       const box = await screen.findByLabelText('Web address')
       await fireEvent.update(box, 'example.org/paper')
       await fireEvent.click(screen.getByRole('button', { name: 'Add article' }))
-      expect(await screen.findByText('That link is already in this idea.')).toBeInTheDocument()
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'That link is already in this idea.',
+      )
+      expect(box).toHaveAttribute('aria-invalid', 'true')
       expect(box).toHaveValue('example.org/paper')
     })
   })
