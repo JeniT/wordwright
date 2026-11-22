@@ -5,6 +5,7 @@ import type { RouteLocationRaw } from 'vue-router'
 import { useArticleList } from '../lib/articles'
 import { refineRoute } from '../lib/note-label'
 import { useIdeaNotes } from '../lib/queries'
+import { useAuthorship } from '../lib/authorship'
 import LandingSection from './LandingSection.vue'
 import NoteCard from './NoteCard.vue'
 import QueryState from './QueryState.vue'
@@ -23,6 +24,7 @@ const props = defineProps<{
   nested?: boolean
   explain?: string
 }>()
+const authorship = useAuthorship(() => props.publicationId)
 const SHOWN = 5
 
 const { notes } = useIdeaNotes(
@@ -58,6 +60,7 @@ const recent = computed(() =>
               :note="note"
               :article-list="reading.articles.value ?? []"
               :refine-to="refineRoute(publicationId, ideaId)"
+              :named="authorship.named(note.authorId)"
             />
           </div>
         </template>

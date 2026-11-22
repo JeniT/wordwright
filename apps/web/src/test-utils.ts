@@ -166,8 +166,14 @@ export async function renderAt(path: string, component?: Component) {
  * A note's origin line: what it is, then the person who recorded it as a chip (never "by <name>", which would read
  * as the author of whatever was quoted).
  */
-export function expectOrigin(element: HTMLElement, phrase: string, who: string) {
+export function expectOrigin(element: HTMLElement, phrase: string, who: string | null) {
   expect(element).toHaveTextContent(phrase)
+  if (who === null) {
+    // Only the viewer could have recorded it, so nobody is named, not even to a screen reader.
+    expect(element).not.toHaveTextContent('recorded by')
+    expect(element.querySelector('.rounded-full')).toBeNull()
+    return
+  }
   expect(within(element).getByText(who, { exact: true })).toHaveClass('rounded-full')
   expect(element).not.toHaveTextContent(`by ${who}`)
 }

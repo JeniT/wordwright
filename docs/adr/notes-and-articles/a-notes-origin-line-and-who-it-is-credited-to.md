@@ -19,7 +19,8 @@ the notes beside the draft and the draft's record of where words came from.
   who edits a draft. A name inside a sentence stays text ("asked by Ada", handover notices, "added by Ada" on a
   suggestion). Your own name is a chip like anyone's; comments do not say "You". "A former member" is the one wording for a
   missing name in a chip and in the offer callout, which cannot make sense without a name. A sentence whose meaning survives
-  without the name says nothing instead.
+  without the name says nothing instead. Where only the viewer could have written it, there is no chip at all
+  ([#445](no-name-chip-where-only-you-could-have-written-it.md)).
 - **Kept names (#313).** Every place that shows a person's name follows "Names stay if the person chooses" (see
   [Account deletion semantics](../accounts-and-security/account-deletion-semantics.md)). The name is read from the user
   row, so it is always current; once the account is gone it is the kept name if they chose to keep it, else "A former

@@ -378,7 +378,7 @@ describe('reading page', () => {
       const items = within(list).getAllByRole('listitem')
       expect(items).toHaveLength(1)
       expect(items[0]).toHaveTextContent('A quote from the paper.')
-      expectOrigin(items[0]!, 'From A paper', 'Ada')
+      expectOrigin(items[0]!, 'From A paper', null) // Ada is alone in the publication
     })
 
     it('puts the box for a new note above the notes, so it never gets pushed out of sight', async () => {
@@ -440,7 +440,7 @@ describe('reading page', () => {
       const page = within(item).getByRole('link', { name: /A paper/ })
       expect(page).toHaveAttribute('href', 'https://example.org/paper')
       expect(page).toHaveAttribute('target', '_blank')
-      expect(within(item).getByText('Ada', { exact: true })).toHaveClass('rounded-full')
+      expect(within(item).queryByText('Ada', { exact: true })).toBeNull() // alone, so not named either
     })
 
     it('says so when there are none yet', async () => {
@@ -483,7 +483,7 @@ describe('reading page', () => {
       await waitFor(() => expect(sent).toEqual([{ text: '  “Meanders grow.”  ', articleId: 'l1' }]))
       const list = await within(await screen.findByRole('main')).findByRole('list')
       expect(within(list).getByText('“Meanders grow.”')).toBeInTheDocument()
-      expectOrigin(list, 'From A paper', 'Ada')
+      expectOrigin(list, 'From A paper', null)
       expect(box).toHaveValue('')
     })
 
@@ -508,7 +508,7 @@ describe('reading page', () => {
       await fireEvent.click(screen.getByRole('button', { name: 'Add note' }))
       const list = await within(await screen.findByRole('main')).findByRole('list')
       expect(list.querySelector('blockquote')).toHaveTextContent('Meanders grow.')
-      expectOrigin(list, 'From A paper', 'Ada')
+      expectOrigin(list, 'From A paper', null)
       expect(screen.getByRole('checkbox', { name: /This is a quotation/ })).not.toBeChecked()
 
       await fireEvent.update(box, 'So bends move.')

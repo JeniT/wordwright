@@ -29,7 +29,7 @@ not drawn when nothing is active. A row is a `DraftRow`, the same one the idea's
 "Continue"), with the title, then what the page doesn't already say about where it is (idea and publication on Home, the idea on a
 publication's page, nothing on an idea's) and "Last changed", then how its reviews stand over all its requests ("2 of 5 reviews
 complete · 4 unresolved comments"). The Draft page adds the editor as a name chip (`PersonChip`, as on a note) to every row,
-the person's own included; Keep writing never does, as they are all theirs.
+the person's own included unless they are alone in the publication; Keep writing never does, as they are all theirs.
 
 **First run (Home).** While a person has no publication or no AI key, the top of Home is a two-item checklist using the
 same 01 / 02 badges: **01 Create your first publication** and **02 Connect your AI key (Anthropic)**. Neither blocks the

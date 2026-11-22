@@ -9,9 +9,11 @@ import StartDraftButton from '../components/StartDraftButton.vue'
 import StepHeading from '../components/StepHeading.vue'
 import { invalidateRoots, queryKeys } from '../lib/queries'
 import { api, errorMessage } from '../lib/api'
+import { useAuthorship } from '../lib/authorship'
 
 /** Step 04 of an idea: its drafts. One for a single post, or several, in order, for a linked set of posts. */
 const props = defineProps<{ publicationId: string; id: string }>()
+const authorship = useAuthorship(() => props.publicationId)
 const queryClient = useQueryClient()
 
 const refreshLists = () => invalidateRoots(queryClient, 'ideas')
@@ -61,7 +63,7 @@ async function saveDraftOrder(ids: string[]) {
             :to="{ name: 'draft', params: { publicationId, id: draft.id } }"
             :title="draft.title"
             :updated-at="draft.updatedAt"
-            :editor-name="draft.editorName"
+            :editor-name="authorship.named(draft.editorId) ? draft.editorName : undefined"
             :published-at="draft.publishedAt"
             :published-url="draft.publishedUrl"
           />

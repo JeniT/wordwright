@@ -6,8 +6,9 @@ import type { Article, IdeaNote } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { refreshNotesEverywhere, useIdeaNotes } from '../lib/queries'
 import { NOTE_DRAG_TYPE } from '../lib/note-drag'
-import { noteOrigin, refineRoute } from '../lib/note-label'
+import { noteOrigin, refineRoute, showsOrigin } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
+import { useAuthorship } from '../lib/authorship'
 import DraftCard from './DraftCard.vue'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteText from './NoteText.vue'
@@ -27,6 +28,7 @@ const props = defineProps<{
   /** The person may add notes to the draft (only the draft's editor may). */
   canAdd: boolean
 }>()
+const authorship = useAuthorship(() => props.publicationId)
 const refineTo = computed(() => refineRoute(props.publicationId, props.ideaId))
 const queryClient = useQueryClient()
 
@@ -91,10 +93,14 @@ const label = (note: IdeaNote) => {
         >
           <NoteText :note="note" />
           <NoteTags :tags="note.tags" />
-          <p class="mt-1 text-xs text-ink-soft">
+          <p
+            v-if="showsOrigin(note, authorship.named(note.authorId))"
+            class="mt-1 text-xs text-ink-soft"
+          >
             <NoteOrigin
               v-bind="noteOrigin(note, articleList, session.user?.id ?? null, refineTo)"
               :author-name="note.authorName"
+              :named="authorship.named(note.authorId)"
             />
           </p>
         </DraftCard>
@@ -116,10 +122,14 @@ const label = (note: IdeaNote) => {
           >
             <NoteText :note="note" />
             <NoteTags :tags="note.tags" />
-            <p class="mt-1 text-xs text-ink-soft">
+            <p
+              v-if="showsOrigin(note, authorship.named(note.authorId))"
+              class="mt-1 text-xs text-ink-soft"
+            >
               <NoteOrigin
                 v-bind="noteOrigin(note, articleList, session.user?.id ?? null, refineTo)"
                 :author-name="note.authorName"
+                :named="authorship.named(note.authorId)"
               />
             </p>
             <button

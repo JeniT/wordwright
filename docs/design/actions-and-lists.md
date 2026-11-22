@@ -80,7 +80,9 @@ strong outline, and give an item one link (the title), with its host as plain te
 
 **Names of people.** A name is a `PersonChip` when it labels who recorded, wrote or edits something: a note's origin, a
 comment, a Refine message, a draft's editor. It is always the name (your own too, never "You"), and "A former member"
-when the account has gone and the name wasn't kept. A name inside a sentence ("asked by Ada", a callout, a handover
+when the account has gone and the name wasn't kept. It is left out where the only possible author is the person
+looking: a publication with no other members, and for comments, a draft not yet sent for review or critiqued
+(`useAuthorship`, [ADR](../adr/notes-and-articles/no-name-chip-where-only-you-could-have-written-it.md)). A name inside a sentence ("asked by Ada", a callout, a handover
 notice) is plain text, bold where it already is; a chip never sits inside running text.
 
 **A rail that only drags.** A card that is a source to take from, such as a note or article beside the draft

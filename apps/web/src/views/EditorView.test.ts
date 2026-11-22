@@ -612,6 +612,88 @@ describe('EditorView comments from members', () => {
     )
   })
 
+  describe('in a publication where the editor is the only member', () => {
+    const solo = () =>
+      http.get('*/api/publications', () =>
+        HttpResponse.json([
+          {
+            id: 'p1',
+            name: 'Solo',
+            siteUrl: null,
+            imageUrl: null,
+            siteIconUrl: null,
+            description: null,
+            role: 'owner',
+            members: [{ userId: 'u1', name: 'Ada Lovelace', handle: 'ada', role: 'owner' }],
+          },
+        ]),
+      )
+    const reviewers = (sent: boolean) =>
+      http.get('*/api/publications/p1/drafts/d1/reviewers', () =>
+        HttpResponse.json({
+          reviewers: [],
+          pending: [],
+          snapshots: sent
+            ? [
+                {
+                  id: 's1',
+                  sentAt: '2026-02-01T09:30:00Z',
+                  name: null,
+                  open: 0,
+                  ended: 0,
+                  closed: 0,
+                  pending: 1,
+                  comments: 0,
+                  unresolved: 0,
+                },
+              ]
+            : [],
+        }),
+      )
+    const ownComments = () =>
+      http.get('*/api/publications/p1/drafts/d1/comments', () =>
+        HttpResponse.json([saidBy('p1', 'Ada Lovelace')]),
+      )
+
+    it('doesn’t name the author of their own comments before the draft is sent for review or critiqued', async () => {
+      mockEditor(() => new Response(null, { status: 500 }))
+      server.use(solo(), reviewers(false), ownComments())
+      await renderAt('/p/p1/drafts/d1')
+      await showTab('Comments')
+      const region = await commentsRegion()
+      await within(region).findByText('Ada Lovelace on the opening.')
+      // Wait for the publication and the reviews, so the chip is gone for a reason and not just loading.
+      await waitFor(() => expect(within(region).queryByText('Ada Lovelace')).toBeNull())
+    })
+
+    it('names them once the draft has been sent for review, as a reviewer could have written any', async () => {
+      mockEditor(() => new Response(null, { status: 500 }))
+      server.use(solo(), reviewers(true), ownComments())
+      await renderAt('/p/p1/drafts/d1')
+      await showTab('Comments')
+      const region = await commentsRegion()
+      await within(region).findByText('Ada Lovelace on the opening.')
+      // Still named after everything has loaded.
+      await new Promise((r) => setTimeout(r, 50))
+      expect(within(region).getByText('Ada Lovelace')).toHaveClass('rounded-full')
+    })
+
+    it('names them once the AI has critiqued the draft, keeping the AI’s own mark', async () => {
+      mockEditor(
+        () => new Response(null, { status: 500 }),
+        round([pointOn('p1'), saidBy('p2', 'Ada Lovelace')]),
+      )
+      server.use(solo(), reviewers(false))
+      await renderAt('/p/p1/drafts/d1')
+      await showTab('Comments')
+      const items = await within(await commentsRegion()).findAllByRole('listitem')
+      await waitFor(() => expect(items).toHaveLength(2))
+      await new Promise((r) => setTimeout(r, 50))
+      expect(items[0]!.querySelector('.chip-ai')).not.toBeNull()
+      expect(within(items[1]!).getByText('Ada Lovelace')).toHaveClass('rounded-full')
+    })
+  })
+
   it('keeps a comment whose passage was rewritten open, with the flag for the editor', async () => {
     mockEditor(
       () => new Response(null, { status: 500 }),

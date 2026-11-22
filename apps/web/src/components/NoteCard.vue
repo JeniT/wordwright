@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Article, IdeaNote } from '@wordwright/core'
 import type { RouteLocationRaw } from 'vue-router'
-import { noteOrigin } from '../lib/note-label'
+import { noteOrigin, showsOrigin } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
 import NoteOrigin from './NoteOrigin.vue'
 import NoteTags from './NoteTags.vue'
@@ -13,12 +13,14 @@ import NoteText from './NoteText.vue'
  */
 const session = useSessionStore()
 
-const { refineTo = null } = defineProps<{
+const { refineTo = null, named = true } = defineProps<{
   note: IdeaNote
   articleList: readonly Article[]
   hideOrigin?: boolean
   /** The idea's Refine page, which a note from a conversation links to. */
   refineTo?: RouteLocationRaw | null
+  /** Name who recorded it (`useAuthorship`). */
+  named?: boolean
 }>()
 defineSlots<{ tags?(): unknown }>()
 </script>
@@ -30,10 +32,14 @@ defineSlots<{ tags?(): unknown }>()
       <!-- Read-only tags by default; the Note step puts the tag editor here. -->
       <slot name="tags"><NoteTags :tags="note.tags" /></slot>
     </div>
-    <p v-if="!hideOrigin" class="meta max-w-full sm:max-w-[16rem] sm:text-right">
+    <p
+      v-if="!hideOrigin && showsOrigin(note, named)"
+      class="meta max-w-full sm:max-w-[16rem] sm:text-right"
+    >
       <NoteOrigin
         v-bind="noteOrigin(note, articleList, session.user?.id ?? null, refineTo)"
         :author-name="note.authorName"
+        :named="named"
         class="sm:items-end"
       />
     </p>

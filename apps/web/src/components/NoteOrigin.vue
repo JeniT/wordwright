@@ -7,18 +7,23 @@ import PersonChip from './PersonChip.vue'
 
 /**
  * Where a note came from, then who recorded it as a chip on the line below. A page it was taken from is a link to it, in
- * a new tab; a conversation is a link to the idea's Refine page, where there is one. This
- * is a trusted space, so people are named; the chip is the person who took the note, which is not the author of
- * anything they quoted. Users have no pictures yet.
+ * a new tab; a conversation is a link to the idea's Refine page, where there is one. This is a trusted space, so people
+ * are named (unless `named` is false: see `useAuthorship`); the chip is the person who took the note, which is not the
+ * author of anything they quoted. Users have no pictures yet.
  */
-defineProps<{
-  phrase: string
-  source?: OriginSource | null
-  /** "conversation with your AI", for a note from Refine. */
-  conversation?: string | null
-  conversationTo?: RouteLocationRaw | null
-  authorName: string | null
-}>()
+withDefaults(
+  defineProps<{
+    phrase: string
+    source?: OriginSource | null
+    /** "conversation with your AI", for a note from Refine. */
+    conversation?: string | null
+    conversationTo?: RouteLocationRaw | null
+    authorName: string | null
+    /** Name who recorded it (`useAuthorship`): not where the only person who could have is the one looking. */
+    named?: boolean
+  }>(),
+  { source: null, conversation: null, conversationTo: null, named: true },
+)
 </script>
 
 <template>
@@ -34,7 +39,9 @@ defineProps<{
         ><template v-else>{{ conversation }}</template></template
       ></span
     >
-    <span class="sr-only">, recorded by</span>
-    <PersonChip :name="authorName" />
+    <template v-if="named">
+      <span class="sr-only">, recorded by</span>
+      <PersonChip :name="authorName" />
+    </template>
   </span>
 </template>

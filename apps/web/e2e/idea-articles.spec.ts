@@ -176,7 +176,8 @@ test('reads an article and takes notes from it, on a phone too', async ({ page }
   const notes = page.getByRole('region', { name: 'Notes' })
   await expect(notes.getByText('So the bend moves downstream.')).toBeVisible()
   await expect(notes.getByRole('link', { name: /^Meanders, explained/ }).first()).toBeVisible()
-  await expect(notes.getByText('Ida', { exact: true }).first()).toBeVisible()
+  // Ida is alone in the publication, so her notes don't name her (#445).
+  await expect(notes.getByText('Ida', { exact: true })).toHaveCount(0)
 })
 
 test('tags articles, one or several at once, and filters the list by a tag', async ({ page }) => {

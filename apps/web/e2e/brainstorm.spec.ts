@@ -142,7 +142,8 @@ test('the points made in the chat are suggested as notes, and added, edited or i
   await expect(
     notes.getByRole('listitem').nth(1).getByRole('link', { name: 'conversation with your AI' }),
   ).toHaveAttribute('href', /\/refine$/)
-  await expect(notes.getByRole('listitem').nth(1).getByText('Pru', { exact: true })).toBeVisible()
+  // Pru is alone in the publication, so the note doesn't name her (#445).
+  await expect(notes.getByRole('listitem').nth(1).getByText('Pru', { exact: true })).toHaveCount(0)
 
   // Hold the Delete button from the keyboard, which works the same way.
   await (await rowAction(notes, /^Actions for note “Oxbow lakes/, 'Delete')).focus()

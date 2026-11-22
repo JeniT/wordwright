@@ -34,6 +34,12 @@ export function refineRoute(publicationId: string, ideaId: string | null | undef
 }
 
 /**
+ * Whether a note has an origin line at all. A typed note says only "Added" and who added it, so where its author isn't
+ * named (`useAuthorship`: nobody else could have added it) it has nothing to say.
+ */
+export const showsOrigin = (note: IdeaNote, named: boolean) => note.origin !== 'entered' || named
+
+/**
  * What `NoteOrigin` shows for a note. The item it was taken from may have been removed since; it still says reading.
  * The conversation is the viewer's own when they are the note's author: whoever prompted the suggestion, or last
  * edited it. Nobody is "their" when the author has left.

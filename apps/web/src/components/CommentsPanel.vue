@@ -61,8 +61,10 @@ const props = withDefaults(
     resolveProblem?: string
     /** Shows the Add comment button; a page with its own (a reviewer's) turns it off. */
     canComment?: boolean
+    /** Whether to name a comment's author (`useAuthorship`); every author is named when it is not given. */
+    nameAuthor?: (c: DraftComment) => boolean
   }>(),
-  { canComment: true, resolveProblem: undefined },
+  { canComment: true, resolveProblem: undefined, nameAuthor: () => true },
 )
 const emit = defineEmits<{
   /** A comment was pressed: show it in the draft. */
@@ -199,6 +201,7 @@ defineExpose({
             :kind="c.block === WHOLE_DRAFT ? 'plain' : located.has(c.id) ? 'show' : 'static'"
             :active="c.id === activeId"
             :is-editor="isEditor"
+            :hide-author="!nameAuthor(c)"
             :text-changed="textChanged(c)"
             :can-change="canChange(c)"
             :save="(text) => edit(c.id, text)"

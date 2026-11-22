@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * A person's name as a small rounded chip, saying who recorded, wrote or edits something: a note, a comment, a Refine message, a draft. This is a trusted space, so people are
- * named (never "you"); someone whose account has gone reads "A former member". Users have no pictures yet.
+ * named (never "you"); someone whose account has gone reads "A former member". Users have no pictures yet. Where only the
+ * viewer could have written it there is no chip: `useAuthorship` decides.
  */
 defineProps<{ name: string | null }>()
 </script>

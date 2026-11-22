@@ -19,7 +19,8 @@ import ConfirmDialog from '../components/ConfirmDialog.vue'
 import CritiqueControl from '../components/CritiqueControl.vue'
 import CommentsPanel from '../components/CommentsPanel.vue'
 import DraftNotes from '../components/DraftNotes.vue'
-import { useHandover } from '../lib/draft-people'
+import { useHandover, useReviewers } from '../lib/draft-people'
+import { useAuthorship } from '../lib/authorship'
 import DraftActions from '../components/DraftActions.vue'
 import ReviewsPanel from '../components/ReviewsPanel.vue'
 import HandoverNotices from '../components/HandoverNotices.vue'
@@ -43,6 +44,7 @@ import {
   splitBlocks,
   wordingProblem,
   type Article,
+  type DraftComment,
   type IdeaNote,
 } from '@wordwright/core'
 import { ApiError, api, errorMessage } from '../lib/api'
@@ -572,6 +574,23 @@ const looks = computed(() => lastCritique.data.value)
 /** No critique yet: the button is under the draft. (Until that is known, it is in the Comments tab, as it was.) */
 const critiqueUnderDraft = computed(() => looks.value?.used === 0)
 const commentsPanel = useTemplateRef<InstanceType<typeof CommentsPanel>>('commentsPanel')
+
+// ---- naming who wrote each comment, for the editor: not while they are the only one who could have
+const authorship = useAuthorship(() => props.publicationId)
+const reviewers = useReviewers(
+  () => props.publicationId,
+  () => props.id,
+  () => canEdit.value,
+)
+/** Someone other than the members could have commented: a reviewer it was sent to, or the AI's critique. */
+const othersCouldComment = computed(
+  () =>
+    !!reviewers.data.value?.snapshots.length ||
+    !!round.value ||
+    (looks.value?.used ?? 0) > 0 ||
+    comments.value.some((c) => c.byAi || c.reviewId),
+)
+const nameAuthor = (c: DraftComment) => authorship.named(c.authorId, othersCouldComment.value)
 const activePointId = ref<string | null>(null)
 /** The words of each comment's paragraph as the text has it now; a comment whose paragraph is gone is not in it. */
 const paragraphs = ref<Readonly<Record<string, string>>>({})
@@ -909,6 +928,7 @@ async function requestCritique() {
               :composing="composing"
               :add="addComment"
               :me="session.user?.id ?? null"
+              :name-author="nameAuthor"
               :edit="editComment"
               :remove="deleteComment"
               :resolve-problem="resolveProblem"

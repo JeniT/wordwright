@@ -13,6 +13,7 @@ import { errorMessage } from '../lib/api'
 import { useIdeaNotes } from '../lib/queries'
 import { nameList, noteOrigin, refineRoute } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
+import { useAuthorship } from '../lib/authorship'
 import { articleBackRoute, useArticleList } from '../lib/articles'
 import { displayHost, usePublication } from '../lib/usePublications'
 import { vTip } from '../lib/tip'
@@ -22,6 +23,7 @@ import { useInlineEdit } from '../lib/inline-edit'
 
 /** Reading one item of an idea's articles, or (no `id`) of the publication's own, and taking notes from it. */
 const props = defineProps<{ publicationId: string; id?: string; articleId: string }>()
+const authorship = useAuthorship(() => props.publicationId)
 const session = useSessionStore()
 const refineTo = computed(() => refineRoute(props.publicationId, props.id))
 const owner = computed(() => ({ publicationId: props.publicationId, ideaId: props.id ?? null }))
@@ -254,6 +256,7 @@ function toggleRead(read: boolean) {
                       )
                     "
                     :author-name="note.authorName"
+                    :named="authorship.named(note.authorId)"
                     class="sm:items-end"
                   />
                 </p>

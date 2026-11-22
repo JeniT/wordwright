@@ -57,6 +57,7 @@ interface Thread {
     kind: string
     text: string
     authorName: string | null
+    authorId: string | null
     model: string | null
     status: string
     stopReason: string | null
@@ -465,6 +466,18 @@ describe('carrying on the conversation', () => {
     expect(seenByAda.messages.filter((m) => m.role === 'user').map((m) => m.authorName)).toEqual([
       'Ada',
       'Bob',
+    ])
+    // With ids, so the page can tell a person's own messages from others' (and leave out a name only they could be).
+    const members = (await (await ada.get('/api/publications')).json())[0].members as {
+      userId: string
+      name: string
+    }[]
+    const idOf = (name: string) => members.find((m) => m.name === name)!.userId
+    expect(seenByAda.messages.map((m) => [m.role, m.authorId])).toEqual([
+      ['user', idOf('Ada')],
+      ['assistant', null],
+      ['user', idOf('Bob')],
+      ['assistant', null],
     ])
   })
 })

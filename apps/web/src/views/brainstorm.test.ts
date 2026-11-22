@@ -52,6 +52,7 @@ const userMessage = (
   kind: 'message',
   text,
   authorName: 'Ada',
+  authorId: null,
   model: null,
   status: 'complete',
   stopReason: null,
@@ -523,6 +524,39 @@ describe('the brainstorm page', () => {
     expect(screen.getByLabelText('Your message')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
     expect(screen.queryByText('Your AI didn’t reply to your last message.')).toBeNull()
+  })
+
+  it('doesn’t name the writer on their own messages when they are alone in the publication, but names anyone else', async () => {
+    const solo = (members: { userId: string; name: string }[]) =>
+      http.get('*/api/publications', () =>
+        HttpResponse.json([
+          {
+            id: 'ada-substack',
+            name: 'Ada',
+            siteUrl: null,
+            imageUrl: null,
+            siteIconUrl: null,
+            description: null,
+            role: 'owner',
+            members: members.map((m) => ({ ...m, handle: null, role: 'owner' })),
+          },
+        ]),
+      )
+    mockConversation(
+      [
+        kickoff(),
+        aiMessage('What is the claim?'),
+        userMessage('Mine', { authorId: 'u1' }),
+        aiMessage('Go on.'),
+        userMessage('From before', { authorId: 'u9', authorName: 'Bob' }), // he has since left
+      ],
+      [solo([{ userId: 'u1', name: 'Ada' }])],
+    )
+    await renderAt(page)
+    expect(await screen.findByText('Bob')).toHaveClass('rounded-full')
+    const mine = (await screen.findByText('Mine')).closest('li')!
+    await waitFor(() => expect(mine.querySelector('.rounded-full')).toBeNull())
+    expect(mine).not.toHaveTextContent('Ada')
   })
 
   it('names the sender of each message, and says when it was cut short, stopped or declined', async () => {

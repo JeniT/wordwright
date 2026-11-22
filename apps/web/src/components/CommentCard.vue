@@ -30,6 +30,8 @@ const props = defineProps<{
    * them. (A member sees only their own, so there is no need to name the author.)
    */
   isEditor?: boolean
+  /** Leave out its author's name: only the viewer could have written it (`useAuthorship`). */
+  hideAuthor?: boolean
   /** Its paragraph has been edited since (or is gone): offers the Then and Now. Never for a reviewer or a resolved comment. */
   textChanged?: boolean
   /** The viewer wrote it and it is still open: they can reword or delete it. Needs `save` and `remove`. */
@@ -124,11 +126,11 @@ const deleting = useMutation({ mutationFn: () => props.remove!() })
       >
       <span class="block min-w-0 flex-1">
         <span
-          v-if="isEditor || entry.byAi || kind === 'plain'"
+          v-if="(isEditor && !hideAuthor) || entry.byAi || kind === 'plain'"
           class="flex min-h-7 items-center text-sm"
         >
           <span v-if="entry.byAi" class="chip chip-ai mr-1">Your AI</span>
-          <PersonChip v-else-if="isEditor" class="mr-1" :name="entry.authorName" />
+          <PersonChip v-else-if="isEditor && !hideAuthor" class="mr-1" :name="entry.authorName" />
           <span v-if="kind === 'plain'" class="chip chip-quiet mr-1">General</span>
         </span>
         <template v-if="!editing">

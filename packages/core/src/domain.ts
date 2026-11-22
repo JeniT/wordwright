@@ -1181,6 +1181,8 @@ export const ConversationMessageSchema = z.object({
   text: z.string(),
   /** Who sent it (person messages only); null if their account has gone. */
   authorName: z.string().nullable(),
+  /** Their id (person messages only), so the page can tell the viewer's own; null for the AI, or once they have gone. */
+  authorId: z.string().nullable().default(null),
   /** Which model replied (AI messages only). */
   model: z.string().nullable(),
   /** `stopped`: the person pressed Stop part-way through. */

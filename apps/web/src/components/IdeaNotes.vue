@@ -4,9 +4,9 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Article, IdeaNote } from '@wordwright/core'
 import { ApiError, api, errorMessage } from '../lib/api'
-import { noteOrigin, refineRoute } from '../lib/note-label'
+import { noteOrigin, refineRoute, showsOrigin } from '../lib/note-label'
 import { useSessionStore } from '../stores/session'
-import { usePublication } from '../lib/usePublications'
+import { useAuthorship } from '../lib/authorship'
 import { vTip } from '../lib/tip'
 import { useIdeaNotes } from '../lib/queries'
 import { orderWithHidden, tagsUsedOn, useTagFilter } from '../lib/note-tags'
@@ -38,6 +38,7 @@ const props = defineProps<{
   /** The page's own title already names the notes: keep this heading for screen readers only. */
   quietHeading?: boolean
 }>()
+const authorship = useAuthorship(() => props.publicationId)
 const refineTo = computed(() => refineRoute(props.publicationId, props.ideaId))
 
 const {
@@ -443,13 +444,6 @@ function moveNote(note: IdeaNote, putAway: () => void) {
   putAway()
   startMovingOne(note)
 }
-// ---- where a note came from. A writer alone in the publication isn't told that they added their own typed notes:
-// there is no one else it could have been.
-const { publication } = usePublication(() => props.publicationId)
-const alone = computed(() => publication.value?.members.length === 1)
-function showsOrigin(note: IdeaNote) {
-  return !(alone.value && note.origin === 'entered' && note.authorId === session.user?.id)
-}
 const label = (note: IdeaNote) => {
   const first = note.text.split('\n', 1)[0]!
   return `note “${first.length > 40 ? `${first.slice(0, 40)}…` : first}”`
@@ -717,10 +711,14 @@ const label = (note: IdeaNote) => {
                   </HoldButton>
                 </template>
               </ActionMenu>
-              <p v-if="editingId !== note.id && showsOrigin(note)" class="meta sm:text-right">
+              <p
+                v-if="editingId !== note.id && showsOrigin(note, authorship.named(note.authorId))"
+                class="meta sm:text-right"
+              >
                 <NoteOrigin
                   v-bind="noteOrigin(note, articleList, session.user?.id ?? null, refineTo)"
                   :author-name="note.authorName"
+                  :named="authorship.named(note.authorId)"
                   class="sm:items-end"
                 />
               </p>

@@ -1014,7 +1014,7 @@ describe('reading an item of the publication’s own list', () => {
     const list = await within(await screen.findByRole('main')).findByRole('list')
     // The notes are read again after the add, so the newest turns up first a moment later.
     await waitFor(() =>
-      expectOrigin(within(list).getAllByRole('listitem')[0]!, 'From A paper', 'Ada'),
+      expectOrigin(within(list).getAllByRole('listitem')[0]!, 'From A paper', null),
     )
   })
 
@@ -1406,7 +1406,7 @@ describe('the publication’s notes', () => {
     await renderAt('/p/ada-substack/notes')
     const edit = await rowAction(/^Actions for note “From it/, 'Edit')
     const column = edit.parentElement!.parentElement!
-    expectOrigin(column, 'From A paper', 'Ada')
+    expectOrigin(column, 'From A paper', null) // Ada is alone in the publication
   })
 
   it('sets a quotation apart with a quote mark, not a left border', async () => {
@@ -1431,7 +1431,7 @@ describe('the publication’s notes', () => {
     const items = screen
       .getAllByRole('listitem')
       .filter((li) => li.textContent?.includes('From the paper'))
-    expectOrigin(items[0]!, 'From A paper', 'Ada')
+    expectOrigin(items[0]!, 'From A paper', null)
   })
 
   it('says what went wrong loading them, and tries again', async () => {

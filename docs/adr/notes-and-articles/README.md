@@ -9,6 +9,7 @@ Read this when you change notes and articles: origin, tags, quotations, merging,
 - [Flat tags on notes (T35)](flat-tags-on-notes.md): flat, case-insensitive tags set as a whole
 - [Linking to something you haven't read asks first (T34)](linking-to-something-you-havent-read-asks-first.md): inserting a link to an unread article asks first
 - [Merging and splitting notes (T36)](merging-and-splitting-notes.md): only notes with the same origin merge, so provenance is not laundered
+- [No name chip where only you could have written it (#445)](no-name-chip-where-only-you-could-have-written-it.md): the chip goes where the only possible author is the viewer; comments count reviews and critiques
 - [Notes and articles alike in the drafting pane (#331, part of #330)](notes-and-articles-alike-in-the-drafting-pane.md): one card for notes and articles in the drafting pane
 - [Notes are separate rows in one reorderable list, each with an origin (T28, T29)](notes-are-separate-cards-with-an-origin.md): notes are rows in one reorderable list, each with an origin
 - [Notes beside the draft, and the words keep their origin (T33)](notes-beside-the-draft-and-the-words-keep-their.md): inserted words keep the note's origin; the draft saves first

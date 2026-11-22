@@ -956,6 +956,7 @@ export class BrainstormService {
       kind: m.kind,
       text: m.kind === 'kickoff' ? '' : m.displayText,
       authorName: m.role === 'user' ? m.authorName : null,
+      authorId: m.role === 'user' ? m.authorId : null,
       model: m.role === 'assistant' ? m.model : null,
       status: m.status,
       stopReason: m.stopReason,

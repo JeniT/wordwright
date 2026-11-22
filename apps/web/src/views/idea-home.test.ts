@@ -579,7 +579,9 @@ describe('an idea’s landing page', () => {
     await renderAt('/p/ada-substack/ideas/i1')
     const list = await screen.findByRole('list', { name: 'Recent notes' })
     expect(within(list).getByText('intro')).toBeInTheDocument()
-    expect(within(list).getByText(/recorded by/)).toBeInTheDocument()
+    // Ada is alone in the publication, so her typed note has no "Added", and no name, as on the Note step.
+    await waitFor(() => expect(within(list).queryByText(/Added/)).toBeNull())
+    expect(within(list).queryByText(/recorded by/)).toBeNull()
   })
 })
 

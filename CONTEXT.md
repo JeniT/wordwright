@@ -102,7 +102,7 @@ The one member currently responsible for changing a draft's title and body and f
 _Avoid_: Holder, author, lock, assignee
 
 **Name chip**:
-A person's name as a small rounded label saying who recorded, wrote or edits something (a note, a comment, a Refine message, a draft). It is always the name, never "you", and reads "A former member" when the account has gone and the name wasn't kept. It labels; it is not used inside a sentence.
+A person's name as a small rounded label saying who recorded, wrote or edits something (a note, a comment, a Refine message, a draft). It is always the name, never "you", and reads "A former member" when the account has gone and the name wasn't kept. It is left out where only the person looking could have written the thing. It labels; it is not used inside a sentence.
 _Avoid_: Author badge, avatar, byline (a byline is the author of a piece)
 
 **Handover**:

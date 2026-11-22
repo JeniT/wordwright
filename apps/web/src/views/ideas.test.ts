@@ -28,6 +28,7 @@ const publication = {
   members: [{ userId: 'u1', name: 'Ada', handle: 'ada', email: 'ada@example.com', role: 'owner' }],
 }
 const listPublications = http.get('*/api/publications', () => HttpResponse.json([publication]))
+const bob = { userId: 'u2', name: 'Bob', handle: 'bob', email: 'bob@example.com', role: 'member' }
 
 const idea = {
   id: 'i1',
@@ -375,7 +376,7 @@ describe('idea page', () => {
     )
   })
 
-  it('names the editor of every draft on the Draft step, including your own, as the notes’ author chip does', async () => {
+  it('names the editor of every draft on the Draft step, including your own, when the publication has other members', async () => {
     server.use(
       http.get(ideaUrl, () =>
         HttpResponse.json({
@@ -403,7 +404,9 @@ describe('idea page', () => {
         }),
       ),
       signedInAs(testUser),
-      listPublications,
+      http.get('*/api/publications', () =>
+        HttpResponse.json([{ ...publication, members: [...publication.members, bob] }]),
+      ),
       http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
     )
     await renderAt('/p/ada-substack/ideas/i1/drafts')
@@ -419,6 +422,35 @@ describe('idea page', () => {
       '/p/ada-substack/drafts/d2',
     )
     expect(rows[1]).toHaveTextContent(/Last changed/)
+  })
+
+  it('doesn’t name the editor of your own drafts when you are alone in the publication', async () => {
+    const draftBy = (id: string, editorId: string, editorName: string) => ({
+      id,
+      title: `${editorName}’s`,
+      updatedAt: '2026-01-02T00:00:00Z',
+      editorId,
+      editorName,
+      publishedAt: null,
+      publishedUrl: null,
+    })
+    server.use(
+      http.get(ideaUrl, () =>
+        HttpResponse.json({
+          ...idea,
+          drafts: [draftBy('d1', 'u1', 'Ada'), draftBy('d2', 'u2', 'Bob')],
+        }),
+      ),
+      signedInAs(testUser),
+      listPublications, // Ada alone: Bob's draft is from before he left
+      http.get('*/api/publications/ada-substack/ideas', () => HttpResponse.json([])),
+    )
+    await renderAt('/p/ada-substack/ideas/i1/drafts')
+    const rows = await within(await screen.findByRole('region', { name: 'Drafts' })).findAllByRole(
+      'listitem',
+    )
+    await waitFor(() => expect(rows[0]).not.toHaveTextContent('Editor:'))
+    expect(rows[1]).toHaveTextContent('Editor: Bob')
   })
 
   it('explains when the idea cannot be opened', async () => {
@@ -1160,7 +1192,7 @@ describe('idea page', () => {
       id,
       text,
       origin,
-      authorId: authorName ? 'u1' : null,
+      authorId: authorName === 'Ada' ? 'u1' : authorName ? `u-${authorName}` : null,
       authorName,
       articleId: null as string | null,
       tags: [] as string[],
@@ -1286,9 +1318,9 @@ describe('idea page', () => {
       ])
       const items = within(region()).getAllByRole('listitem')
       // Ada is alone in the publication: her own typed note doesn't say she added it.
-      expect(items[0]).not.toHaveTextContent('Added')
+      await waitFor(() => expect(items[0]).not.toHaveTextContent('Added'))
       expect(within(items[0]!).queryByText('Ada')).toBeNull()
-      expectOrigin(items[1]!, 'From conversation with your AI', 'Ada')
+      expectOrigin(items[1]!, 'From conversation with your AI', null)
       // It goes to this idea’s Refine page.
       const chat = within(items[1]!).getByRole('link', { name: 'conversation with your AI' })
       expect(chat).toHaveAttribute('href', expect.stringMatching(/\/refine$/))
@@ -1344,7 +1376,7 @@ describe('idea page', () => {
       expect(within(region()).getByText('Exact words.').closest('blockquote')).not.toBeNull()
       expect(within(region()).getByText('Erosion loops.').closest('blockquote')).toBeNull()
       const items = within(region()).getAllByRole('listitem')
-      expectOrigin(items[1]!, 'From A paper', 'Ada')
+      expectOrigin(items[1]!, 'From A paper', null)
       expect(quoteActions).toBeVisible()
     })
 
@@ -1356,8 +1388,8 @@ describe('idea page', () => {
       await open()
       await screen.findByText('A quote.')
       const items = within(region()).getAllByRole('listitem')
-      expectOrigin(items[0]!, 'From A paper', 'Ada')
-      expectOrigin(items[1]!, 'From reading', 'Ada')
+      expectOrigin(items[0]!, 'From A paper', null)
+      expectOrigin(items[1]!, 'From reading', null)
     })
 
     it('says "a former member" for a note whose author has left', async () => {

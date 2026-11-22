@@ -16,6 +16,7 @@ import Markdown from '../components/Markdown.vue'
 import NextStep from '../components/NextStep.vue'
 import PageNav from '../components/PageNav.vue'
 import PersonChip from '../components/PersonChip.vue'
+import { useAuthorship } from '../lib/authorship'
 import SharedThreadNotice from '../components/SharedThreadNotice.vue'
 import SuggestionList from '../components/SuggestionList.vue'
 import RecordedNotes from '../components/RecordedNotes.vue'
@@ -33,6 +34,7 @@ import SaveStatus from '../components/SaveStatus.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 
 const props = defineProps<{ publicationId: string; id: string }>()
+const authorship = useAuthorship(() => props.publicationId)
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
@@ -484,7 +486,9 @@ const busyNote = computed(() =>
                   v-if="message.role === 'user'"
                   class="ml-8 rounded-ctl border border-line bg-surface p-3"
                 >
-                  <p class="mb-1"><PersonChip :name="message.authorName" /></p>
+                  <p v-if="authorship.named(message.authorId)" class="mb-1">
+                    <PersonChip :name="message.authorName" />
+                  </p>
                   <p class="whitespace-pre-wrap break-words">{{ message.text }}</p>
                 </div>
                 <template v-else>
