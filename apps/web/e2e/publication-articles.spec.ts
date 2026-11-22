@@ -100,24 +100,18 @@ test('reads and takes notes before there is an idea: a publication’s articles 
   // The notes are the publication's own, naming where each came from, and are not on any idea.
   await goTo(page, 'Note')
   await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
-  const quote = page
-    .getByRole('listitem')
-    .filter({ hasText: 'Erosion outside, deposition inside.' })
+  const quote = page.getByRole('row').filter({ hasText: 'Erosion outside, deposition inside.' })
   await expect(quote).toContainText('From Fake title for example.org')
   await expect(
-    page.getByRole('listitem').filter({ hasText: 'Rivers tire of straight lines.' }),
+    page.getByRole('row').filter({ hasText: 'Rivers tire of straight lines.' }),
   ).toContainText('From Fake title for example.org')
 
   // Add one of their own: it goes to the top, under the form, and stays there.
   await page.getByRole('textbox', { name: 'Note', exact: true }).fill('A thought of my own')
   await page.getByRole('button', { name: 'Add note', exact: true }).click()
-  await expect(page.getByRole('main').getByRole('listitem').first()).toContainText(
-    'A thought of my own',
-  )
+  await expect(page.getByRole('main').getByRole('row').first()).toContainText('A thought of my own')
   await page.reload()
-  await expect(page.getByRole('main').getByRole('listitem').first()).toContainText(
-    'A thought of my own',
-  )
+  await expect(page.getByRole('main').getByRole('row').first()).toContainText('A thought of my own')
   await noViolations(page, 'publication notes')
 })
 
@@ -149,7 +143,7 @@ test('adds recent posts from the feeds to the publication’s articles, or ignor
   await goTo(page, 'Read')
   const item = page
     .getByRole('region', { name: 'Articles' })
-    .getByRole('listitem')
+    .getByRole('row')
     .filter({ hasText: title })
   await expect(item).toBeVisible()
   await expect(item).not.toContainText('From a feed')
@@ -239,7 +233,7 @@ test('a post can be added or ignored from the publication’s own page, and the 
   await expect(recent.getByRole('img', { name: 'In the articles' })).toBeVisible()
   await goTo(page, 'Read')
   await expect(
-    page.getByRole('region', { name: 'Articles' }).getByRole('listitem').filter({ hasText: title }),
+    page.getByRole('region', { name: 'Articles' }).getByRole('row').filter({ hasText: title }),
   ).toBeVisible()
 })
 

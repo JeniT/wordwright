@@ -107,7 +107,7 @@ test('the points made in the chat are suggested as notes, and added, edited or i
 
   // Nothing is in the notes until the writer adds it.
   await goTo(page, 'Note')
-  await expect(page.getByRole('region', { name: 'Notes' }).getByRole('listitem')).toHaveCount(1)
+  await expect(page.getByRole('region', { name: 'Notes' }).getByRole('row')).toHaveCount(1)
   await goTo(page, 'Refine')
 
   // Edit it first, then add it.
@@ -134,16 +134,16 @@ test('the points made in the chat are suggested as notes, and added, edited or i
   // The note is on the idea, from conversation with your AI, with the edit, and can be deleted like any other.
   await goTo(page, 'Note')
   const notes = page.getByRole('region', { name: 'Notes' })
-  await expect(notes.getByRole('listitem')).toHaveCount(2)
-  await expect(notes.getByRole('listitem').nth(1)).toContainText(
+  await expect(notes.getByRole('row')).toHaveCount(2)
+  await expect(notes.getByRole('row').nth(1)).toContainText(
     'Oxbow lakes are meander loops cut off from the river.',
   )
-  await expect(notes.getByRole('listitem').nth(1)).toContainText('From conversation with your AI')
+  await expect(notes.getByRole('row').nth(1)).toContainText('From conversation with your AI')
   await expect(
-    notes.getByRole('listitem').nth(1).getByRole('link', { name: 'conversation with your AI' }),
+    notes.getByRole('row').nth(1).getByRole('link', { name: 'conversation with your AI' }),
   ).toHaveAttribute('href', /\/refine$/)
   // Pru is alone in the publication, so the note doesn't name her (#445).
-  await expect(notes.getByRole('listitem').nth(1).getByText('Pru', { exact: true })).toHaveCount(0)
+  await expect(notes.getByRole('row').nth(1).getByText('Pru', { exact: true })).toHaveCount(0)
 
   // Hold the Delete button from the keyboard, which works the same way.
   await (await rowAction(notes, /^Actions for note “Oxbow lakes/, 'Delete')).focus()

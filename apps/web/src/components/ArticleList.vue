@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import type { Article } from '@wordwright/core'
 import { RouterLink } from 'vue-router'
 import { errorMessage } from '../lib/api'
 import { useMove, useMoveDestination } from '../lib/move'
 import { tagsUsedOn, useTagFilter } from '../lib/note-tags'
 import { useArticleList } from '../lib/articles'
+import { useGridKeys } from '../lib/grid-keys'
 import AddArticleForm from './AddArticleForm.vue'
 import BulkTagFields from './BulkTagFields.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -28,6 +29,8 @@ const list = useArticleList(() => ({ publicationId: props.publicationId, ideaId:
 
 // Read items are out of the way by default. One marked read during this visit stays in view (so it doesn't vanish
 // under the finger, and can be switched back), until the list is shown again or the switch below is changed.
+const grid = useTemplateRef<HTMLElement>('grid')
+useGridKeys(grid)
 const showRead = ref(false)
 const justRead = ref(new Set<string>())
 let known: Map<string, boolean> | null = null
@@ -263,7 +266,7 @@ function removeChosen() {
             >Highlighted text is your AI’s reason for suggesting this item.</span
           >
         </p>
-        <div class="mb-4 overflow-hidden rounded-ctl border border-line bg-surface">
+        <div class="group/rows mb-4 overflow-hidden rounded-ctl border border-line bg-surface">
           <!-- The whole list is one page, so the page and the total are the same. -->
           <ListToolbar
             :page-size="shown.length"
@@ -336,7 +339,14 @@ function removeChosen() {
               </p>
             </template>
           </ListToolbar>
-          <ul v-if="shown.length" class="divide-y divide-line">
+          <!-- One Tab stop, the arrow keys moving between items and their controls, as in `RowList`'s grid (#459). -->
+          <div
+            v-if="shown.length"
+            ref="grid"
+            role="grid"
+            aria-label="Articles"
+            class="divide-y divide-line"
+          >
             <ArticleItem
               v-for="link in shown"
               :key="link.id"
@@ -349,7 +359,14 @@ function removeChosen() {
               @remove="list.remove.mutate(link.id)"
               @move="startMovingOne(link)"
             />
-          </ul>
+          </div>
+          <p
+            v-if="shown.length"
+            aria-hidden="true"
+            class="hidden border-t border-line px-3 py-1.5 text-xs text-ink-soft group-has-[[role=grid]_:focus-visible]/rows:block"
+          >
+            Arrow keys move between the rows and their controls. Tab leaves the list.
+          </p>
           <p v-else class="px-4 py-3 text-ink-soft">
             {{
               tagFilter.length

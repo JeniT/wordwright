@@ -113,48 +113,46 @@ function saveLink() {
 
 <template>
   <!-- A ticked row has the accent wash, as in `RowList`; the checkbox stays the control. -->
-  <li :class="{ 'bg-accent-wash': selected }" :data-selected="selected || undefined">
-    <form
-      v-if="editing"
-      ref="form"
-      class="px-4 py-3"
-      @submit.prevent="saveLink"
-      @keydown.esc="stopEditing"
-    >
-      <TextField
-        v-model="url"
-        label="Web address of this item"
-        required
-        autocomplete="off"
-        autocapitalize="none"
-        :spellcheck="false"
-        :error="save.isError.value ? errorMessage(save.error.value) : undefined"
-        @update:model-value="save.isError.value && save.reset()"
-      />
-      <TextField
-        v-model="title"
-        label="Title of this item (optional)"
-        autocomplete="off"
-        :maxlength="200"
-        hint="Leave this blank to look the title up again."
-      />
-      <div class="flex gap-2">
-        <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">
-          {{ save.isPending.value ? 'Saving…' : 'Save item' }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-neutral"
-          :disabled="save.isPending.value"
-          @click="stopEditing"
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
+  <!-- A row of the list's grid (`useGridKeys`): the edit form keeps its own keys and Tab order. -->
+  <div role="row" :class="{ 'bg-accent-wash': selected }" :data-selected="selected || undefined">
+    <!-- A form can't be a gridcell, so a cell holds it. -->
+    <div v-if="editing" role="gridcell" data-grid-own>
+      <form ref="form" class="px-4 py-3" @submit.prevent="saveLink" @keydown.esc="stopEditing">
+        <TextField
+          v-model="url"
+          label="Web address of this item"
+          required
+          autocomplete="off"
+          autocapitalize="none"
+          :spellcheck="false"
+          :error="save.isError.value ? errorMessage(save.error.value) : undefined"
+          @update:model-value="save.isError.value && save.reset()"
+        />
+        <TextField
+          v-model="title"
+          label="Title of this item (optional)"
+          autocomplete="off"
+          :maxlength="200"
+          hint="Leave this blank to look the title up again."
+        />
+        <div class="flex gap-2">
+          <button type="submit" class="btn btn-primary" :disabled="save.isPending.value">
+            {{ save.isPending.value ? 'Saving…' : 'Save item' }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-neutral"
+            :disabled="save.isPending.value"
+            @click="stopEditing"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
 
     <div v-else class="flex items-stretch">
-      <div class="list-rail">
+      <div role="gridcell" class="list-rail">
         <input
           type="checkbox"
           :checked="selected"
@@ -162,7 +160,7 @@ function saveLink() {
           @change="emit('select', ($event.target as HTMLInputElement).checked)"
         />
       </div>
-      <div class="min-w-0 flex-1 px-4 py-3">
+      <div role="gridcell" class="min-w-0 flex-1 px-4 py-3">
         <div class="flex items-start justify-between gap-3">
           <RouterLink
             :id="`article-${link.id}`"
@@ -259,5 +257,5 @@ function saveLink() {
         </p>
       </div>
     </div>
-  </li>
+  </div>
 </template>

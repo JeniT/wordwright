@@ -515,6 +515,8 @@ const label = (note: IdeaNote) => {
           :save="saveOrder"
           :keep-toolbar="tagFilter.length > 0"
           :is-selected="(note) => selected.includes(note.id)"
+          grid
+          label="Notes"
           align-top
         >
           <template #toolbar>
@@ -614,6 +616,7 @@ const label = (note: IdeaNote) => {
             <form
               v-if="editingId === note.id"
               :data-edit-note="note.id"
+              data-grid-own
               class="min-w-[12rem] flex-1"
               @submit.prevent="save.mutate(note)"
               @keydown.esc="escapeEditing(note)"

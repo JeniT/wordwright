@@ -20,7 +20,7 @@ test('pulls notes into a draft from the side, keeping where the words came from'
   const notes = page.getByRole('region', { name: 'Notes' })
   await notes.getByRole('textbox', { name: 'Note', exact: true }).fill('Deposition on the inside.')
   await notes.getByRole('button', { name: 'Add note' }).click()
-  await expect(notes.getByRole('listitem')).toHaveCount(2)
+  await expect(notes.getByRole('row')).toHaveCount(2)
 
   await startDraft(page)
   const body = page.getByRole('textbox', { name: 'Draft body' })
@@ -247,7 +247,7 @@ test('a note dragged from the side bar lands in the draft where it is dropped', 
   const notes = page.getByRole('region', { name: 'Notes' })
   await notes.getByRole('textbox', { name: 'Note', exact: true }).fill('Deposition on the inside.')
   await notes.getByRole('button', { name: 'Add note' }).click()
-  await expect(notes.getByRole('listitem')).toHaveCount(2)
+  await expect(notes.getByRole('row')).toHaveCount(2)
 
   await startDraft(page)
   const body = page.getByRole('textbox', { name: 'Draft body' })

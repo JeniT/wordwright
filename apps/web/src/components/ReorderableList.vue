@@ -31,6 +31,10 @@ const props = defineProps<{
   alignTop?: boolean
   /** Whether a row is ticked for a bulk action, so it is tinted (see `RowList`). */
   isSelected?: (item: T) => boolean
+  /** One Tab stop, with the arrow keys moving between rows and controls (see `RowList`); needs `label`. */
+  grid?: boolean
+  /** Names the list for a screen reader. */
+  label?: string
 }>()
 
 defineSlots<{
@@ -289,6 +293,8 @@ const rowAttrs = (item: T) => ({
       :keep-toolbar="keepToolbar"
       :align-top="alignTop"
       :is-selected="isSelected"
+      :grid="grid"
+      :label="label"
     >
       <template v-if="$slots.toolbar" #toolbar><slot name="toolbar" /></template>
       <template #rail="{ item, index }">
@@ -308,6 +314,7 @@ const rowAttrs = (item: T) => ({
             class="sr-only"
             data-testid="grip"
             :data-grip="item.id"
+            data-grid-keys="vertical"
             :aria-label="`Reorder ${itemLabel(item)}`"
             :aria-expanded="showArrows"
             @focus="armed = true"

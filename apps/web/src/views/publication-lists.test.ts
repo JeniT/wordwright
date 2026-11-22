@@ -210,7 +210,7 @@ describe('the publication’s articles', () => {
       '/p/ada-substack/articles/l1',
     )
     expect(screen.queryByRole('link', { name: 'Take notes' })).not.toBeInTheDocument()
-    const item = screen.getByRole('link', { name: 'A paper' }).closest('li')!
+    const item = screen.getByRole('link', { name: 'A paper' }).closest<HTMLElement>('[role="row"]')!
     const article = within(item).getByRole('link', { name: /example\.org/ })
     expect(article).toHaveAttribute('href', 'https://example.org/l1')
     expect(article).toHaveAttribute('target', '_blank')
@@ -400,9 +400,13 @@ describe('the publication’s articles', () => {
     await renderAt('/p/ada-substack/read')
     await screen.findByRole('link', { name: 'A paper' })
     // An untagged item takes no room for tags until Tag is chosen.
-    const first = screen.getByRole('link', { name: 'A paper' }).closest('li')!
+    const first = screen
+      .getByRole('link', { name: 'A paper' })
+      .closest<HTMLElement>('[role="row"]')!
     expect(within(first).queryByRole('list', { name: 'Tags' })).toBeNull()
-    const second = screen.getByRole('link', { name: 'Another' }).closest('li')!
+    const second = screen
+      .getByRole('link', { name: 'Another' })
+      .closest<HTMLElement>('[role="row"]')!
     expect(within(second).getByRole('list', { name: 'Tags' })).toHaveTextContent('rivers')
 
     await fireEvent.click(await rowAction('A paper', 'Tag'))
@@ -413,18 +417,19 @@ describe('the publication’s articles', () => {
   })
 
   describe('the “…” menu of an item', () => {
-    it('opens on the first item, moves with the arrow keys, and Escape gives focus back', async () => {
+    it('opens on the first item when pressed, moves with the arrow keys, and Escape gives focus back', async () => {
       fakePublication({ articles: [link('l1', 'A paper')] })
       await renderAt('/p/ada-substack/read')
       const trigger = await screen.findByRole('button', { name: 'Actions for A paper' })
       expect(trigger).toHaveAttribute('aria-expanded', 'false')
-      await fireEvent.keyDown(trigger, { key: 'ArrowDown' })
+      await fireEvent.click(trigger) // Enter or Space on it
       const items = within(screen.getByRole('group', { name: 'Actions for A paper' })).getAllByRole(
         'button',
       )
       expect(items.map((i) => i.textContent?.trim())).toEqual(['Edit', 'Tag', 'Move to…', 'Remove'])
       await waitFor(() => expect(items[0]).toHaveFocus())
       expect(trigger).toHaveAttribute('aria-expanded', 'true')
+      // The panel keeps its own arrow keys inside the list's grid.
       await fireEvent.keyDown(items[0]!, { key: 'ArrowDown' })
       expect(items[1]).toHaveFocus()
       await fireEvent.keyDown(items[1]!, { key: 'End' })
@@ -435,18 +440,21 @@ describe('the publication’s articles', () => {
       expect(screen.queryByRole('group', { name: /^Actions for/ })).toBeNull()
       await waitFor(() => expect(trigger).toHaveFocus())
       expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    })
-
-    it('opens on the last item from the Up arrow, and a click opens it on the first', async () => {
-      fakePublication({ articles: [link('l1', 'A paper')] })
-      await renderAt('/p/ada-substack/read')
-      const trigger = await screen.findByRole('button', { name: 'Actions for A paper' })
-      await fireEvent.keyDown(trigger, { key: 'ArrowUp' })
-      await waitFor(() => expect(screen.getByRole('button', { name: 'Remove' })).toHaveFocus())
+      await fireEvent.click(trigger)
       await fireEvent.click(trigger) // closes
       expect(screen.queryByRole('group', { name: /^Actions for/ })).toBeNull()
-      await fireEvent.click(trigger)
-      await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toHaveFocus())
+    })
+
+    it('leaves Up and Down to the list: on its button they move between rows, not open it (#459)', async () => {
+      fakePublication({ articles: [link('l1', 'A paper'), link('l2', 'A book')] })
+      await renderAt('/p/ada-substack/read')
+      const first = await screen.findByRole('button', { name: 'Actions for A paper' })
+      first.focus()
+      await fireEvent.keyDown(first, { key: 'ArrowDown' })
+      expect(screen.getByRole('button', { name: 'Actions for A book' })).toHaveFocus()
+      expect(screen.queryByRole('group', { name: /^Actions for/ })).toBeNull()
+      await fireEvent.keyDown(document.activeElement!, { key: 'ArrowUp' })
+      expect(first).toHaveFocus()
     })
 
     it('closes when focus moves on from it (Tab past an end)', async () => {
@@ -963,7 +971,9 @@ describe('selecting and bulk actions in the articles', () => {
       ],
     })
     await renderAt('/p/ada-substack/read')
-    const item = (await screen.findByRole('link', { name: 'A paper' })).closest('li')!
+    const item = (await screen.findByRole('link', { name: 'A paper' })).closest<HTMLElement>(
+      '[role="row"]',
+    )!
     expect(within(item).getByText('example.org')).toBeInTheDocument()
     expect(within(item).queryByText(/long\/path/)).not.toBeInTheDocument() // one link for the article, not two
     expect(within(item).queryByText('From a feed')).not.toBeInTheDocument()
@@ -1395,7 +1405,7 @@ describe('the publication’s notes', () => {
     fakePublication({ notes: [note('n1', 'One'), note('n2', 'Two')] })
     await renderAt('/p/ada-substack/notes')
     const box = await screen.findByRole('textbox', { name: 'Note' })
-    const list = within(screen.getByRole('main')).getAllByRole('list')[0]!
+    const list = within(screen.getByRole('main')).getByRole('grid', { name: 'Notes' })
     expect(box.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.queryByRole('navigation', { name: 'Next step' })).toBeNull()
     expect(screen.queryByText(/start an idea/)).toBeNull()
@@ -1429,7 +1439,7 @@ describe('the publication’s notes', () => {
     await renderAt('/p/ada-substack/notes')
     expect(await screen.findByText('Typed thought')).toBeInTheDocument()
     const items = screen
-      .getAllByRole('listitem')
+      .getAllByRole('row')
       .filter((li) => li.textContent?.includes('From the paper'))
     expectOrigin(items[0]!, 'From A paper', null)
   })

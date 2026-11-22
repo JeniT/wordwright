@@ -143,7 +143,7 @@ test('marking a draft published takes it out of Keep writing, and it keeps its p
   await page.goto(publicationUrl)
   await expect(page.getByRole('heading', { name: 'Keep writing' })).toHaveCount(0)
   await page.goto(ideaDraftsUrl)
-  const row = page.getByRole('region', { name: 'Drafts' }).getByRole('listitem').first()
+  const row = page.getByRole('region', { name: 'Drafts' }).getByRole('row').first()
   await expect(row).toContainText('Meanders')
   await expect(row.locator('.chip-ok')).toContainText('Published')
   await expect(row.getByRole('link', { name: /View post/ })).toHaveAttribute(

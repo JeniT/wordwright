@@ -350,7 +350,7 @@ describe('idea page', () => {
     )
     await renderAt('/p/ada-substack/ideas/i1/drafts')
     const rows = await within(await screen.findByRole('region', { name: 'Drafts' })).findAllByRole(
-      'listitem',
+      'row',
     )
     // The order the writer set is kept: published drafts are not moved to the bottom.
     expect(rows.map((r) => /Part \d/.exec(r.textContent ?? '')?.[0])).toEqual([
@@ -411,7 +411,7 @@ describe('idea page', () => {
     )
     await renderAt('/p/ada-substack/ideas/i1/drafts')
     const rows = await within(await screen.findByRole('region', { name: 'Drafts' })).findAllByRole(
-      'listitem',
+      'row',
     )
     expect(rows[0]).toHaveTextContent('Mine')
     expect(rows[0]).toHaveTextContent('Editor: Ada')
@@ -447,7 +447,7 @@ describe('idea page', () => {
     )
     await renderAt('/p/ada-substack/ideas/i1/drafts')
     const rows = await within(await screen.findByRole('region', { name: 'Drafts' })).findAllByRole(
-      'listitem',
+      'row',
     )
     await waitFor(() => expect(rows[0]).not.toHaveTextContent('Editor:'))
     expect(rows[1]).toHaveTextContent('Editor: Bob')
@@ -560,7 +560,7 @@ describe('idea page', () => {
     await renderAt('/p/ada-substack/ideas/i1/read')
     const titled = await screen.findByRole('link', { name: 'A paper' })
     expect(titled).not.toHaveTextContent('https://example.org/paper')
-    expect(titled.closest('li')).toHaveTextContent('example.org')
+    expect(titled.closest<HTMLElement>('[role="row"]')).toHaveTextContent('example.org')
     expect(screen.getAllByRole('link', { name: 'A paper' })).toHaveLength(1) // the host's name adds the title
     const untitled = screen.getByRole('link', { name: 'https://example.org/untitled' })
     expect(untitled).toHaveAttribute('href', '/p/ada-substack/ideas/i1/articles/l2')
@@ -939,9 +939,9 @@ describe('idea page', () => {
     it('tints a ticked item’s row, as on the Notes page (#456)', async () => {
       await openWith(two)
       await screen.findByRole('link', { name: 'A paper' })
-      expect(tick('A paper').closest('li')).not.toHaveClass('bg-accent-wash')
+      expect(tick('A paper').closest<HTMLElement>('[role="row"]')).not.toHaveClass('bg-accent-wash')
       await fireEvent.click(tick('A paper'))
-      expect(tick('A paper').closest('li')).toHaveClass('bg-accent-wash')
+      expect(tick('A paper').closest<HTMLElement>('[role="row"]')).toHaveClass('bg-accent-wash')
     })
 
     it('adds and removes tags on all the selected links in one request, and shows them', async () => {
@@ -1223,8 +1223,8 @@ describe('idea page', () => {
     const region = () => screen.getByRole('region', { name: 'Notes' })
     const texts = () =>
       within(region())
-        .getAllByRole('listitem')
-        .filter((li) => li.querySelector('p')) // the notes, not their tags
+        .getAllByRole('row')
+        .filter((li) => li.querySelector('p'))
         .map((li) => li.querySelector('p')?.textContent)
 
     /** A notes list that behaves like the server's, and records what was asked of it. */
@@ -1330,7 +1330,7 @@ describe('idea page', () => {
         'Deposition inside the bend.\nSecond line.',
         'A quote from the paper.',
       ])
-      const items = within(region()).getAllByRole('listitem')
+      const items = within(region()).getAllByRole('row')
       // Ada is alone in the publication: her own typed note doesn't say she added it.
       await waitFor(() => expect(items[0]).not.toHaveTextContent('Added'))
       expect(within(items[0]!).queryByText('Ada')).toBeNull()
@@ -1340,7 +1340,7 @@ describe('idea page', () => {
       expect(chat).toHaveAttribute('href', expect.stringMatching(/\/refine$/))
       expectOrigin(items[2]!, 'From reading', 'Bob')
       // One plain list, with no choice of layout.
-      expect(items[0]!.closest('ol')).not.toHaveClass('grid')
+      expect(items[0]!.closest('[role="grid"]')).not.toHaveClass('grid')
       expect(within(region()).queryByRole('group', { name: 'Show notes as' })).toBeNull()
     })
 
@@ -1371,9 +1371,7 @@ describe('idea page', () => {
       )
       await renderAt('/p/ada-substack/ideas/i1/notes')
       await screen.findByText('Erosion loops.')
-      await waitFor(() =>
-        expectOrigin(within(region()).getAllByRole('listitem')[0]!, 'Added', 'Ada'),
-      )
+      await waitFor(() => expectOrigin(within(region()).getAllByRole('row')[0]!, 'Added', 'Ada'))
     })
 
     it('offers no Edit for a direct quotation, and sets it apart; it can still be deleted', async () => {
@@ -1389,7 +1387,7 @@ describe('idea page', () => {
       expect(within(quoteActions.parentElement!).queryByRole('button', { name: 'Edit' })).toBeNull()
       expect(within(region()).getByText('Exact words.').closest('blockquote')).not.toBeNull()
       expect(within(region()).getByText('Erosion loops.').closest('blockquote')).toBeNull()
-      const items = within(region()).getAllByRole('listitem')
+      const items = within(region()).getAllByRole('row')
       expectOrigin(items[1]!, 'From A paper', null)
       expect(quoteActions).toBeVisible()
     })
@@ -1401,7 +1399,7 @@ describe('idea page', () => {
       ])
       await open()
       await screen.findByText('A quote.')
-      const items = within(region()).getAllByRole('listitem')
+      const items = within(region()).getAllByRole('row')
       expectOrigin(items[0]!, 'From A paper', null)
       expectOrigin(items[1]!, 'From reading', null)
     })
@@ -1413,7 +1411,7 @@ describe('idea page', () => {
       ])
       await open()
       await screen.findByText('Left behind.')
-      const items = within(region()).getAllByRole('listitem')
+      const items = within(region()).getAllByRole('row')
       expectOrigin(items[0]!, 'Added', 'A former member')
       expectOrigin(items[1]!, 'From conversation with their AI', 'A former member')
     })
@@ -1422,7 +1420,7 @@ describe('idea page', () => {
       fakeNotes([{ ...note('n1', 'Still credited.', 'entered', 'Bob'), authorId: null }])
       await open()
       await screen.findByText('Still credited.')
-      expectOrigin(within(region()).getAllByRole('listitem')[0]!, 'Added', 'Bob')
+      expectOrigin(within(region()).getAllByRole('row')[0]!, 'Added', 'Bob')
       expect(screen.queryByText('A former member')).toBeNull()
     })
 
@@ -1436,7 +1434,7 @@ describe('idea page', () => {
       await open()
       const box = await screen.findByRole('textbox', { name: 'Note' })
       expect(
-        box.compareDocumentPosition(within(region()).getAllByRole('list')[0]!) &
+        box.compareDocumentPosition(within(region()).getByRole('grid')) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy()
       const next = within(screen.getByRole('navigation', { name: 'Previous and next' }))
@@ -1661,7 +1659,9 @@ describe('idea page', () => {
       it('shows the tags a note has, as a list on it', async () => {
         fakeNotes(tagged())
         await open()
-        const first = (await screen.findByText('Erosion loops.')).closest('li')!
+        const first = (await screen.findByText('Erosion loops.')).closest<HTMLElement>(
+          '[role="row"]',
+        )!
         const chips = within(first).getByRole('list', { name: 'Tags' })
         expect(
           within(chips)
@@ -2003,7 +2003,7 @@ describe('idea page', () => {
         fakeNotes([note('n1', 'Only one.'), note('n2', 'Another.')])
         await open()
         await screen.findByText('Only one.')
-        const row = (start: string) => tick(start).closest('li')!
+        const row = (start: string) => tick(start).closest<HTMLElement>('[role="row"]')!
         expect(row('Only one')).not.toHaveClass('bg-accent-wash')
         await fireEvent.click(tick('Only one'))
         expect(row('Only one')).toHaveClass('bg-accent-wash')
@@ -2272,7 +2272,7 @@ describe('idea page', () => {
     }
     const titles = () =>
       within(screen.getByRole('region', { name: 'Drafts' }))
-        .getAllByRole('listitem')
+        .getAllByRole('row')
         .map((li) => li.textContent)
 
     function fakeIdea() {
@@ -2355,7 +2355,7 @@ describe('idea page', () => {
       await renderAt('/p/ada-substack/ideas/i1/drafts')
       await showArrows()
       await screen.findByRole('button', { name: 'Move Part 1 up' })
-      const items = within(screen.getByRole('region', { name: 'Drafts' })).getAllByRole('listitem')
+      const items = within(screen.getByRole('region', { name: 'Drafts' })).getAllByRole('row')
       const dataTransfer = { setData() {}, setDragImage() {}, effectAllowed: '', dropEffect: '' }
       await fireEvent.dragStart(items[2]!.querySelector('[data-testid="rail"]')!, { dataTransfer })
       await fireEvent.dragOver(items[0]!, { clientY: -1, dataTransfer })

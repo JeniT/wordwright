@@ -31,13 +31,11 @@ test('captures an idea, and its first note is kept as a note', async ({ page }) 
   await expect(page.getByRole('heading', { level: 1, name: 'Note' })).toBeVisible()
   // The one typed when the idea was created is a card.
   const notes = page.getByRole('region', { name: 'Notes' })
-  await expect(notes.getByRole('listitem')).toHaveCount(1)
-  await expect(notes.getByRole('listitem').first()).toContainText(
-    'Erosion on the outside of each bend.',
-  )
+  await expect(notes.getByRole('row')).toHaveCount(1)
+  await expect(notes.getByRole('row').first()).toContainText('Erosion on the outside of each bend.')
   // Ida is alone in the publication, so her own typed note doesn't say she added it.
-  await expect(notes.getByRole('listitem').first()).not.toContainText('Added')
-  await expect(notes.getByRole('listitem').first().getByText('Ida', { exact: true })).toHaveCount(0)
+  await expect(notes.getByRole('row').first()).not.toContainText('Added')
+  await expect(notes.getByRole('row').first().getByText('Ida', { exact: true })).toHaveCount(0)
 })
 
 test('develops an idea into a linked set of drafts, in an order that can be changed', async ({
@@ -55,13 +53,13 @@ test('develops an idea into a linked set of drafts, in an order that can be chan
   await expect(page.getByText('Saved', { exact: true })).toBeVisible() // saves itself a moment after typing
   await page.getByRole('link', { name: '← All drafts' }).click()
 
-  const drafts = page.getByRole('main').getByRole('list').filter({ hasText: 'Part 1: the bend' })
-  await expect(drafts.getByRole('listitem')).toHaveText([/Part 1: the bend/, /Part 2: the oxbow/])
+  const drafts = page.getByRole('main').getByRole('grid', { name: 'Drafts' })
+  await expect(drafts.getByRole('row')).toHaveText([/Part 1: the bend/, /Part 2: the oxbow/])
   await noViolations(page, 'idea page')
 
   // The drafts can be put in a different order, from the keyboard or by dragging, and it stays.
   const draftTitles = async () =>
-    (await drafts.getByRole('listitem').allInnerTexts()).map((t) => t.match(/Part \d/)![0])
+    (await drafts.getByRole('row').allInnerTexts()).map((t) => t.match(/Part \d/)![0])
   const moveUp = drafts.getByRole('button', { name: 'Move Part 2: the oxbow up' })
   // The arrows appear when a row's grip is pressed.
   await expect(moveUp).toHaveCount(0)
@@ -71,10 +69,10 @@ test('develops an idea into a linked set of drafts, in an order that can be chan
   await expect.poll(draftTitles).toEqual(['Part 2', 'Part 1'])
   await expect(drafts.getByRole('button', { name: 'Move Part 2: the oxbow down' })).toBeFocused()
   await drafts
-    .getByRole('listitem')
+    .getByRole('row')
     .first()
     .getByTestId('rail')
-    .dragTo(drafts.getByRole('listitem').nth(1), {
+    .dragTo(drafts.getByRole('row').nth(1), {
       sourcePosition: { x: 3, y: 3 },
       targetPosition: { x: 40, y: 80 },
     })
@@ -109,11 +107,11 @@ test('notes on an idea can be added, ordered, edited and deleted, and it is all 
   await noViolations(page, 'idea page with notes')
 
   // A note added in the form goes to the top, so the last one added is first.
-  await expect(notes.getByRole('listitem').first()).toContainText('Oxbow lakes')
+  await expect(notes.getByRole('row').first()).toContainText('Oxbow lakes')
   await showArrowsFor(notes, /^Reorder note “Oxbow lakes/)
   await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*down/ }).click()
   await notes.getByRole('button', { name: /^Move note “Oxbow lakes.*down/ }).click()
-  await expect(notes.getByRole('listitem').nth(2)).toContainText('Oxbow lakes')
+  await expect(notes.getByRole('row').nth(2)).toContainText('Oxbow lakes')
   await (await rowAction(notes, /^Actions for note “Erosion on the outside/, 'Edit')).click()
   await notes
     .getByLabel(/^Text of note/)
@@ -139,7 +137,7 @@ test('notes on an idea can be added, ordered, edited and deleted, and it is all 
   // The order and edits are saved.
   await noViolations(page, 'idea page with notes')
   await page.reload()
-  await expect(notes.getByRole('listitem')).toHaveText([
+  await expect(notes.getByRole('row')).toHaveText([
     /Erosion on the outside of each bend, deposition inside\./,
     /Oxbow lakes form when a loop is cut off\./,
   ])
@@ -209,7 +207,7 @@ test('with tutorial mode on, a tip is written out on the page instead of behind 
   // A ticked row has the accent wash (#456), and still passes contrast in dark mode.
   const row = (start: string) =>
     notes
-      .getByRole('listitem')
+      .getByRole('row')
       .filter({ has: page.getByRole('checkbox', { name: new RegExp(`^Select note “${start}`) }) })
   const background = (start: string) =>
     row(start).evaluate((li) => getComputedStyle(li).backgroundColor)
@@ -336,7 +334,7 @@ test('tags group notes by draft or section, and filter them on the idea page and
   await showArrowsFor(notes, /^Reorder note “Erosion/)
   await notes.getByRole('button', { name: /^Move note “Erosion.*up/ }).click()
   await notes.getByRole('button', { name: 'Stop filtering by part 1' }).click()
-  await expect(notes.getByRole('listitem').filter({ hasText: 'Deposition' }).first()).toBeVisible()
+  await expect(notes.getByRole('row').filter({ hasText: 'Deposition' }).first()).toBeVisible()
   await page.reload()
   const after = page.getByRole('region', { name: 'Notes' })
   await expect(after.getByRole('list', { name: 'Tags' }).first()).toBeVisible()
@@ -348,6 +346,62 @@ test('tags group notes by draft or section, and filter them on the idea page and
   await expect(side.getByText('Oxbow lakes form')).toBeVisible()
   await expect(side.getByText('Deposition on the inside.')).toHaveCount(0)
   await noViolations(page, 'drafting page filtered by a tag')
+})
+
+test('the notes are one Tab stop, and the arrow keys move between notes and their controls (#459)', async ({
+  page,
+}) => {
+  await signUpWithPublication(page)
+  await turnTutorialModeOff(page)
+  await createIdea(page, 'Why rivers meander', 'Erosion on the outside of each bend.')
+  await expect(page).toHaveURL(/\/ideas\/(?!new)[^/]+$/)
+  await goTo(page, 'Note')
+  const notes = page.getByRole('region', { name: 'Notes' })
+  for (const text of ['Deposition on the inside.', 'Oxbow lakes form when a loop is cut off.']) {
+    await notes.getByRole('textbox', { name: 'Note', exact: true }).fill(text)
+    await notes.getByRole('button', { name: 'Add note' }).click()
+    await expect(notes.getByText(text)).toBeVisible()
+  }
+  const grid = notes.getByRole('grid', { name: 'Notes' })
+  const tick = (start: string) =>
+    grid.getByRole('checkbox', { name: new RegExp(`^Select note “${start}`) })
+  const focused = () =>
+    page.evaluate(
+      () =>
+        document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent,
+    )
+
+  // One stop: Tab goes in at the first note's tick, and the next Tab leaves the list.
+  await expect(grid.locator('[tabindex="0"]')).toHaveCount(1)
+  await tick('Oxbow').focus() // the newest note is first
+  await page.keyboard.press('Tab')
+  expect(await page.evaluate(() => !!document.activeElement?.closest('[role="grid"]'))).toBe(false)
+  await page.keyboard.press('Shift+Tab')
+  await expect(tick('Oxbow')).toBeFocused()
+
+  // Down to the next note, and along its row.
+  await page.keyboard.press('ArrowDown')
+  await expect(tick('Deposition')).toBeFocused()
+  await expect(
+    notes.getByText('Arrow keys move between the rows and their controls.'),
+  ).toBeVisible()
+  await page.keyboard.press('ArrowRight')
+  expect(await focused()).toMatch(/^Reorder note “Deposition/)
+  await page.keyboard.press('End')
+  await expect(grid.getByRole('button', { name: /^Actions for note “Deposition/ })).toBeFocused()
+  // On the "…" button, Down goes to the next note; Enter opens it, and its panel keeps its own keys.
+  await page.keyboard.press('ArrowDown')
+  await expect(grid.getByRole('button', { name: /^Actions for note “Erosion/ })).toBeFocused()
+  await page.keyboard.press('Enter')
+  const panel = page.getByRole('group', { name: /^Actions for note “Erosion/ })
+  await expect(panel.getByRole('button', { name: 'Edit' })).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await expect(panel.getByRole('button', { name: 'Tag' })).toBeFocused()
+  await noViolations(page, 'the notes grid, a menu open')
+  await page.keyboard.press('Escape')
+  await expect(grid.getByRole('button', { name: /^Actions for note “Erosion/ })).toBeFocused()
+  await page.setViewportSize({ width: 390, height: 800 })
+  await noViolations(page, 'the notes grid, phone')
 })
 
 test('notes can be merged into one, and one note cut in two', async ({ page }) => {
@@ -362,7 +416,7 @@ test('notes can be merged into one, and one note cut in two', async ({ page }) =
     await notes.getByRole('button', { name: 'Add note' }).click()
     await expect(notes.getByText(text)).toBeVisible()
   }
-  const cards = notes.getByRole('listitem')
+  const cards = notes.getByRole('row')
   await expect(cards).toHaveCount(3)
 
   // The newest note is first. Merge: tick two, press Merge; they become one, at the first one's place, as paragraphs.
@@ -390,7 +444,7 @@ test('notes can be merged into one, and one note cut in two', async ({ page }) =
   await expect(cards.first()).not.toContainText('Erosion')
   await expect(cards.nth(1)).toContainText('Erosion on the outside of each bend.')
   await page.reload()
-  await expect(page.getByRole('region', { name: 'Notes' }).getByRole('listitem')).toHaveCount(3)
+  await expect(page.getByRole('region', { name: 'Notes' }).getByRole('row')).toHaveCount(3)
 })
 
 test('moves an idea with its draft to another publication, and opens it there', async ({
@@ -426,7 +480,9 @@ test('moves an idea with its draft to another publication, and opens it there', 
   await expect(page).toHaveURL(new RegExp(`/p/${second}/ideas/[^/]+$`))
   await expect(page.getByRole('heading', { level: 1, name: 'Why rivers meander' })).toBeVisible()
   await goTo(page, 'Draft')
-  await expect(page.getByRole('main').getByRole('list').getByRole('listitem')).toHaveCount(1)
+  await expect(
+    page.getByRole('main').getByRole('grid', { name: 'Drafts' }).getByRole('row'),
+  ).toHaveCount(1)
 
   // And the first publication has no ideas left.
   await page.goto(`/p/${first}`)

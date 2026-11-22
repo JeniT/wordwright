@@ -54,7 +54,8 @@ Which control for which job, so every list (lists of articles, notes, feeds, dra
   disclosure, not an ARIA `menu`: a `menu` may own only menu items, and Remove's hint and live region would break
   that. It is the pattern for any row of a list of items or notes whose actions would crowd it; a row whose actions
   fit beside its title (a suggestion's tick and cross) keeps icons. The keyboard works as in a menu: a click (Enter or Space on
-  the button) or Down opens it on the first button, Up on the last; Up, Down, Home and End move (wrapping); Escape
+  the button) or Down opens it on the first button, Up on the last (inside a list that is a grid, below, Up and Down
+  on the button move between rows instead, so it opens with Enter or Space); Up, Down, Home and End move (wrapping); Escape
   closes it and focus goes back to “…”; Tab past either end, or a press outside, closes it and leaves focus where it
   went. The panel sits right after the button, so it stays in the page's landmark, but is `fixed`, so the list
   can't clip it, and follows its button when the page scrolls. Remove is a `HoldButton` and keeps its ask-twice
@@ -106,6 +107,20 @@ are 28px (above the 24px WCAG 2.2 minimum), an exception to the 32px rule for sm
 row; their background is solid, a disabled one included (`btn-rail`). A list is
 **either reorderable or paginated, never both** (you can't drag across pages). Long items clamp their titles to two
 lines; the actions stay top-right (a reading item's are behind “…”, above). Notes are the exception: show them in full.
+
+**A list with controls in its rows is one Tab stop (a grid, #459).** The lists with bulk actions (an idea's or a
+publication's Notes, an idea's Drafts, the Read page's articles) are ARIA grids with a roving tabindex (`RowList`'s
+`grid`, `useGridKeys`), so reaching what comes after them takes one Tab, not four or five per row. Tab goes in at the
+control last used (the first row's first, the first time); **Left and Right** move along a row's controls in page
+order; **Up and Down** go to the same place in the next row (or its last control); **Home and End** go to the ends of
+the row, **Ctrl+Home and Ctrl+End** to the first and last row; the next Tab leaves. Rows are `role="row"` (not list
+items) with the rail and the content as `gridcell`s, and the grid is named ("Notes"). What needs the keys itself is
+left alone: a text box; anything in `data-grid-own` (the "…" panel, an inline edit form, an open tag editor), which
+keeps its own keys and Tab order until it closes; and a key a control claims with `data-grid-keys="vertical"` (the
+rail's Reorder button, where Up and Down still move the row). While a control in the grid has keyboard focus a quiet
+line under the rows says "Arrow keys move between the rows and their controls. Tab leaves the list." (hidden from
+screen readers, which already say "grid"). The read-only lists (Recent notes, To read, Keep writing, People and the
+like) keep ordinary Tab order: their rows have one link each.
 
 **A note's row (`NoteCard`, `NoteText`).** Notes are shown in full, so a row can be tall: the list is `align-top`, which
 puts the buttons at the top of the row, not centred. Where a note came from (“From” and the page's title as a link that opens in a new tab,

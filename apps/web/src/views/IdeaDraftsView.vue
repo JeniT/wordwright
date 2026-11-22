@@ -57,6 +57,8 @@ async function saveDraftOrder(ids: string[]) {
         :items="idea.drafts"
         :item-label="(draft) => draft.title || 'Untitled'"
         :save="saveDraftOrder"
+        grid
+        label="Drafts"
       >
         <template #default="{ item: draft }">
           <DraftRow

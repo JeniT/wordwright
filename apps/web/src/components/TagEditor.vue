@@ -77,7 +77,8 @@ watch(
 </script>
 
 <template>
-  <div v-if="shown.length || open || problem" class="mt-1">
+  <!-- While open, its field and its × buttons keep their own keys and Tab order in a grid (`useGridKeys`). -->
+  <div v-if="shown.length || open || problem" class="mt-1" :data-grid-own="open || undefined">
     <div class="flex flex-wrap items-center gap-1">
       <ul v-if="shown.length" aria-label="Tags" class="flex flex-wrap gap-1">
         <li

@@ -150,6 +150,7 @@ defineExpose({
     :id="menuId"
     ref="panel"
     role="group"
+    data-grid-own
     :aria-label="`Actions for ${props.label}`"
     class="fixed z-40 flex min-w-44 flex-col rounded-ctl border border-line-strong bg-surface p-1"
     :style="{ top: `${position.top}px`, left: `${position.left}px` }"
