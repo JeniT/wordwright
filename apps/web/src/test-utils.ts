@@ -7,7 +7,6 @@ import { nextTick, type Component } from 'vue'
 import { createMemoryHistory } from 'vue-router'
 import { afterAll, afterEach, beforeAll, beforeEach, expect } from 'vitest'
 import { createAppRouter, routes } from './router'
-import { clearSearches } from './lib/research-searches'
 import type { Approval } from '@wordwright/core'
 import type { RouteRecordRaw } from 'vue-router'
 
@@ -108,10 +107,7 @@ export function useMockServer({ warm = [] }: { warm?: string[] } = {}) {
       http.get('*/api/invitations/blocks', () => HttpResponse.json({ all: false, senders: [] })),
     ),
   )
-  afterEach(() => {
-    server.resetHandlers()
-    clearSearches() // Research searches outlive a page, so not a test
-  })
+  afterEach(() => server.resetHandlers())
   afterAll(() => server.close())
 }
 

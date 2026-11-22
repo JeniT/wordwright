@@ -31,6 +31,14 @@ export class RateLimiter {
     return entry.count <= this.max
   }
 
+  /** Gives back an attempt that turned out to cost nothing (in the current window only). */
+  refund(key: string): void {
+    const entry = this.hits.get(key)
+    // Refused attempts are counted too, so first come back down to the limit: one slot is given back, not a refusal.
+    if (entry && entry.resetAt > this.now())
+      entry.count = Math.max(0, Math.min(entry.count, this.max) - 1)
+  }
+
   /** The longest anyone refused has to wait, in words: "15 minutes", "an hour". */
   get wait(): string {
     const minutes = Math.round(this.windowMs / 60_000)

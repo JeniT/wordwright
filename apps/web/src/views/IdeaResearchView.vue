@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useQuery } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import type { ResearchRun as Run } from '@wordwright/core'
 import { useRoute } from 'vue-router'
 import Explain from '../components/Explain.vue'
 import NextStep from '../components/NextStep.vue'
@@ -8,48 +8,49 @@ import PageNav from '../components/PageNav.vue'
 import StepHeading from '../components/StepHeading.vue'
 import ResearchForm from '../components/ResearchForm.vue'
 import ResearchRun from '../components/ResearchRun.vue'
-import { api } from '../lib/api'
-import { queryKeys, useIdea } from '../lib/queries'
+import { useIdea, useResearch } from '../lib/queries'
 import QueryState from '../components/QueryState.vue'
 import IdeaGate from '../components/IdeaGate.vue'
 
-/** Step 01 of an idea: ask your AI to research it, and see the research so far, one run at a time. */
+/**
+ * Step 01 of an idea: ask your AI to research it, and see the research so far, one run at a time. Every run is in the
+ * pager whatever its state (#447): one still waiting or searching shows where it is, and fills in when it finishes.
+ */
 const props = defineProps<{ publicationId: string; id: string }>()
 
 const idea = useIdea(
   () => props.publicationId,
   () => props.id,
 )
-const runs = useQuery({
-  queryKey: computed(() => queryKeys.research(props.publicationId, props.id)),
-  queryFn: () => api.getResearch(props.publicationId, props.id),
-})
+const runs = useResearch(
+  () => props.publicationId,
+  () => props.id,
+)
 
-// Oldest first, so a new run goes at the end and "Later research" leads to it. The newest is shown until the writer
-// goes back (or a new one arrives, which `showNewest` jumps to).
+// Oldest first, so a new run goes at the end and "Later research" leads to it.
 const ordered = computed(() =>
   [...(runs.data.value ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
 )
 const route = useRoute()
-// A link from a finished search on the idea's landing page names its run.
+// A link from the idea's landing page names its run.
 const chosen = ref<string | null>(typeof route.query.run === 'string' ? route.query.run : null)
+// The page opens on the newest run, then stays on whichever is shown: a search another member sends doesn't move it.
+watch(
+  ordered,
+  (all) => {
+    if (chosen.value === null && all.length) chosen.value = all.at(-1)!.id
+  },
+  { immediate: true },
+)
 const position = computed(() => {
   const at = ordered.value.findIndex((r) => r.id === chosen.value)
   return at === -1 ? ordered.value.length - 1 : at
 })
 const current = computed(() => ordered.value[position.value])
 const heading = ref<HTMLElement | null>(null)
-const section = ref<HTMLElement | null>(null)
-/**
- * A search has finished. Several can be running, so the writer may be working in a run by now: then the page stays
- * on it (focus isn't taken away from them) and Later research leads to the new one. Otherwise it shows the new run.
- */
-function finished() {
-  if (section.value?.contains(document.activeElement)) {
-    chosen.value ??= current.value?.id ?? null
-  } else {
-    chosen.value = null
-  }
+/** The writer has just sent a search: show it, waiting its turn. */
+function sent(run: Run) {
+  chosen.value = run.id
 }
 function go(step: -1 | 1) {
   chosen.value = ordered.value[position.value + step]?.id ?? null
@@ -83,9 +84,9 @@ const nav = computed(() => ({
         aiming for a range of opinions. Add the ones you want to your articles.
       </Explain>
 
-      <ResearchForm class="mb-8" :publication-id="publicationId" :idea-id="id" @done="finished" />
+      <ResearchForm class="mb-8" :publication-id="publicationId" :idea-id="id" @sent="sent" />
 
-      <section ref="section" aria-labelledby="previous-heading">
+      <section aria-labelledby="previous-heading">
         <h2
           id="previous-heading"
           ref="heading"

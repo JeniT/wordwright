@@ -75,6 +75,7 @@ export function ideaRoutes(
       .delete('/:id', (c) => {
         const idea = find(c)
         ideas.delete(idea.publicationId, idea.id)
+        research.stopIdea(idea.id) // its runs went with it
         return c.body(null, 204)
       })
 
@@ -261,18 +262,20 @@ export function ideaRoutes(
 
       // ---- research: a search for reading, kept apart from the conversation ----
       .get('/:id/research', (c) => c.json(research.list(find(c))))
-      .post('/:id/research', validateJson(ResearchInputSchema), async (c) => {
+      // Saved at once and run by the server's queue (#447): 202, with the run waiting its turn.
+      .post('/:id/research', validateJson(ResearchInputSchema), (c) => {
         try {
-          const run = await research.run(
-            find(c),
-            c.get('user'),
-            c.req.valid('json'),
-            c.req.raw.signal,
-          )
-          return c.json(run, 201)
+          return c.json(research.send(find(c), c.get('user'), c.req.valid('json')), 202)
         } catch (err) {
           return toLlmHttpError(err)
         }
+      })
+      .post('/:id/research/:runId/try-again', (c) =>
+        c.json(research.tryAgain(find(c), param(c, 'runId'), c.get('user')), 202),
+      )
+      .post('/:id/research/:runId/cancel', (c) => {
+        research.cancel(find(c), param(c, 'runId'), c.get('user'))
+        return c.body(null, 204)
       })
       .post('/:id/research/:runId/add', validateJson(ResearchItemIdsSchema), (c) =>
         c.json(research.add(find(c), param(c, 'runId'), c.req.valid('json').itemIds)),

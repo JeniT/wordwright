@@ -20,6 +20,24 @@ describe('RateLimiter', () => {
     expect(limiter.allow('a')).toBe(true)
   })
 
+  it('gives back one attempt that cost nothing, however many were refused, and only in its window', () => {
+    const c = clock()
+    const limiter = new RateLimiter(2, 1000, c.read)
+    limiter.allow('a')
+    limiter.allow('a')
+    expect([limiter.allow('a'), limiter.allow('a')]).toEqual([false, false])
+    limiter.refund('a')
+    expect([limiter.allow('a'), limiter.allow('a')]).toEqual([true, false])
+    limiter.refund('nobody') // nothing to give back
+    c.now = 1000
+    limiter.refund('a') // that window is over
+    expect([limiter.allow('a'), limiter.allow('a'), limiter.allow('a')]).toEqual([
+      true,
+      true,
+      false,
+    ])
+  })
+
   // Keys are often typed by strangers (the address on a sign-in attempt), so they must not pile up forever (#317).
   it('forgets keys whose window is over', () => {
     const c = clock()

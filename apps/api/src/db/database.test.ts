@@ -244,7 +244,29 @@ describe('the collapsed schema (#308)', () => {
     )
       .map((e) => ({ ...e, sql: e.sql.replace(/\s+/g, ' ').trim() }))
       .sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name))
-    expect(snapshot(openDatabase(':memory:'))).toEqual(before)
+    const db = new DatabaseSync(':memory:')
+    migrate(db, ':memory:', MIGRATIONS.slice(0, 1)) // the fold alone; later migrations are appended after it
+    expect(snapshot(db)).toEqual(before)
+  })
+
+  it('keeps research saved before the queue as finished runs, and allows only the queue’s states (#447)', () => {
+    const db = new DatabaseSync(':memory:')
+    migrate(db, ':memory:', MIGRATIONS.slice(0, 1))
+    db.exec('PRAGMA foreign_keys = OFF') // a run alone, without its idea
+    db.exec(
+      `INSERT INTO idea_research (id, idea_id, areas, provider, model, created_at)
+       VALUES ('r', 'i', 'Old', 'anthropic', 'm', 't')`,
+    )
+    migrate(db, ':memory:', MIGRATIONS.slice(0, 2))
+    expect(
+      db.prepare('SELECT state, attempts, tried_again, error FROM idea_research').get(),
+    ).toEqual({
+      state: 'finished',
+      attempts: 0,
+      tried_again: 0,
+      error: null,
+    })
+    expect(() => db.exec("UPDATE idea_research SET state = 'cancelled'")).toThrow()
   })
 
   it('refuses a state the private alpha does not know', () => {
@@ -256,9 +278,8 @@ describe('the collapsed schema (#308)', () => {
   })
 
   it('is one step, and refuses a development database from before the fold', () => {
-    expect(MIGRATIONS).toHaveLength(1)
     const db = new DatabaseSync(':memory:')
-    db.exec('PRAGMA user_version = 20')
+    db.exec(`PRAGMA user_version = ${MIGRATIONS.length + 19}`) // a version this build doesn't know
     expect(() => migrate(db, 'dev.sqlite')).toThrow(DatabaseError)
   })
 })

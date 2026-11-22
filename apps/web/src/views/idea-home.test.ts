@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
+import type { ResearchItem, ResearchRun } from '@wordwright/core'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -73,16 +74,44 @@ const message = (n: number, role: 'user' | 'assistant', text: string) => ({
 const ideaUrl = '*/api/publications/ada-substack/ideas/i1'
 
 /** A pretend API for the idea; `calls` records anything that would cost money or change something. */
+const researchRun = (overrides: Partial<ResearchRun> = {}): ResearchRun => ({
+  id: 'run0',
+  areas: 'Anything',
+  createdBy: 'u1',
+  createdByName: 'Ada Lovelace',
+  model: 'fake',
+  createdAt: '2026-01-03T00:00:00Z',
+  state: 'finished',
+  attempt: 1,
+  error: null,
+  canTryAgain: false,
+  items: [],
+  ...overrides,
+  ...(overrides.id ? {} : { id: `run-${overrides.areas ?? 'x'}` }),
+})
+const researchItem = (status: ResearchItem['status']): ResearchItem => ({
+  id: `item-${Math.random()}`,
+  url: 'https://example.org/a',
+  title: 'A page',
+  why: 'Relevant.',
+  check: 'found',
+  fetchedTitle: 'A page',
+  fetchedAuthors: [],
+  status,
+})
+
 function fakeIdea(
   options: {
     idea?: ReturnType<typeof idea>
     notes?: ReturnType<typeof note>[]
     messages?: ReturnType<typeof message>[]
+    runs?: ResearchRun[]
   } = {},
 ) {
   const state = {
     notes: [...(options.notes ?? [])],
     researched: [] as string[],
+    runs: [...(options.runs ?? [])] as ResearchRun[],
     drafts: [] as unknown[],
     requests: [] as string[],
   }
@@ -98,7 +127,7 @@ function fakeIdea(
       state.notes.push(made)
       return HttpResponse.json(made, { status: 201 })
     }),
-    http.get(`${ideaUrl}/research`, () => HttpResponse.json([])),
+    http.get(`${ideaUrl}/research`, () => HttpResponse.json(state.runs)),
     http.get(`${ideaUrl}/conversations`, () =>
       HttpResponse.json({
         conversations: options.messages?.length
@@ -128,17 +157,9 @@ function fakeIdea(
     http.post(`${ideaUrl}/research`, async ({ request }) => {
       const { areas } = (await request.json()) as { areas: string }
       state.researched.push(areas)
-      return HttpResponse.json(
-        {
-          id: 'run1',
-          areas,
-          createdByName: 'Ada',
-          model: 'fake',
-          createdAt: '2026-01-03T00:00:00Z',
-          items: [],
-        },
-        { status: 201 },
-      )
+      const sent = researchRun({ id: `run${state.runs.length + 1}`, areas, state: 'waiting' })
+      state.runs.unshift(sent)
+      return HttpResponse.json(sent, { status: 202 })
     }),
     http.post(`${ideaUrl}/drafts`, async ({ request }) => {
       state.drafts.push(await request.json())
@@ -280,7 +301,7 @@ describe('an idea’s landing page', () => {
       ).toBeInTheDocument()
     })
 
-    it('starts the research only when the button is pressed, then links to what it found, staying put', async () => {
+    it('starts the research only when the button is pressed, and lists it, staying put', async () => {
       const state = fakeIdea({
         idea: idea(
           [link(1)].map((l) => ({ ...l, readAt: '2026-01-01T00:00:00Z' })),
@@ -288,7 +309,9 @@ describe('an idea’s landing page', () => {
         ),
       })
       const { router } = await renderAt('/p/ada-substack/ideas/i1')
-      const button = await screen.findByRole('button', { name: 'Research' })
+      const region = await screen.findByRole('region', { name: 'Research' })
+      expect(await within(region).findByText('No research yet.')).toBeInTheDocument()
+      const button = within(region).getByRole('button', { name: 'Research' })
       expect(button).toBeDisabled()
       await fireEvent.update(
         screen.getByLabelText('What areas do you want to research?'),
@@ -297,28 +320,73 @@ describe('an idea’s landing page', () => {
       expect(state.researched).toEqual([])
       await fireEvent.click(button)
       await waitFor(() => expect(state.researched).toEqual(['How bends migrate']))
-      const searches = await screen.findByRole('list', { name: 'Searches' })
-      const seeIt = await within(searches).findByRole('link', { name: 'See the research' })
-      expect(seeIt).toHaveAttribute('href', '/p/ada-substack/ideas/i1/research?run=run1')
-      expect(within(searches).getByText('“How bends migrate”')).toBeInTheDocument()
-      expect(within(searches).getByText('Nothing worth reading turned up.')).toBeInTheDocument()
+      const list = await within(region).findByRole('list', { name: 'Research so far' })
+      expect(within(list).getByRole('link', { name: 'How bends migrate' })).toHaveAttribute(
+        'href',
+        '/p/ada-substack/ideas/i1/research?run=run1',
+      )
+      expect(list).toHaveTextContent('Waiting')
       expect(router.currentRoute.value.name).toBe('idea') // the writer may be typing the next one
       expect(screen.getByLabelText('What areas do you want to research?')).toHaveValue('')
-
-      await fireEvent.click(within(searches).getByRole('button', { name: 'Remove' }))
-      expect(screen.queryByRole('list', { name: 'Searches' })).toBeNull()
     })
 
-    it('says what went wrong, and keeps the words with the search, when the research fails', async () => {
+    it('lists every run, newest first, each with one line on where it is and no buttons', async () => {
       fakeIdea({
-        idea: idea(
-          [link(1)].map((l) => ({ ...l, readAt: '2026-01-01T00:00:00Z' })),
-          [draft(1)],
-        ),
+        runs: [
+          researchRun({
+            areas: 'Trying',
+            state: 'searching',
+            attempt: 2,
+            createdAt: '2026-01-06T00:00:00Z',
+          }),
+          researchRun({
+            areas: 'Broken',
+            state: 'failed',
+            error: 'The search took too long. Try again.',
+            createdAt: '2026-01-05T00:00:00Z',
+          }),
+          researchRun({
+            areas: 'Done',
+            createdAt: '2026-01-04T00:00:00Z',
+            items: [researchItem('added'), researchItem('suggested'), researchItem('dismissed')],
+          }),
+          researchRun({ areas: 'Empty', createdAt: '2026-01-03T00:00:00Z' }),
+          researchRun({ areas: 'Queued', state: 'waiting', createdAt: '2026-01-02T00:00:00Z' }),
+          researchRun({
+            areas: 'Searching',
+            state: 'searching',
+            createdAt: '2026-01-01T00:00:00Z',
+          }),
+        ],
       })
+      await renderAt('/p/ada-substack/ideas/i1')
+      const list = await screen.findByRole('list', { name: 'Research so far' })
+      // What was asked, as a link, then where it is (a name follows it only where others could have asked).
+      const rows = within(list)
+        .getAllByRole('listitem')
+        .map((row) => [
+          within(row).getByRole('link').textContent?.trim(),
+          row.querySelector('p')?.textContent?.split(' · ')[0]?.trim(),
+        ])
+      expect(rows).toEqual([
+        ['Trying', 'Trying again (attempt 2 of 3)'],
+        ['Broken', 'Didn’t work: The search took too long. Try again.'],
+        ['Done', 'Found 3 pages, 1 added'],
+        ['Empty', 'Nothing worth reading turned up'],
+        ['Queued', 'Waiting'],
+        ['Searching', 'Searching the web…'],
+      ])
+      expect(within(list).queryByRole('button')).toBeNull()
+    })
+
+    it('says what went wrong, and keeps the words, when a search can’t be sent', async () => {
+      fakeIdea()
       server.use(
         http.post(`${ideaUrl}/research`, () =>
-          HttpResponse.json({ error: 'The search service is busy' }, { status: 502 }),
+          HttpResponse.json(
+            { error: 'You’ve reached the limit of 10 searches an hour. Try again in an hour.' },
+            { status: 429 },
+          ),
         ),
       )
       const { router } = await renderAt('/p/ada-substack/ideas/i1')
@@ -327,10 +395,10 @@ describe('an idea’s landing page', () => {
         'Keep me',
       )
       await fireEvent.click(screen.getByRole('button', { name: 'Research' }))
-      expect(await screen.findByText('The search service is busy')).toBeInTheDocument()
-      const searches = screen.getByRole('list', { name: 'Searches' })
-      expect(within(searches).getByText('“Keep me”')).toBeInTheDocument()
-      expect(within(searches).getByRole('button', { name: 'Try again' })).toBeEnabled()
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'You’ve reached the limit of 10 searches an hour.',
+      )
+      expect(screen.getByLabelText('What areas do you want to research?')).toHaveValue('Keep me')
       expect(router.currentRoute.value.name).toBe('idea')
     })
   })

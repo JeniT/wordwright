@@ -561,6 +561,18 @@ CREATE INDEX moves_publication ON moves(publication_id, moved_at);
 
 CREATE INDEX moves_to_publication ON moves(to_publication_id) WHERE to_publication_id IS NOT NULL;
   `,
+  // #447: a research search is saved as soon as it is sent and run by a queue on the server. Runs from before were
+  // all finished. `attempts` counts this round's tries (up to 3); `tried_again` is 1 once the sender has pressed Try
+  // again (allowed once); `retry_at` is when an automatic retry may start; `error` is what the writer is told.
+  `
+ALTER TABLE idea_research ADD COLUMN state TEXT NOT NULL DEFAULT 'finished'
+  CHECK (state IN ('waiting', 'searching', 'failed', 'finished'));
+ALTER TABLE idea_research ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE idea_research ADD COLUMN tried_again INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE idea_research ADD COLUMN retry_at TEXT;
+ALTER TABLE idea_research ADD COLUMN error TEXT;
+CREATE INDEX idea_research_queue ON idea_research(state, created_at) WHERE state IN ('waiting', 'searching');
+  `,
 ]
 
 /** A problem with the database file that a person needs to act on (not a bug). */

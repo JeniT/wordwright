@@ -83,9 +83,14 @@ const researchItem = (id: string, status: 'suggested' | 'added' | 'dismissed') =
 const researchRun = (id: string, items: ReturnType<typeof researchItem>[]) => ({
   id,
   areas: id,
+  createdBy: 'u1',
   createdByName: 'Ada',
   model: 'm',
   createdAt: '2026-01-03T00:00:00Z',
+  state: 'finished',
+  attempt: 1,
+  error: null,
+  canTryAgain: false,
   items,
 })
 const research = [

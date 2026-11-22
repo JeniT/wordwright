@@ -154,15 +154,24 @@ describe('what the app sends to the model', () => {
     const draft = await createDraft(ada, publication, { title: 'T', body: 'A paragraph.' })
     const critique = () =>
       ada.post(`/api/publications/${publication}/assist/critique`, { draftId: draft.id })
-    const research = () =>
-      ada.post(`/api/publications/${publication}/ideas/${idea.id}/research`, { areas: 'meanders' })
+    // The queue runs a search after the request returns (#447), so wait for it to be made.
+    const research = async () => {
+      const made = ctx.searches.length
+      const res = await ada.post(`/api/publications/${publication}/ideas/${idea.id}/research`, {
+        areas: 'meanders',
+      })
+      for (let i = 0; i < 200 && ctx.searches.length === made; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2))
+      }
+      return res
+    }
 
     await describeAs('A newsletter for working beekeepers.')
     expect((await critique()).status).toBe(200)
     expect(JSON.stringify(ctx.llmCalls.at(-1)!.request.messages)).toContain(
       'A newsletter for working beekeepers.',
     )
-    expect((await research()).status).toBe(201)
+    expect((await research()).status).toBe(202)
     expect(ctx.searches.at(-1)!.request.brief).toContain('A newsletter for working beekeepers.')
 
     await describeAs(null)

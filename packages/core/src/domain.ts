@@ -1267,8 +1267,10 @@ export type BrainstormEvent = z.infer<typeof BrainstormEventSchema>
 /** The most pages one run brings back. */
 export const MAX_RESEARCH_RESULTS = 8
 export const RESEARCH_AREAS_MAX = 1000
-/** The most searches that can be running at once in one publication, across its members (#446). */
+/** The most searches that can be running at once in one publication, across its members (#446); the rest wait (#447). */
 export const RESEARCH_IN_FLIGHT_MAX = 3
+/** How many times a search is tried, automatically, in one round before it comes back to the writer (#447). */
+export const RESEARCH_ATTEMPTS = 3
 
 export const ResearchInputSchema = z.object({
   areas: z
@@ -1296,14 +1298,29 @@ export const ResearchItemSchema = z.object({
 })
 export type ResearchItem = z.infer<typeof ResearchItemSchema>
 
+/**
+ * Where a search is (#447): waiting its turn (or to be tried again), searching, failed (with `error`), or finished
+ * (with its pages). See docs/adr/research-and-feeds/research-searches-run-in-a-server-queue.md.
+ */
+export const ResearchStateSchema = z.enum(['waiting', 'searching', 'failed', 'finished'])
+export type ResearchState = z.infer<typeof ResearchStateSchema>
+
 export const ResearchRunSchema = z.object({
   id: z.string(),
   /** What the writer asked to look into, as they wrote it. */
   areas: z.string(),
-  /** Whose key paid for it; null if their account has gone. */
+  /** Whose key pays for it; null if their account has gone. Only they can cancel it or try again. */
+  createdBy: z.string().nullable(),
   createdByName: z.string().nullable(),
   model: z.string(),
   createdAt: z.string(),
+  state: ResearchStateSchema,
+  /** This round's try, from 1 to RESEARCH_ATTEMPTS, while waiting or searching; above 1 it is being tried again. */
+  attempt: z.number().int(),
+  /** Why it failed, in words the writer can act on. */
+  error: z.string().nullable(),
+  /** Failed, and the sender hasn't used their one Try again yet. */
+  canTryAgain: z.boolean(),
   items: z.array(ResearchItemSchema),
 })
 export type ResearchRun = z.infer<typeof ResearchRunSchema>

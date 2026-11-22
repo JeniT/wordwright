@@ -1,78 +1,38 @@
 <script setup lang="ts">
-import { useQueryClient } from '@tanstack/vue-query'
-import { computed, onMounted, ref, useId } from 'vue'
-import { RouterLink } from 'vue-router'
-import { RESEARCH_AREAS_MAX, RESEARCH_IN_FLIGHT_MAX, type ResearchRun } from '@wordwright/core'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { ref, useId } from 'vue'
+import { RESEARCH_AREAS_MAX, type ResearchRun } from '@wordwright/core'
 import { api, errorMessage } from '../lib/api'
 import { keyProblemOf } from '../lib/key-problem'
 import { invalidateRoots } from '../lib/queries'
-import {
-  atSearchLimit,
-  forgetFinished,
-  forgetSearch,
-  searchesFor,
-  trackSearch,
-  type ResearchSearch,
-} from '../lib/research-searches'
 import AiButton from './AiButton.vue'
 import AiProblemAlert from './AiProblemAlert.vue'
-import Icon from './Icon.vue'
 
 /**
  * The box for asking the AI to research an idea, shared by the Research page and the idea's landing page. Nothing
- * is sent until the button is pressed. Several searches can run at once (#446): the box is cleared and ready again
- * as soon as one is sent, and each search is listed below it with its own wait or error. `done` fires as each run is
- * saved, so the page can show it. On the Research page, which lists every run, a finished search leaves the list;
- * with `keep-finished` (the landing page) it stays, with a link to what it found, until the writer removes it.
+ * is sent until the button is pressed. A sent search belongs to the server (#447): it is saved at once, waiting its
+ * turn, and the page shows it with the idea's other research, so the box is cleared for the next question as soon as
+ * the server has it. `sent` fires then, with the new run. If the server refuses it (the hourly limit, no key), the
+ * words stay in the box and the reason is said under the button.
  */
-const props = defineProps<{ publicationId: string; ideaId: string; keepFinished?: boolean }>()
-const emit = defineEmits<{ done: [run: ResearchRun] }>()
+const props = defineProps<{ publicationId: string; ideaId: string }>()
+const emit = defineEmits<{ sent: [run: ResearchRun] }>()
 const queryClient = useQueryClient()
 const fieldId = useId()
 
 const areas = ref('')
-const mine = computed(() => searchesFor(props.publicationId, props.ideaId).toReversed()) // newest first
-const full = computed(() => atSearchLimit(props.publicationId))
-const searching = computed(() => mine.value.some((s) => s.state === 'searching'))
-const announcement = ref('')
-
-onMounted(() => {
-  if (!props.keepFinished) forgetFinished(props.publicationId, props.ideaId)
+const send = useMutation({
+  mutationFn: (text: string) => api.runResearch(props.publicationId, props.ideaId, text),
+  onSuccess: async (run) => {
+    areas.value = ''
+    await invalidateRoots(queryClient, 'research')
+    emit('sent', run)
+  },
 })
-
-async function send(text: string, again?: ResearchSearch) {
-  announcement.value = 'Searching the web. This can take up to a minute.'
-  const { publicationId, ideaId } = props
-  const run = await trackSearch(
-    { publicationId, ideaId, areas: text },
-    () => api.runResearch(publicationId, ideaId, text),
-    again,
-  )
-  // Another member may have researched too, so read the whole list again.
-  void invalidateRoots(queryClient, 'research')
-  if (!run) return // the search shows its own error
-  announcement.value = `Research finished: “${text}”.`
-  if (!props.keepFinished) {
-    const search = searchesFor(publicationId, ideaId).find((s) => s.run?.id === run.id)
-    if (search) forgetSearch(search.key)
-  }
-  emit('done', run)
-}
-
 function submit() {
   const text = areas.value.trim()
-  if (!text || full.value) return
-  areas.value = ''
-  void send(text)
-}
-
-const found = (run: ResearchRun | null) => {
-  const n = run?.items.length ?? 0
-  return n === 0
-    ? 'Nothing worth reading turned up.'
-    : n === 1
-      ? 'Found 1 page.'
-      : `Found ${n} pages.`
+  if (!text || send.isPending.value) return
+  send.mutate(text)
 }
 </script>
 
@@ -99,8 +59,9 @@ const found = (run: ResearchRun | null) => {
       <AiButton
         type="submit"
         class="btn btn-primary"
-        :disabled="!areas.trim() || full"
-        :aria-describedby="full ? `${fieldId}-full` : undefined"
+        :busy="send.isPending.value"
+        busy-text="Sending"
+        :disabled="!areas.trim()"
       >
         Research
       </AiButton>
@@ -109,65 +70,11 @@ const found = (run: ResearchRun | null) => {
         the areas you want to research to your AI. It will not send your drafts.
       </p>
     </div>
-    <p v-if="full" :id="`${fieldId}-full`" class="mt-2">
-      {{ RESEARCH_IN_FLIGHT_MAX }} searches are running. You can send another when one finishes.
-    </p>
-
-    <template v-if="mine.length">
-      <ul
-        class="mt-4 divide-y divide-line rounded-ctl border border-line bg-surface"
-        aria-label="Searches"
-      >
-        <li v-for="search in mine" :key="search.key" class="px-4 py-3">
-          <p class="line-clamp-2 font-medium break-words">“{{ search.areas }}”</p>
-          <p
-            v-if="search.state === 'searching'"
-            class="mt-1 flex items-center gap-2 text-sm text-ink-soft"
-          >
-            <Icon name="working" class="shrink-0 motion-safe:animate-spin" />
-            Searching the web. This can take up to a minute.
-          </p>
-          <template v-else-if="search.state === 'failed'">
-            <AiProblemAlert
-              class="mt-2"
-              :message="errorMessage(search.error)"
-              :key-problem="keyProblemOf(search.error)"
-            />
-            <div class="mt-2 flex flex-wrap gap-2">
-              <AiButton
-                class="btn btn-sm btn-outline"
-                :disabled="full"
-                @click="send(search.areas, search)"
-              >
-                Try again
-              </AiButton>
-              <button type="button" class="btn btn-sm btn-quiet" @click="forgetSearch(search.key)">
-                Remove
-              </button>
-            </div>
-          </template>
-          <div v-else class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
-            <span>{{ found(search.run) }}</span>
-            <RouterLink
-              :to="{
-                name: 'idea-research',
-                params: { publicationId, id: ideaId },
-                query: { run: search.run?.id },
-              }"
-              class="link"
-            >
-              See the research
-            </RouterLink>
-            <button type="button" class="btn btn-sm btn-quiet" @click="forgetSearch(search.key)">
-              Remove
-            </button>
-          </div>
-        </li>
-      </ul>
-      <p v-if="searching" class="mt-2 text-sm text-ink-soft">
-        You can keep working while it searches. Closing or reloading this tab stops the search.
-      </p>
-    </template>
-    <p aria-live="polite" class="sr-only">{{ announcement }}</p>
+    <AiProblemAlert
+      v-if="send.isError.value"
+      class="mt-3"
+      :message="errorMessage(send.error.value)"
+      :key-problem="keyProblemOf(send.error.value)"
+    />
   </form>
 </template>

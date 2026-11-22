@@ -84,6 +84,7 @@ describe('logging', () => {
       'services/brainstorm.ts',
       'services/icon-backfill.ts',
       'services/maintenance.ts',
+      'services/research.ts', // a failed search, by describeError only (name and stack)
     ]
     const root = __dirname
     const files: string[] = []

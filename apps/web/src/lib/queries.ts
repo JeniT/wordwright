@@ -161,6 +161,24 @@ export function useIdea(publicationId: Get<string>, id: Get<string | undefined>)
   })
 }
 
+/** How often an idea's research is read again while one of its searches is waiting or searching (#447). */
+export const RESEARCH_POLL_MS = 5_000
+
+/**
+ * An idea's research runs, newest first. While one is waiting or searching it is read again every few seconds, only
+ * while the tab is visible (TanStack's default), so a search that finishes shows up on its own.
+ */
+export function useResearch(publicationId: Get<string>, ideaId: Get<string>) {
+  return useQuery({
+    queryKey: computed(() => queryKeys.research(publicationId(), ideaId())),
+    queryFn: () => api.getResearch(publicationId(), ideaId()),
+    refetchInterval: (query) =>
+      query.state.data?.some((r) => r.state === 'waiting' || r.state === 'searching')
+        ? RESEARCH_POLL_MS
+        : false,
+  })
+}
+
 export function useIdeas(publicationId: Get<string>, enabled: Get<boolean> = () => true) {
   return useQuery({
     queryKey: computed(() => queryKeys.ideas(publicationId())),

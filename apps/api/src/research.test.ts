@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   FakePageInfoFetcher,
+  FakeResearchProvider,
   LLMAuthError,
   LLMProviderError,
   LLMRateLimitError,
@@ -11,7 +12,8 @@ import {
   type ResearchRun,
 } from '@wordwright/core'
 import { RESEARCH_PROMPT } from '@wordwright/prompts'
-import { formatResearchBrief } from './services/research'
+import { RateLimiter } from './auth/rate-limit'
+import { formatResearchBrief, ResearchService } from './services/research'
 import {
   register,
   saveKey,
@@ -50,9 +52,31 @@ async function world(options: Parameters<typeof setup>[0] = {}) {
   await ada.post(`${ideas}/${idea.id}/drafts`, { title: 'Part 1', body: 'SECRET DRAFT BODY' })
   const base = `${ideas}/${idea.id}/research`
 
-  const run = (client: TestClient, areas: string) => client.post(base, { areas })
   const list = async (client: TestClient = ada) =>
     (await (await client.get(base)).json()) as ResearchRun[]
+  /** Sends a search and, once the queue has accepted it (202), waits for it to finish or fail. */
+  const run = async (client: TestClient, areas: string) => {
+    const res = await client.post(base, { areas })
+    if (res.status !== 202) return res
+    const sent = (await res.json()) as ResearchRun
+    const done = await settled(client, sent.id)
+    return new Response(JSON.stringify(done), { status: 202 })
+  }
+  /** Waits until a run (or, with no id, every run) is neither waiting nor searching. */
+  const settled = async (
+    client: TestClient = ada,
+    id?: string,
+  ): Promise<ResearchRun | undefined> => {
+    for (let i = 0; i < 400; i++) {
+      const runs = await list(client)
+      const busy = (r: ResearchRun) => r.state === 'waiting' || r.state === 'searching'
+      if (id === undefined ? !runs.some(busy) : !runs.some((r) => r.id === id && busy(r))) {
+        return runs.find((r) => r.id === id)
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2))
+    }
+    throw new Error('The research queue never settled')
+  }
   const articleList = async () =>
     (await (await ada.get(`${ideas}/${idea.id}`)).json()).articles as {
       url: string
@@ -75,6 +99,7 @@ async function world(options: Parameters<typeof setup>[0] = {}) {
     base,
     run,
     list,
+    settled,
     articleList,
     add,
     dismiss,
@@ -87,7 +112,7 @@ describe('running research', () => {
     const { ctx, ada, run } = await world()
     ctx.setResearch(() => [found(OK)])
     const res = await run(ada, 'Studies of how fast bends migrate')
-    expect(res.status).toBe(201)
+    expect(res.status).toBe(202)
 
     expect(ctx.searches).toHaveLength(1)
     const { config, request } = ctx.searches[0]!
@@ -141,7 +166,7 @@ describe('running research', () => {
   it('can be run again, on other topics, as often as the writer likes', async () => {
     const { ctx, ada, run, list } = await world()
     ctx.setResearch(() => [])
-    for (let i = 0; i < 6; i++) expect((await run(ada, `Topic ${i}`)).status).toBe(201)
+    for (let i = 0; i < 6; i++) expect((await run(ada, `Topic ${i}`)).status).toBe(202)
     expect(await list()).toHaveLength(6)
   })
 
@@ -188,7 +213,7 @@ describe('running research', () => {
   })
 
   it('shares runs with the publication’s members, each search using its own sender’s key', async () => {
-    const { ctx, ada, publication, run, list, ideas } = await world()
+    const { ctx, ada, publication, run, list, ideas, settled } = await world()
     const bob = ctx.client()
     await register(bob, 'bob@example.com', 'Bob')
     await saveKey(bob, 'sk-ant-bobs-own-key-1234567890')
@@ -197,7 +222,8 @@ describe('running research', () => {
     ctx.setResearch(() => [found(OK)])
     const idea = (await (await ada.get(ideas)).json())[0]
     const res = await bob.post(`${ideas}/${idea.id}/research`, { areas: 'Bob’s question' })
-    expect(res.status).toBe(201)
+    expect(res.status).toBe(202)
+    await settled(ada)
     expect(ctx.searches.at(-1)!.config.apiKey).toBe('sk-ant-bobs-own-key-1234567890')
     expect((await list(ada)).map((r) => r.createdByName)).toEqual(['Bob'])
     void run
@@ -218,23 +244,55 @@ describe('running research', () => {
     expect((await res.json()).error).toMatch(/API key/)
   })
 
-  it('says what to do about a rejected key, a rate limit or a provider problem, saving nothing', async () => {
-    const { ctx, ada, run, list } = await world()
+  it('tries a passing problem three times, then says what to do; a rejected key only once', async () => {
+    const { ctx, ada, run } = await world()
     const failWith = (err: Error) =>
       ctx.setResearch(() => {
         throw err
       })
-    failWith(new LLMRateLimitError('slow', 30))
-    expect((await run(ada, 'A')).status).toBe(429)
+    failWith(new LLMRateLimitError('slow'))
+    const limited = (await (await run(ada, 'A')).json()) as ResearchRun
+    expect(limited).toMatchObject({
+      state: 'failed',
+      attempt: 3,
+      error: 'Your AI provider is limiting requests for your key right now. Try again in a minute.',
+      canTryAgain: true,
+      items: [],
+    })
+    expect(ctx.searches).toHaveLength(3)
     failWith(new LLMProviderError('boom'))
-    const down = await run(ada, 'B')
-    expect(down.status).toBe(502)
-    expect((await down.json()).error).toMatch(/Web search must be switched on/)
+    const down = (await (await run(ada, 'B')).json()) as ResearchRun
+    expect(down.error).toMatch(/Web search must be switched on/)
+    expect(ctx.searches).toHaveLength(6)
     failWith(new LLMAuthError())
-    const rejected = await run(ada, 'C')
-    expect(rejected.status).toBe(409)
-    expect((await rejected.json()).error).toMatch(/rejected your API key/)
-    expect(await list()).toEqual([])
+    const rejected = (await (await run(ada, 'C')).json()) as ResearchRun
+    expect(rejected).toMatchObject({ state: 'failed', attempt: 1 })
+    expect(rejected.error).toMatch(/rejected your API key/)
+    expect(ctx.searches).toHaveLength(7) // no point trying a refused key again
+  })
+
+  it('keeps a search that worked on a later try, with its pages', async () => {
+    const { ctx, ada, run } = await world()
+    let tries = 0
+    ctx.setResearch(() => {
+      if (++tries < 3) throw new LLMProviderError('blip')
+      return [found(OK)]
+    })
+    const saved = (await (await run(ada, 'Third time')).json()) as ResearchRun
+    expect(saved).toMatchObject({ state: 'finished', error: null })
+    expect(saved.items).toHaveLength(1)
+  })
+
+  it('waits between automatic tries, longer if the provider asks', async () => {
+    const { ctx, ada, base, list } = await world({ researchRetryDelaysMs: [40, 40] })
+    ctx.setResearch(() => {
+      throw new LLMRateLimitError('slow', 0.2)
+    })
+    await ada.post(base, { areas: 'Patience' })
+    await new Promise((resolve) => setTimeout(resolve, 60))
+    expect(ctx.searches).toHaveLength(1) // the provider asked for 200ms, more than our 40
+    const [waiting] = await list()
+    expect(waiting).toMatchObject({ state: 'waiting', attempt: 2, error: null })
   })
 
   it('slows down someone searching a great deal, since each search spends their money', async () => {
@@ -242,7 +300,7 @@ describe('running research', () => {
     ctx.setResearch(() => [])
     const statuses: number[] = []
     for (let i = 0; i < 11; i++) statuses.push((await run(ada, `T${i}`)).status)
-    expect(statuses.slice(0, 10).every((s) => s === 201)).toBe(true)
+    expect(statuses.slice(0, 10).every((s) => s === 202)).toBe(true)
     const refused = await run(ada, 'One too many')
     expect(refused.status).toBe(429)
     expect((await refused.json()).error).toBe(
@@ -250,7 +308,7 @@ describe('running research', () => {
     )
   })
 
-  describe('several at once (#446)', () => {
+  describe('the queue (#447)', () => {
     /** Each search waits until `release` is called, so several can be running together. */
     function holdSearches(ctx: Awaited<ReturnType<typeof world>>['ctx']) {
       const waiting: (() => void)[] = []
@@ -259,76 +317,219 @@ describe('running research', () => {
       )
       const started = (n: number) =>
         new Promise<void>((resolve) => {
-          const look = () => (waiting.length >= n ? resolve() : setTimeout(look, 1))
+          const look = () => (ctx.searches.length >= n ? resolve() : setTimeout(look, 1))
           look()
         })
       return { started, release: () => waiting.splice(0).forEach((go) => go()) }
     }
+    const byAreas = (runs: ResearchRun[]) => Object.fromEntries(runs.map((r) => [r.areas, r.state]))
 
-    it('runs up to three in a publication together, refusing a fourth without spending a search', async () => {
-      const { ctx, ada, run, list } = await world()
+    it('saves a search at once, waiting, and runs it without the request that sent it', async () => {
+      const { ctx, ada, base, list, settled } = await world()
       const held = holdSearches(ctx)
-      const three = ['A', 'B', 'C'].map((areas) => run(ada, areas))
-      await held.started(3)
-
-      const fourth = await run(ada, 'D')
-      expect(fourth.status).toBe(429)
-      expect((await fourth.json()).error).toBe(
-        '3 searches are already running in this publication. Try again when one finishes.',
-      )
+      const res = await ada.post(base, { areas: 'Straight away' })
+      expect(res.status).toBe(202)
+      expect(await res.json()).toMatchObject({
+        areas: 'Straight away',
+        state: 'waiting',
+        attempt: 1,
+        error: null,
+        canTryAgain: false,
+        createdByName: 'Ada',
+        items: [],
+      })
+      await held.started(1)
+      expect((await list())[0]).toMatchObject({ state: 'searching', attempt: 1 })
       held.release()
-      expect((await Promise.all(three)).map((r) => r.status)).toEqual([201, 201, 201])
-      expect((await list()).map((r) => r.areas).sort()).toEqual(['A', 'B', 'C'])
-
-      // Once they have finished there is room again, and the refusal used none of the hour's ten.
-      ctx.setResearch(() => [])
-      const statuses: number[] = []
-      for (let i = 0; i < 7; i++) statuses.push((await run(ada, `T${i}`)).status)
-      expect(statuses.every((s) => s === 201)).toBe(true)
-      expect((await run(ada, 'Eleventh')).status).toBe(429)
+      await settled()
+      expect((await list())[0]).toMatchObject({ state: 'finished', items: [{ url: OK }] })
     })
 
-    it('counts the searches of every member of the publication, and frees a place when one fails', async () => {
-      const { ctx, ada, publication, run, ideas } = await world()
+    it('runs three in a publication at once, oldest first; a fourth waits its turn', async () => {
+      const { ctx, ada, base, list, settled } = await world()
+      const held = holdSearches(ctx)
+      for (const areas of ['A', 'B', 'C', 'D']) {
+        expect((await ada.post(base, { areas })).status).toBe(202)
+      }
+      await held.started(3)
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      expect(ctx.searches).toHaveLength(3)
+      expect(byAreas(await list())).toEqual({
+        A: 'searching',
+        B: 'searching',
+        C: 'searching',
+        D: 'waiting',
+      })
+      held.release()
+      await held.started(4)
+      held.release()
+      await settled()
+      expect(Object.values(byAreas(await list()))).toEqual(Array(4).fill('finished'))
+    })
+
+    it('counts every member’s searches together, and each publication apart', async () => {
+      const { ctx, ada, publication, base, list, settled } = await world()
       const bob = ctx.client()
       await register(bob, 'bob@example.com', 'Bob')
       await saveKey(bob, 'sk-ant-bobs-own-key-1234567890')
       verifyAccounts(ctx, 'ada@example.com')
       await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
-      const idea = (await (await ada.get(ideas)).json())[0]
       const held = holdSearches(ctx)
-      const running = [run(ada, 'A'), run(ada, 'B')]
-      await held.started(2)
-      const bobs = bob.post(`${ideas}/${idea.id}/research`, { areas: 'Bob’s question' })
+      await ada.post(base, { areas: 'A' })
+      await ada.post(base, { areas: 'B' })
+      await bob.post(base, { areas: 'Bob’s' })
+      await ada.post(base, { areas: 'D' })
       await held.started(3)
-      expect((await run(ada, 'D')).status).toBe(429)
-      held.release()
-      await Promise.all([...running, bobs])
 
-      ctx.setResearch(() => {
-        throw new LLMProviderError('boom')
-      })
-      expect((await run(ada, 'Fails')).status).toBe(502)
-      ctx.setResearch(() => [])
-      expect((await run(ada, 'Fine')).status).toBe(201)
-    })
-
-    it('counts each publication apart', async () => {
-      const { ctx, ada, run } = await world()
-      const held = holdSearches(ctx)
-      const three = ['A', 'B', 'C'].map((areas) => run(ada, areas))
-      await held.started(3)
       const other = await (await ada.post('/api/publications', { name: 'Another' })).json()
       const otherIdea = await (
         await ada.post(`/api/publications/${other.id}/ideas`, { name: 'Elsewhere' })
       ).json()
-      const elsewhere = ada.post(`/api/publications/${other.id}/ideas/${otherIdea.id}/research`, {
+      await ada.post(`/api/publications/${other.id}/ideas/${otherIdea.id}/research`, {
         areas: 'Elsewhere',
       })
-      await held.started(4)
+      await held.started(4) // another publication has room of its own
+      expect(byAreas(await list())).toMatchObject({ 'Bob’s': 'searching', D: 'waiting' })
       held.release()
-      expect((await elsewhere).status).toBe(201)
-      await Promise.all(three)
+      await held.started(5)
+      held.release()
+      await settled()
+    })
+
+    it('charges a search to the hour when it is sent, and gives it back if cancelled before it starts', async () => {
+      const { ctx, ada, base, list, settled } = await world()
+      const held = holdSearches(ctx)
+      for (const areas of ['A', 'B', 'C']) await ada.post(base, { areas })
+      await held.started(3)
+      // Seven more fill the hour's ten; the fourth to the tenth wait.
+      for (let i = 0; i < 7; i++)
+        expect((await ada.post(base, { areas: `W${i}` })).status).toBe(202)
+      const refused = await ada.post(base, { areas: 'Eleventh' })
+      expect(refused.status).toBe(429)
+      expect((await refused.json()).error).toBe(
+        'You’ve reached the limit of 10 searches an hour. Try again in an hour.',
+      )
+      const waiting = (await list()).find((r) => r.areas === 'W6')!
+      expect((await ada.post(`${base}/${waiting.id}/cancel`)).status).toBe(204)
+      expect((await list()).some((r) => r.areas === 'W6')).toBe(false)
+      expect((await ada.post(base, { areas: 'Eleventh' })).status).toBe(202) // its search was given back
+      held.release()
+      for (let n = 4; n <= 10; n++) {
+        await held.started(n)
+        held.release()
+      }
+      await settled()
+    })
+
+    it('lets only the sender cancel, and cancelling a running search stops it and keeps nothing', async () => {
+      const { ctx, ada, publication, base, list, settled } = await world()
+      const bob = ctx.client()
+      await register(bob, 'bob@example.com', 'Bob')
+      await saveKey(bob, 'sk-ant-bobs-own-key-1234567890')
+      verifyAccounts(ctx, 'ada@example.com')
+      await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
+      const held = holdSearches(ctx)
+      const sent = (await (await ada.post(base, { areas: 'Stop me' })).json()) as ResearchRun
+      await held.started(1)
+      expect((await bob.post(`${base}/${sent.id}/cancel`)).status).toBe(403)
+      expect((await ada.post(`${base}/${sent.id}/cancel`)).status).toBe(204)
+      expect(ctx.searches.at(-1)!.request.signal?.aborted).toBe(true)
+      held.release()
+      await settled()
+      expect(await list()).toEqual([])
+      expect((await ada.post(`${base}/${sent.id}/cancel`)).status).toBe(404)
+    })
+
+    it('can be tried again once by its sender, as a new round charged to the hour', async () => {
+      const { ctx, ada, base, run, settled } = await world()
+      ctx.setResearch(() => {
+        throw new LLMProviderError('down')
+      })
+      const failed = (await (await run(ada, 'Unlucky')).json()) as ResearchRun
+      expect(failed).toMatchObject({ state: 'failed', canTryAgain: true })
+      expect(ctx.searches).toHaveLength(3)
+
+      const again = await ada.post(`${base}/${failed.id}/try-again`)
+      expect(again.status).toBe(202)
+      expect(await again.json()).toMatchObject({ state: 'waiting', attempt: 1, error: null })
+      const done = await settled(ada, failed.id)
+      expect(done).toMatchObject({ state: 'failed', canTryAgain: false })
+      expect(ctx.searches).toHaveLength(6)
+      expect((await ada.post(`${base}/${failed.id}/try-again`)).status).toBe(409)
+
+      ctx.setResearch(() => [found(OK)])
+      const next = (await (await run(ada, 'Lucky')).json()) as ResearchRun
+      expect((await ada.post(`${base}/${next.id}/try-again`)).status).toBe(409) // it worked
+    })
+
+    it('fails at once, giving back the search, when the sender has no key or has left by the time it starts', async () => {
+      const { ctx, ada, publication, base, list, settled } = await world()
+      const bob = ctx.client()
+      await register(bob, 'bob@example.com', 'Bob')
+      await saveKey(bob, 'sk-ant-bobs-own-key-1234567890')
+      verifyAccounts(ctx, 'ada@example.com')
+      await sharePublication(ctx, ada, publication, bob, 'bob@example.com')
+      const held = holdSearches(ctx)
+      for (const areas of ['A', 'B', 'C']) await ada.post(base, { areas })
+      await held.started(3)
+      await ada.post(base, { areas: 'Keyless' })
+      await bob.post(base, { areas: 'Leaver' })
+      expect((await ada.delete('/api/llm')).status).toBe(204)
+      ctx.store.publications.removeMember(
+        publication,
+        (await (await bob.get('/api/auth/me')).json()).id,
+      )
+      held.release()
+      await settled()
+      const runs = await list()
+      expect(runs.find((r) => r.areas === 'Keyless')).toMatchObject({ state: 'failed', attempt: 0 })
+      expect(runs.find((r) => r.areas === 'Keyless')!.error).toMatch(/key/i)
+      expect(runs.find((r) => r.areas === 'Leaver')).toMatchObject({
+        state: 'failed',
+        error: 'The person who sent this search is no longer a member of this publication.',
+      })
+      expect(ctx.searches).toHaveLength(3) // neither reached the provider
+    })
+
+    it('stops a running search when its idea is deleted', async () => {
+      const { ctx, ada, base, ideas, idea } = await world()
+      const held = holdSearches(ctx)
+      await ada.post(base, { areas: 'Doomed' })
+      await held.started(1)
+      expect((await ada.delete(`${ideas}/${idea.id}`)).status).toBe(204)
+      expect(ctx.searches[0]!.request.signal?.aborted).toBe(true)
+      held.release()
+    })
+
+    it('after a restart, runs again a search that was running, unless that was its last try', async () => {
+      const { ctx, ada, base, list } = await world()
+      const held = holdSearches(ctx)
+      for (const areas of ['Interrupted', 'Last try']) await ada.post(base, { areas })
+      await held.started(2)
+      const [last, interrupted] = await list()
+      ctx.db.prepare('UPDATE idea_research SET attempts = 3 WHERE id = ?').run(last!.id)
+
+      // A new process on the same database: the old one's searches are gone with it.
+      const again = new FakeResearchProvider(() => [found(OK)])
+      const restarted = new ResearchService({
+        store: ctx.store,
+        resolveResearch: () => ({ research: again, provider: 'anthropic', model: 'm' }),
+        pages: new FakePageInfoFetcher(),
+        limiter: new RateLimiter(10, 60 * 60 * 1000),
+      })
+      for (let i = 0; i < 200 && again.requests.length === 0; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2))
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      restarted.close()
+      held.release()
+      const runs = await list()
+      expect(runs.find((r) => r.id === interrupted!.id)).toMatchObject({ state: 'finished' })
+      expect(runs.find((r) => r.id === last!.id)).toMatchObject({
+        state: 'failed',
+        error: 'This search stopped when the server restarted. Try again.',
+      })
+      expect(again.requests).toHaveLength(1)
     })
   })
 
@@ -391,7 +592,7 @@ describe('running research', () => {
       quote: true,
     })
     expect(noted.status).toBe(201)
-    expect((await run(ada, 'x')).status).toBe(201)
+    expect((await run(ada, 'x')).status).toBe(202)
     const { brief } = ctx.searches[0]!.request
     expect(brief).toContain(
       '[quotation from “A paper”, not the writer’s own words] “Rivers carve their own bends.”',

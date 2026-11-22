@@ -40,6 +40,8 @@ export interface TestOptions {
   approvalRequired?: boolean
   adminEmails?: string[]
   signupsPerHour?: number
+  /** Research's waits between automatic tries; none by default, so a test needn't wait. */
+  researchRetryDelaysMs?: readonly number[]
   /** Behind a proxy: the client's address is read from X-Forwarded-For, as in production (#390). */
   trustProxy?: boolean
 }
@@ -170,6 +172,7 @@ export function setup(options: TestOptions = {}) {
     approvalRequired: options.approvalRequired,
     adminEmails: options.adminEmails,
     signupsPerHour: options.signupsPerHour,
+    researchRetryDelaysMs: options.researchRetryDelaysMs ?? [0, 0],
     trustProxy: options.trustProxy,
     deletionJournal,
     providers: { search: [] },

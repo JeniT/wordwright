@@ -53,6 +53,8 @@ export const MAX_REQUEST_BYTES = 2 * 1024 * 1024
 
 export interface AppDeps {
   store: Store
+  /** How long a failed Research search waits before its second and third automatic tries (tests shorten it). */
+  researchRetryDelaysMs?: readonly number[]
   providers: Providers
   /** Reads RSS/Atom feeds when a source is added. */
   feeds: FeedFetcher
@@ -252,6 +254,8 @@ export function createApp(deps: AppDeps) {
     pages: deps.pageFetcher ?? new NoPageInfoFetcher(),
     // A search is a bigger bill than a message and makes the server look at several sites: 10 an hour.
     limiter: limiter(10, HOUR),
+    retryDelaysMs: deps.researchRetryDelaysMs,
+    logger: deps.logger,
   })
   api.route('/invitations', invitationRoutes(invitations, accounts))
   api.route('/review-invitations', reviewInvitationRoutes(reviews, accounts))

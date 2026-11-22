@@ -9,6 +9,7 @@ import RecentNotes from '../components/RecentNotes.vue'
 import RecentArticles from '../components/RecentArticles.vue'
 import RecentRefine from '../components/RecentRefine.vue'
 import ResearchForm from '../components/ResearchForm.vue'
+import ResearchSummary from '../components/ResearchSummary.vue'
 import SettingsButton from '../components/SettingsButton.vue'
 import RowList from '../components/RowList.vue'
 import StartDraftButton from '../components/StartDraftButton.vue'
@@ -69,7 +70,8 @@ const { publication } = usePublication(() => props.publicationId)
           See all research
         </RouterLink>
       </template>
-      <ResearchForm class="max-w-2xl" :publication-id="publicationId" :idea-id="id" keep-finished />
+      <ResearchForm class="mb-6 max-w-2xl" :publication-id="publicationId" :idea-id="id" />
+      <ResearchSummary class="max-w-2xl" :publication-id="publicationId" :idea-id="id" />
     </LandingSection>
 
     <RecentArticles

@@ -147,7 +147,7 @@ test('several areas can be researched around one idea, and the research is kept'
   await expect(page.getByRole('article', { name: 'Second area' })).toBeVisible()
 })
 
-test('from the idea’s page, several questions can be sent one after another, each linking to what it found', async ({
+test('from the idea’s page, questions are sent one after another and listed, each leading to its results', async ({
   page,
 }) => {
   await setUp(page)
@@ -159,18 +159,32 @@ test('from the idea’s page, several questions can be sent one after another, e
     await region.getByRole('button', { name: 'Research', exact: true }).click()
     await expect(region.getByLabel('What areas do you want to research?')).toHaveValue('')
   }
-  const searches = region.getByRole('list', { name: 'Searches' })
-  await expect(searches.getByRole('link', { name: 'See the research' })).toHaveCount(2)
-  await expect(searches.getByRole('listitem').first()).toContainText('“Floods”') // newest first
-  await noViolations(page, 'idea page with finished searches')
+  const list = region.getByRole('list', { name: 'Research so far' })
+  await expect(list.getByRole('listitem')).toHaveCount(2)
+  await expect(list.getByRole('listitem').first()).toContainText('Floods') // newest first
+  // The server's queue finishes them; the page looks again while any is in progress.
+  await expect(list.getByText(/^Found 3 pages/)).toHaveCount(2)
+  await noViolations(page, 'idea page with research listed')
 
-  await searches
-    .getByRole('listitem')
-    .last()
-    .getByRole('link', { name: 'See the research' })
-    .click()
+  await list.getByRole('link', { name: 'Bends' }).click()
   await expect(page.getByRole('article', { name: 'Bends' })).toBeVisible()
-  await expect(page.getByRole('list', { name: 'Searches' })).toHaveCount(0) // every run is on this page
+  await expect(page.getByRole('article', { name: 'Bends' })).toContainText(
+    'Fake title for research.example.org',
+  )
+})
+
+test('a search carries on when the writer leaves the page, and is there when they come back', async ({
+  page,
+}) => {
+  await setUp(page)
+  await openResearchTool(page)
+  await page.getByLabel('What areas do you want to research?').fill('While I was away')
+  await page.getByRole('button', { name: 'Research', exact: true }).click()
+  await expect(page.getByRole('article', { name: 'While I was away' })).toBeVisible()
+  await page.reload() // no "Leave site?" question: the search is the server's now
+  await expect(page.getByRole('article', { name: 'While I was away' })).toContainText(
+    'Fake title for research.example.org',
+  )
 })
 
 test('without an AI key, the button waits and a link says where to add one', async ({ page }) => {

@@ -631,11 +631,21 @@ export function createApi({ fetch: fetchImpl = (...a) => fetch(...a) }: ApiOptio
     getResearch: (publicationId: string, ideaId: string) =>
       get(ResearchRunsSchema, 'GET', research(publicationId, ideaId)),
     /**
-     * Asks the person's AI to search the web for these areas. Can take up to a minute.
+     * Asks the person's AI to search the web for these areas. Returns at once with the run waiting its turn; the
+     * server's queue runs it (#447).
      * @ai
      */
     runResearch: (publicationId: string, ideaId: string, areas: string) =>
       get(ResearchRunSchema, 'POST', research(publicationId, ideaId), { areas }),
+    /**
+     * The sender's one Try again on a failed search: another round, queued.
+     * @ai
+     */
+    tryResearchAgain: (publicationId: string, ideaId: string, runId: string) =>
+      get(ResearchRunSchema, 'POST', `${research(publicationId, ideaId)}/${runId}/try-again`),
+    /** The sender stops a search that is waiting or running; it is deleted. */
+    cancelResearch: (publicationId: string, ideaId: string, runId: string) =>
+      act('POST', `${research(publicationId, ideaId)}/${runId}/cancel`),
     /** Adds the ticked pages of a run to the idea's articles. */
     addResearchItem: (publicationId: string, ideaId: string, runId: string, itemId: string) =>
       get(ResearchRunSchema, 'POST', `${research(publicationId, ideaId)}/${runId}/add`, {

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref, useId } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
 import type { ResearchItem, ResearchRun } from '@wordwright/core'
 import type { PostDecision } from '../lib/recent-posts'
 import { api, errorMessage } from '../lib/api'
 import { invalidateRoots } from '../lib/queries'
+import { inProgress, researchStateLine } from '../lib/research-state'
+import { useSessionStore } from '../stores/session'
+import AiButton from './AiButton.vue'
 import HoldButton from './HoldButton.vue'
 import Icon from './Icon.vue'
 import ResearchItemRow from './ResearchItemRow.vue'
@@ -56,6 +59,32 @@ function clearProblem() {
   reconsider.reset()
 }
 
+// A search that isn't finished (#447): its state where the pages go, and Cancel or Try again for its sender.
+const session = useSessionStore()
+const mine = computed(() => !!props.run.createdBy && props.run.createdBy === session.user?.id)
+const stateLine = computed(() => researchStateLine(props.run))
+const cancel = useMutation({
+  mutationFn: () => api.cancelResearch(props.publicationId, props.ideaId, props.run.id),
+  onSettled: refresh,
+})
+const tryAgain = useMutation({
+  mutationFn: () => api.tryResearchAgain(props.publicationId, props.ideaId, props.run.id),
+  onSettled: refresh,
+})
+// Cancel and Try again go when the state changes; focus on one of them goes to the run's heading, not the page.
+const heading = ref<HTMLElement | null>(null)
+const controls = ref<HTMLElement | null>(null)
+watch(
+  () => props.run.state,
+  () => {
+    if (!controls.value?.contains(document.activeElement)) return
+    void nextTick(() => {
+      if (!controls.value?.contains(document.activeElement)) heading.value?.focus()
+    })
+  },
+  { flush: 'pre' },
+)
+
 const remove = useMutation({
   mutationFn: () => api.deleteResearch(props.publicationId, props.ideaId, props.run.id),
   onSettled: async () => {
@@ -83,7 +112,9 @@ const waiting = computed(() => props.run.items.some((i) => i.status === 'suggest
     <div class="mb-1 flex items-start justify-between gap-3">
       <h3
         :id="headingId"
-        class="min-w-0 whitespace-pre-wrap break-words font-display text-lg font-semibold"
+        ref="heading"
+        tabindex="-1"
+        class="min-w-0 whitespace-pre-wrap break-words font-display text-lg font-semibold focus:outline-none"
       >
         {{ run.areas }}
       </h3>
@@ -101,15 +132,59 @@ const waiting = computed(() => props.run.items.some((i) => i.status === 'suggest
     <p class="mb-3 text-sm text-ink-soft">
       <template v-if="run.createdByName">{{ run.createdByName }} · </template>{{ when }}
     </p>
-    <p v-if="waiting" class="mb-3 text-sm">
+    <template v-if="run.state !== 'finished'">
+      <p v-if="inProgress(run)" class="mb-3 flex items-center gap-2" role="status">
+        <Icon
+          v-if="run.state === 'searching'"
+          name="working"
+          class="shrink-0 motion-safe:animate-spin"
+        />
+        {{ stateLine }}
+      </p>
+      <div v-else class="callout callout-danger mb-3 flex items-start gap-2" role="alert">
+        <Icon name="alert" class="mt-0.5 shrink-0" />
+        <p>{{ stateLine }}</p>
+      </div>
+      <div ref="controls" class="mb-3 flex flex-wrap gap-2">
+        <button
+          v-if="mine && inProgress(run)"
+          type="button"
+          class="btn btn-sm btn-outline"
+          :disabled="cancel.isPending.value"
+          @click="cancel.mutate()"
+        >
+          Cancel search
+        </button>
+        <AiButton
+          v-if="mine && run.canTryAgain"
+          class="btn btn-sm btn-outline"
+          :busy="tryAgain.isPending.value"
+          busy-text="Sending"
+          @click="tryAgain.mutate()"
+        >
+          Try again
+        </AiButton>
+      </div>
+      <p
+        v-if="cancel.isError.value || tryAgain.isError.value"
+        role="alert"
+        class="mb-3 text-sm text-danger"
+      >
+        {{ errorMessage(cancel.error.value ?? tryAgain.error.value) }}
+      </p>
+    </template>
+    <p v-else-if="waiting" class="mb-3 text-sm">
       <span class="bg-mark">Highlighted text is your AI’s reason for suggesting this item.</span>
     </p>
     <p class="sr-only" aria-live="polite">{{ notice }}</p>
 
-    <p v-if="!run.items.length" class="mb-3 text-ink-soft">
+    <p v-if="run.state === 'finished' && !run.items.length" class="mb-3 text-ink-soft">
       Nothing worth reading turned up. Try describing the areas differently.
     </p>
-    <ul v-else class="mb-3 divide-y divide-line rounded-ctl border border-line bg-surface">
+    <ul
+      v-else-if="run.items.length"
+      class="mb-3 divide-y divide-line rounded-ctl border border-line bg-surface"
+    >
       <ResearchItemRow
         v-for="item in items"
         :key="item.id"

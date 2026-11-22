@@ -1,7 +1,8 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/vue'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { ResearchItem, ResearchRun } from '@wordwright/core'
+import { RESEARCH_POLL_MS } from '../lib/queries'
 import { renderAt, server, signedInAs, testUser, useMockServer } from '../test-utils'
 
 useMockServer()
@@ -35,9 +36,14 @@ const item = (overrides: Partial<ResearchItem> = {}): ResearchItem => ({
 const run = (overrides: Partial<ResearchRun> = {}): ResearchRun => ({
   id: `run${++counter}`,
   areas: 'How fast bends migrate',
+  createdBy: testUser.id,
   createdByName: 'Ada',
   model: 'claude-sonnet-5-5',
   createdAt: `2026-01-03T00:00:${String(counter).padStart(2, '0')}Z`,
+  state: 'finished',
+  attempt: 1,
+  error: null,
+  canTryAgain: false,
   items: [],
   ...overrides,
 })
@@ -49,6 +55,8 @@ function mockResearch(initial: ResearchRun[] = [], extra: Parameters<typeof serv
     posts: [] as unknown[],
     /** What a new search finds. */
     finds: [] as ResearchItem[],
+    /** Whether a sent search finishes before the page next looks (else it stays waiting until the test moves it). */
+    instant: true,
   }
   const find = (id: string) => state.runs.find((r) => r.id === id)!
   server.use(
@@ -60,9 +68,23 @@ function mockResearch(initial: ResearchRun[] = [], extra: Parameters<typeof serv
     http.post(base, async ({ request }) => {
       const body = (await request.json()) as { areas: string }
       state.posts.push(body)
-      const created = run({ areas: body.areas, items: state.finds })
-      state.runs.unshift(created) // the server lists the newest first; the page puts it last
-      return HttpResponse.json(created, { status: 201 })
+      const created = run({ areas: body.areas, state: 'waiting' })
+      // The server lists the newest first; the page puts it last.
+      state.runs.unshift(
+        state.instant ? { ...created, state: 'finished', items: state.finds } : created,
+      )
+      return HttpResponse.json(created, { status: 202 })
+    }),
+    http.post(`${base}/:runId/cancel`, ({ params }) => {
+      state.posts.push({ cancel: params.runId })
+      state.runs = state.runs.filter((r) => r.id !== params.runId)
+      return new HttpResponse(null, { status: 204 })
+    }),
+    http.post(`${base}/:runId/try-again`, ({ params }) => {
+      state.posts.push({ tryAgain: params.runId })
+      const r = find(params.runId as string)
+      Object.assign(r, { state: 'waiting', attempt: 1, error: null, canTryAgain: false })
+      return HttpResponse.json(r, { status: 202 })
     }),
     http.post(`${base}/:runId/add`, async ({ request, params }) => {
       const { itemIds } = (await request.json()) as { itemIds: string[] }
@@ -97,34 +119,6 @@ const areasBox = () => screen.findByLabelText('What areas do you want to researc
 async function ask(areas: string) {
   await fireEvent.update(await areasBox(), areas)
   await fireEvent.click(screen.getByRole('button', { name: 'Research' }))
-}
-
-/** Makes each search wait until the test releases it by its areas (or fails it at once, with `fail`). */
-function holdSearches(api: ReturnType<typeof mockResearch>) {
-  const waiting = new Map<string, () => void>()
-  let finished = 0
-  const held = {
-    fail: (_areas: string) => false,
-    release: (areas: string) => waiting.get(areas)!(),
-  }
-  server.use(
-    http.post(base, async ({ request }) => {
-      const { areas } = (await request.json()) as { areas: string }
-      api.posts.push(areas)
-      if (held.fail(areas)) {
-        return HttpResponse.json({ error: 'The search took too long. Try again.' }, { status: 504 })
-      }
-      await new Promise<void>((resolve) => waiting.set(areas, resolve))
-      // Later than any run made before the test, whatever the counter has reached.
-      const created = run({
-        areas,
-        createdAt: `2026-02-01T00:00:${String(++finished).padStart(2, '0')}Z`,
-      })
-      api.runs.unshift(created)
-      return HttpResponse.json(created, { status: 201 })
-    }),
-  )
-  return held
 }
 
 describe('the research page', () => {
@@ -162,126 +156,127 @@ describe('the research page', () => {
     await waitFor(() => expect(areasBox()).resolves.toHaveValue('')) // ready for another topic
   })
 
-  it('clears the box at once for another question, and shows each search waiting on its own', async () => {
-    const api = mockResearch()
-    const held = holdSearches(api)
-    await renderAt(page)
-    await ask('First question')
-    // The box is empty and ready, the button usable again, and the wait is read out politely.
-    expect(await areasBox()).toHaveValue('')
-    expect(await areasBox()).toBeEnabled()
-    const searches = screen.getByRole('list', { name: 'Searches' })
-    expect(within(searches).getByText('“First question”')).toBeInTheDocument()
-    expect(searches).toHaveTextContent('Searching the web. This can take up to a minute.')
-    expect(screen.getByText(/Closing or reloading this tab stops the search/)).toBeInTheDocument()
-    expect(
-      [...document.querySelectorAll('[aria-live=polite]')].map((e) => e.textContent?.trim()),
-    ).toContain('Searching the web. This can take up to a minute.')
+  it('shows a search it has sent in the pager, waiting, then searching, then with its pages', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const api = mockResearch([run({ areas: 'An earlier topic' })])
+      api.instant = false
+      await renderAt(page)
+      await ask('Straightening of rivers')
+      const sent = await screen.findByRole('article', { name: 'Straightening of rivers' })
+      expect(await areasBox()).toHaveValue('') // ready for the next question at once
+      expect(within(sent).getByRole('status')).toHaveTextContent(
+        'Waiting for another search to finish.',
+      )
+      expect(screen.queryByRole('list', { name: 'Searches' })).toBeNull() // no list under the box
+      expect(screen.getAllByText('Research 2 of 2').length).toBeGreaterThan(0)
 
-    await ask('Second question')
-    await waitFor(() => expect(api.posts).toHaveLength(2))
-    // Newest first.
-    expect(
-      within(searches)
-        .getAllByRole('listitem')
-        .map((li) => li.textContent),
-    ).toEqual([
-      expect.stringContaining('Second question'),
-      expect.stringContaining('First question'),
-    ])
+      api.runs[0] = { ...api.runs[0]!, state: 'searching' }
+      await vi.advanceTimersByTimeAsync(RESEARCH_POLL_MS)
+      expect(await within(sent).findByRole('status')).toHaveTextContent(
+        'Searching the web. This can take up to a minute.',
+      )
+      api.runs[0] = { ...api.runs[0]!, state: 'searching', attempt: 2 }
+      await vi.advanceTimersByTimeAsync(RESEARCH_POLL_MS)
+      expect(await within(sent).findByRole('status')).toHaveTextContent(
+        'That didn’t work, so trying again (attempt 2 of 3).',
+      )
+      api.runs[0] = {
+        ...api.runs[0]!,
+        state: 'finished',
+        items: [item({ fetchedTitle: 'River Physics: a primer' })],
+      }
+      await vi.advanceTimersByTimeAsync(RESEARCH_POLL_MS)
+      expect(await within(sent).findByText('River Physics: a primer')).toBeInTheDocument()
+      expect(within(sent).queryByRole('status')).toBeNull()
 
-    held.release('First question')
-    expect(await screen.findByRole('article', { name: 'First question' })).toBeInTheDocument()
-    expect(within(searches).queryByText('“First question”')).toBeNull() // shown on the page now
-    expect(within(searches).getByText('“Second question”')).toBeInTheDocument()
-    held.release('Second question')
-    expect(await screen.findByRole('article', { name: 'Second question' })).toBeInTheDocument()
-    expect(screen.queryByRole('list', { name: 'Searches' })).toBeNull()
-    expect(screen.queryByText(/Closing or reloading/)).toBeNull()
+      // With nothing in progress, it stops asking.
+      const asked = api.posts.length
+      await vi.advanceTimersByTimeAsync(RESEARCH_POLL_MS * 3)
+      expect(api.posts).toHaveLength(asked)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('allows three searches at once, and says why the button waits for a fourth', async () => {
-    const api = mockResearch()
-    const held = holdSearches(api)
-    await renderAt(page)
-    for (const q of ['One', 'Two', 'Three']) await ask(q)
-    await waitFor(() => expect(api.posts).toHaveLength(3))
-    await fireEvent.update(await areasBox(), 'Four')
-    const button = screen.getByRole('button', { name: 'Research' })
-    expect(button).toBeDisabled()
-    expect(button).toHaveAccessibleDescription(
-      expect.stringContaining('3 searches are running. You can send another when one finishes.'),
-    )
-    expect(await areasBox()).toBeEnabled() // the next question can be written meanwhile
-    held.release('Two')
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Research' })).toBeEnabled())
-    expect(screen.queryByText(/searches are running/)).toBeNull()
+  it('stays on the run it shows when another member sends a search', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const api = mockResearch([
+        run({ areas: 'Being read', state: 'searching', createdBy: 'u2', createdByName: 'Bob' }),
+      ])
+      await renderAt(page)
+      expect(await screen.findByRole('article', { name: 'Being read' })).toBeInTheDocument()
+      api.runs.unshift(
+        run({
+          areas: 'Bob’s next',
+          state: 'waiting',
+          createdBy: 'u2',
+          createdByName: 'Bob',
+          createdAt: '2027-01-01T00:00:00Z',
+        }),
+      )
+      await vi.advanceTimersByTimeAsync(RESEARCH_POLL_MS)
+      expect(await screen.findAllByText('Research 1 of 2')).not.toHaveLength(0)
+      expect(screen.getByRole('article', { name: 'Being read' })).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('keeps a failed search with its words, to try again or remove, without disturbing the others', async () => {
-    const api = mockResearch()
-    const held = holdSearches(api)
-    let fail = true
-    held.fail = (areas) => areas === 'Bad one' && fail
-    await renderAt(page)
-    await ask('Good one')
-    await ask('Bad one')
-    const searches = screen.getByRole('list', { name: 'Searches' })
-    const alert = await within(searches).findByRole('alert')
-    expect(alert).toHaveTextContent('The search took too long. Try again.')
-    const failed = alert.closest('li')!
-    expect(failed).toHaveTextContent('“Bad one”')
-    expect(searches).toHaveTextContent('Searching the web') // the other is still going
-
-    fail = false
-    await fireEvent.click(within(failed).getByRole('button', { name: 'Try again' }))
-    await waitFor(() => expect(api.posts.filter((p) => p === 'Bad one')).toHaveLength(2))
-    held.release('Bad one')
-    expect(await screen.findByRole('article', { name: 'Bad one' })).toBeInTheDocument()
-
-    fail = true
-    await ask('Bad one')
-    const again = await within(screen.getByRole('list', { name: 'Searches' })).findByRole('alert')
-    await fireEvent.click(within(again.closest('li')!).getByRole('button', { name: 'Remove' }))
-    expect(screen.queryByText('“Bad one”')).toBeNull()
-    expect(screen.getByText('“Good one”')).toBeInTheDocument()
-  })
-
-  it('stays on the run the writer is working in when another search finishes', async () => {
+  it('lets only the sender cancel a search in progress', async () => {
     const api = mockResearch([
-      run({ areas: 'Being read', items: [item({ fetchedTitle: 'A page' })] }),
+      run({ areas: 'Someone else’s', state: 'searching', createdBy: 'u2', createdByName: 'Bob' }),
+      run({ areas: 'Mine', state: 'waiting' }),
     ])
-    const held = holdSearches(api)
     await renderAt(page)
-    await ask('Later topic')
-    const reading = await screen.findByRole('article', { name: 'Being read' })
-    const ignore = within(reading).getByRole('button', { name: /^Ignore/ })
-    await waitFor(() => expect(api.posts).toHaveLength(1))
-    ignore.focus()
-    held.release('Later topic')
-    await waitFor(() => expect(screen.queryByRole('list', { name: 'Searches' })).toBeNull())
-    // Once the new run is in the list, the page is still on the one being read, with focus where it was.
-    const later = await screen.findAllByRole('button', { name: 'Later research' })
-    expect(screen.getByRole('article', { name: 'Being read' })).toBeInTheDocument()
-    expect(document.activeElement).toBe(ignore)
-    expect(
-      [...document.querySelectorAll('[aria-live=polite]')].map((e) => e.textContent?.trim()),
-    ).toContain('Research finished: “Later topic”.')
-    await fireEvent.click(later[0]!)
-    expect(await screen.findByRole('article', { name: 'Later topic' })).toBeInTheDocument()
+    const mine = await screen.findByRole('article', { name: 'Mine' })
+    const mineId = api.runs[1]!.id
+    await fireEvent.click(within(mine).getByRole('button', { name: 'Cancel search' }))
+    await waitFor(() => expect(api.posts).toContainEqual({ cancel: mineId }))
+    expect(await screen.findByRole('article', { name: 'Someone else’s' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel search' })).toBeNull()
   })
 
-  it('keeps a search running while the writer is on another page, and shows it on the way back', async () => {
-    const api = mockResearch()
-    const held = holdSearches(api)
-    const { router } = await renderAt(page)
-    await ask('Away')
-    await waitFor(() => expect(api.posts).toHaveLength(1))
-    await router.push('/p/ada-substack/ideas/i1/read')
-    await router.push(page)
-    expect(await screen.findByText('“Away”')).toBeInTheDocument()
-    held.release('Away')
-    expect(await screen.findByRole('article', { name: 'Away' })).toBeInTheDocument()
+  it('shows why a search failed, with Try again for its sender while they have it', async () => {
+    const api = mockResearch([
+      run({
+        areas: 'Bob’s failure',
+        state: 'failed',
+        error: 'The search took too long. Try again.',
+        canTryAgain: true,
+        createdBy: 'u2',
+        createdByName: 'Bob',
+      }),
+      run({
+        areas: 'My failure',
+        state: 'failed',
+        attempt: 3,
+        error: 'The AI provider had a problem while searching. Try again in a moment.',
+        canTryAgain: true,
+      }),
+    ])
+    await renderAt(page)
+    const mine = await screen.findByRole('article', { name: 'My failure' })
+    expect(within(mine).getByRole('alert')).toHaveTextContent(
+      'The AI provider had a problem while searching. Try again in a moment.',
+    )
+    const again = within(mine).getByRole('button', { name: 'Try again' })
+    again.focus()
+    await fireEvent.click(again)
+    await waitFor(() => expect(api.posts).toContainEqual({ tryAgain: api.runs[1]!.id }))
+    expect(await within(mine).findByRole('status')).toHaveTextContent('Waiting')
+    // The button has gone, so focus is on the run's heading rather than lost.
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        within(mine).getByRole('heading', { name: 'My failure' }),
+      ),
+    )
+
+    await fireEvent.click(screen.getAllByRole('button', { name: 'Earlier research' })[0]!)
+    const bobs = await screen.findByRole('article', { name: 'Bob’s failure' })
+    expect(within(bobs).getByRole('alert')).toHaveTextContent('The search took too long.')
+    expect(within(bobs).queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 
   it('opens on the run a link names', async () => {
@@ -290,7 +285,7 @@ describe('the research page', () => {
     expect(await screen.findByRole('article', { name: 'The older one' })).toBeInTheDocument()
   })
 
-  it('says what happened when the search fails, with the AI key link for a key problem', async () => {
+  it('says why a search wasn’t sent, keeping the words, with the AI key link for a key problem', async () => {
     mockResearch()
     server.use(
       http.post(base, () =>
@@ -308,22 +303,26 @@ describe('the research page', () => {
       'href',
       '/account/ai',
     )
-    expect(alert.closest('li')).toHaveTextContent('“Anything”')
+    expect(await areasBox()).toHaveValue('Anything')
   })
 
-  it('shows another failure without the settings link', async () => {
+  it('says when the hour’s searches are used up, keeping the words', async () => {
     mockResearch()
     server.use(
       http.post(base, () =>
-        HttpResponse.json({ error: 'The search took too long. Try again.' }, { status: 504 }),
+        HttpResponse.json(
+          { error: 'You’ve reached the limit of 10 searches an hour. Try again in an hour.' },
+          { status: 429 },
+        ),
       ),
     )
     await renderAt(page)
-    await fireEvent.update(await areasBox(), 'Anything')
-    await fireEvent.click(screen.getByRole('button', { name: 'Research' }))
+    await ask('Eleventh')
     const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent('The search took too long.')
+    expect(alert).toHaveTextContent('You’ve reached the limit of 10 searches an hour.')
     expect(within(alert).queryByRole('link')).toBeNull()
+    expect(await areasBox()).toHaveValue('Eleventh')
+    expect(screen.getByRole('button', { name: 'Research' })).toBeEnabled()
   })
 
   it('says so when the research cannot be loaded', async () => {
