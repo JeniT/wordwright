@@ -8,3 +8,4 @@ Read this when you change feeds, the Scan and Research steps, and fetching other
 - [Quotations are marked in the research brief too (#298)](quotations-are-marked-in-the-research-brief-too.md): the research brief marks quotations as Refine does
 - [Article links: fetched titles, and why fetching user-supplied addresses is locked down](related-work-links-fetched-titles-and-why-fetching-user-supplied-addresses.md): titles are fetched server-side from user-supplied addresses, safely
 - [Research is its own tool, and the AI adds to the articles only what a person ticks (T38)](research-is-its-own-tool-and-the-ai-adds.md): the AI adds to the articles only what a person ticks
+- [Research searches run in a queue on the server (#447)](research-searches-run-in-a-server-queue.md): a sent search is a run with a state, queued, retried and shown in the pager
