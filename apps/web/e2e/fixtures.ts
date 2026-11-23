@@ -19,9 +19,13 @@ export function watchForProblems(page: Page): string[] {
       problems.push(`console.error: ${msg.text()}`)
     }
   })
-  page.on('requestfailed', (req) =>
-    problems.push(`request failed: ${req.method()} ${req.url()} (${req.failure()?.errorText})`),
-  )
+  page.on('requestfailed', (req) => {
+    const error = req.failure()?.errorText
+    // A request the browser cancelled (leaving or reloading the page, an AbortController) is not one that failed;
+    // Playwright reports these since 1.65.
+    if (error === 'net::ERR_ABORTED') return
+    problems.push(`request failed: ${req.method()} ${req.url()} (${error})`)
+  })
   page.on('response', (res) => {
     if (res.status() >= 500)
       problems.push(`server error: ${res.status()} ${res.request().method()} ${res.url()}`)
